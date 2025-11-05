@@ -1,0 +1,29 @@
+# C++ 및 일반 빌드 산출물
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+Debug/
+Release/
+build/
+bin/
+
+# Visual Studio 2022 파일
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vs/
+.vs/
+*.[Cc]ache
+*.sdf
+ipch/
+x64/
+Win32/
+obj/
+
+# VS Code 파일
+.vscode/
