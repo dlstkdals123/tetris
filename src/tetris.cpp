@@ -4,6 +4,10 @@
 #include <Windows.h>
 #include <time.h>
 
+#include <iostream>
+
+using namespace std;
+
 //*********************************
 //상수 선언
 //*********************************
@@ -505,7 +509,7 @@ int check_full_line()
 		if(j == 13)	//한줄이 다 채워졌음
 		{
 			lines++;
-			show_total_block();
+			// show_total_block(); // 수정.
 			SetColor(BLUE);
 			gotoxy(1*2+ab_x,i+ab_y);
 			for(j=1;j<13;j++)
@@ -570,8 +574,8 @@ int show_gamestat()
 
 		gotoxy(35,12);
 		printf("LINES");
-		
 
+		printed_text = 1; // 수정
 	}
 	gotoxy(41,7);
 	printf("%d",level+1);
@@ -612,7 +616,13 @@ int input_data()
 	{
 		gotoxy(10,3);
 		printf("Select Start level[1-8]:       \b\b\b\b\b\b\b");
-		scanf_s("%d",&i);
+		// scanf_s("%d",&i);
+		cin >> i; // 수정
+		if (cin.fail()) {
+			cin.clear();
+			cin.ignore(1024, '\n');
+			continue;
+		}
 	}
 	
 	
@@ -655,7 +665,7 @@ int show_logo()
 			
 			for(j=0;j<5;j++)
 			{
-				gotoxy(18,14+j);
+				gotoxy(17,14+j); // 수정
 				printf("                                                          ");
 				
 				
