@@ -195,6 +195,7 @@ int main()
 			{
 				show_gameover();
 				SetColor(GRAY);
+				is_gameover = 0;
 				break;
 			}
 			
@@ -565,7 +566,6 @@ int show_next_block(int shape)
 
 int show_gamestat()
 {
-	static int printed_text=0;
 	SetColor(GRAY);
 	if(printed_text == 0)
 	{
