@@ -97,7 +97,7 @@ int block_start(int shape,int* angle,int* x,int* y);	//블럭이 처음 나올�
 int move_block(int* shape,int* angle,int* x,int* y,int* next_shape);	//게임오버는 1을리턴 바닥에 블럭이 닿으면 2를 리턴
 int rotate_block(int shape,int* angle,int* x,int* y);
 int show_gameover();
-int show_gamestat();
+int show_gamestat(bool printed_text = false);
 int show_logo();
 int input_data();
 int check_full_line();	
@@ -119,7 +119,7 @@ int main()
 		next_block_shape = make_new_block();
 		show_next_block(next_block_shape);
 		block_start(block_shape,&block_angle,&block_x,&block_y);
-		show_gamestat();
+		show_gamestat(true);
 		for(i=1;1;i++)
 		{
 			if(_kbhit())
@@ -564,10 +564,10 @@ int show_next_block(int shape)
 	return 0;
 }
 
-int show_gamestat()
+int show_gamestat(bool printed_text)
 {
 	SetColor(GRAY);
-	if(printed_text == 0)
+	if(printed_text)
 	{
 		gotoxy(35,7);
 		printf("STAGE");
@@ -577,8 +577,6 @@ int show_gamestat()
 
 		gotoxy(35,12);
 		printf("LINES");
-
-		printed_text = 1; // 수정
 	}
 	gotoxy(41,7);
 	printf("%d",level+1);
