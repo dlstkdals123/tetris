@@ -1,13 +1,14 @@
 # tetris
+
 25년 2학기 객체지향프로그래밍 프로젝트
 
 ## Issues
+
 1. gameover가 일어난 이후에 스테이지 재시작을 하면 특정 조건에서 gameover가 나는 오류
+
 - 시작위치에서 일렬로 세우고 gameover가 나온 뒤에, 스테이지에 재입장하여 왼쪽/오른쪽으로 이동하여 놓으면 괜찮지만 시작위치에 놓는 경우 블럭이 마치 위에서 멈추면서 gameover가 나오는 현상.
 
-2. 스테이지 재시작을 했을 때 STAGE 와 같은 글자가 출력되지 않는 오류
-
-3. int가 아닌 값을 입력하였을 때 재입력받지않고 더 이상 어떠한 것도 할 수 없는 오류
+2. int가 아닌 값을 입력하였을 때 재입력받지않고 더 이상 어떠한 것도 할 수 없는 오류
 
 ## 커밋 메시지 컨벤션
 
@@ -24,17 +25,17 @@
 
 사용 가능한 타입은 다음과 같습니다:
 
-* **feat** → 기능 추가 또는 제거에 대한 변경 사항. 예: `feat: add table on landing page`, `feat: remove table from landing page`
-* **fix** → 버그 수정. 예: `fix: illustration overflows in mobile view`
-* **docs** → 문서 업데이트 (README.md)
-* **style** → 코드 로직에 영향을 주지 않는 스타일 업데이트 (임포트 순서 변경, 공백 수정, 주석 제거 등)
-* **chore** → 새 의존성 설치 또는 의존성 버전 업데이트
-* **refactor** → 코드 변경. 결과(output)는 동일하지만 접근 방식이 다름 (예: 리팩토링)
-* **ci** → Github 워크플로우, husky 등 CI/CD 관련 설정 업데이트
-* **test** → 테스트 스위트, cypress 파일 등 테스트 관련 파일 업데이트
-* **revert** → 커밋을 되돌릴 때
-* **perf** → 성능 관련 수정 (상태 파생, memo, callback 사용 등)
-* **vercel** → Vercel 배포를 트리거하기 위한 빈 커밋. 예: `vercel: trigger deployment`
+- **feat** → 기능 추가 또는 제거에 대한 변경 사항. 예: `feat: add table on landing page`, `feat: remove table from landing page`
+- **fix** → 버그 수정. 예: `fix: illustration overflows in mobile view`
+- **docs** → 문서 업데이트 (README.md)
+- **style** → 코드 로직에 영향을 주지 않는 스타일 업데이트 (임포트 순서 변경, 공백 수정, 주석 제거 등)
+- **chore** → 새 의존성 설치 또는 의존성 버전 업데이트
+- **refactor** → 코드 변경. 결과(output)는 동일하지만 접근 방식이 다름 (예: 리팩토링)
+- **ci** → Github 워크플로우, husky 등 CI/CD 관련 설정 업데이트
+- **test** → 테스트 스위트, cypress 파일 등 테스트 관련 파일 업데이트
+- **revert** → 커밋을 되돌릴 때
+- **perf** → 성능 관련 수정 (상태 파생, memo, callback 사용 등)
+- **vercel** → Vercel 배포를 트리거하기 위한 빈 커밋. 예: `vercel: trigger deployment`
 
 ### 2. 스코프 (선택 사항)
 
@@ -50,8 +51,8 @@
 
 **변경 사항이 여러 개인 경우, 하나씩 커밋합니다.**
 
-* 콜론(:) 뒤에는 항상 하나의 공백이 있어야 합니다. 예: `feat: add something`
-* `fix` 타입을 사용할 때는 이슈를 명시합니다. 예: `fix: file size limiter not working`
-* 명령형, 현재 시제를 사용합니다: "change" (O), "changed" (X), "changes" (X)
-* 문장 첫 글자를 대문자로 쓰지 않습니다.
-* 문장 끝에 마침표(.)를 찍지 않습니다.
+- 콜론(:) 뒤에는 항상 하나의 공백이 있어야 합니다. 예: `feat: add something`
+- `fix` 타입을 사용할 때는 이슈를 명시합니다. 예: `fix: file size limiter not working`
+- 명령형, 현재 시제를 사용합니다: "change" (O), "changed" (X), "changes" (X)
+- 문장 첫 글자를 대문자로 쓰지 않습니다.
+- 문장 끝에 마침표(.)를 찍지 않습니다.
