@@ -411,7 +411,7 @@ int strike_check(int shape,int angle,int x,int y)
 		{
 			if(  ((x+j) == 0)  || ((x+j) == 13) )
 				block_dat = 1;
-			else
+			else if (y + i >= 0 && x + j >= 0)
 				block_dat = total_block[y+i][x+j];
 			
 			
