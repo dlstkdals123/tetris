@@ -152,7 +152,7 @@ int main()
 						break;
 					case KEY_RIGHT:		//오른쪽으로 이동
 						
-						if(block_x<14)
+						if(block_x<13)
 						{
 							erase_cur_block(block_shape,block_angle,block_x,block_y);
 							block_x++;
@@ -395,7 +395,6 @@ int make_new_block()
 		return 0;							//막대기 모양으로 리턴
 
 	shape = (rand()%6)+1;		//shape에는 1~6의 값이 들어감
-	show_next_block(shape);
 	return shape;
 }
 
