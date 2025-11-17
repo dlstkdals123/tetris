@@ -403,7 +403,7 @@ int make_new_block()
 int strike_check(int shape,int angle,int x,int y)
 {
 	int i,j;
-	int block_dat;
+	int block_dat = 0;
 
 	for(i=0;i<4;i++)
 	{
