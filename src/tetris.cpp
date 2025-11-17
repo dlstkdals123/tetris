@@ -252,6 +252,7 @@ int init()
 	lines=0;
 	ab_x = 5;
 	ab_y = 1;
+	score = 0;
 
 	stage_data[0].speed=40;
 	stage_data[0].stick_rate=20;	
