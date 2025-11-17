@@ -254,7 +254,7 @@ int init()
 	ab_y = 1;
 
 	stage_data[0].speed=40;
-	stage_data[0].stick_rate=20;	
+	stage_data[0].stick_rate=100;	
 	stage_data[0].clear_line=20;
 	stage_data[1].speed=38;
 	stage_data[1].stick_rate=18;
@@ -443,7 +443,7 @@ int block_start(int shape,int* angle,int* x,int* y)
 {
 	
 	*x = 5;
-	*y = -3;
+	*y = -4;
 	*angle = 0;
 	return 0;	
 }
