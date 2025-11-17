@@ -477,7 +477,7 @@ int move_block(int* shape,int* angle,int* x,int* y,int* next_shape)
 	(*y)++;	//블럭을 한칸 아래로 내림
 	if(strike_check(*shape,*angle,*x,*y) == 1)
 	{
-		if(*y<0)	//게임오버
+		if(*y<=0)	//게임오버
 		{
 			
 			return 1;
