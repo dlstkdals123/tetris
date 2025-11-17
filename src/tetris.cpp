@@ -479,7 +479,7 @@ int move_block(int* shape,int* angle,int* x,int* y,int* next_shape)
 	{
 		if(*y<=0)	//게임오버
 		{
-			
+			(*y)--;
 			return 1;
 		}
 		(*y)--;
