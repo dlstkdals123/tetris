@@ -4,10 +4,6 @@
 
 ## Issues
 
-- [x] 위로 한 칸 넘어가도 게임오버가 안나는 오류
-- [x] Gameover가 되었을 때 시각적으로 한 칸 내려가는 모션이 보이는 오류
-- [x] 맨 위 칸이 지워지는 오류 
-
 ## 커밋 메시지 컨벤션
 
 이 웹사이트는 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 규약을 따릅니다.
