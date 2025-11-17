@@ -513,7 +513,7 @@ int check_full_line()
 		if(j == 13)	//한줄이 다 채워졌음
 		{
 			lines++;
-			// show_total_block(); // 수정.
+			show_total_block(); 
 			SetColor(BLUE);
 			gotoxy(1*2+ab_x,i+ab_y);
 			for(j=1;j<13;j++)
