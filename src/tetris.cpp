@@ -5,6 +5,8 @@
 #include <time.h>
 
 #include <iostream>
+#include "position.h"
+#include "rotation.h"
 
 using namespace std;
 
@@ -50,8 +52,10 @@ enum {
 //전역변수선언
 //*********************************
 int level;
-int ab_x,ab_y;	//화면중 블럭이 나타나는 좌표의 절대위치
-int block_shape,block_angle,block_x,block_y;
+Position board_offset;	//화면중 블럭이 나타나는 좌표의 절대위치 (렌더링 원점)
+int block_shape;
+Rotation block_rotation;	//현재 블럭의 회전 상태
+Position block_pos;	//현재 블럭의 위치
 int next_block_shape;
 int score;
 int lines;
@@ -86,16 +90,16 @@ char block[7][4][4][4]={
 int gotoxy(int x,int y);	//커서옮기기
 void SetColor(int color);	//색표현
 int init();					//각종변수 초기화
-int show_cur_block(int shape,int angle,int x,int y);	//진행중인 블럭을 화면에 표시한다
-int erase_cur_block(int shape,int angle,int x,int y);	//블럭 진행의 잔상을 지우기 위한 함수
+int show_cur_block(int shape,const Rotation& rotation,const Position& pos);	//진행중인 블럭을 화면에 표시한다
+int erase_cur_block(int shape,const Rotation& rotation,const Position& pos);	//블럭 진행의 잔상을 지우기 위한 함수
 int show_total_block();	//쌓여져있는 블럭을 화면에 표시한다.
 int show_next_block(int shape);
 int make_new_block();	//return값으로 block의 모양번호를 알려줌
-int strike_check(int shape,int angle,int x,int y);	//블럭이 화면 맨 아래에 부닥쳤는지 검사 부닥치면 1을리턴 아니면 0리턴
-int merge_block(int shape,int angle,int x,int y);	//블럭이 바닥에 닿았을때 진행중인 블럭과 쌓아진 블럭을 합침
-int block_start(int shape,int* angle,int* x,int* y);	//블럭이 처음 나올때 위치와 모양을 알려줌
-int move_block(int* shape,int* angle,int* x,int* y,int* next_shape);	//게임오버는 1을리턴 바닥에 블럭이 닿으면 2를 리턴
-int rotate_block(int shape,int* angle,int* x,int* y);
+int strike_check(int shape,const Rotation& rotation,const Position& pos);	//블럭이 화면 맨 아래에 부닥쳤는지 검사 부닥치면 1을리턴 아니면 0리턴
+int merge_block(int shape,const Rotation& rotation,const Position& pos);	//블럭이 바닥에 닿았을때 진행중인 블럭과 쌓아진 블럭을 합침
+int block_start(int shape,Rotation& rotation,Position& pos);	//블럭이 처음 나올때 위치와 모양을 알려줌
+int move_block(int* shape,Rotation& rotation,Position& pos,int* next_shape);	//게임오버는 1을리턴 바닥에 블럭이 닿으면 2를 리턴
+int rotate_block(int shape,Rotation& rotation,Position& pos);
 int show_gameover();
 int show_gamestat(bool printed_text = false);
 int show_logo();
@@ -118,7 +122,7 @@ int main()
 		block_shape = make_new_block();
 		next_block_shape = make_new_block();
 		show_next_block(next_block_shape);
-		block_start(block_shape,&block_angle,&block_x,&block_y);
+		block_start(block_shape,block_rotation,block_pos);
 		show_gamestat(true);
 		for(i=1;1;i++)
 		{
@@ -131,39 +135,41 @@ int main()
 					switch(keytemp)
 					{
 					case KEY_UP:		//회전하기
-						
-						if(strike_check(block_shape,(block_angle+1)%4,block_x,block_y) == 0)
 						{
-							erase_cur_block(block_shape,block_angle,block_x,block_y);
-							block_angle = (block_angle+1)%4;
-							show_cur_block(block_shape,block_angle,block_x,block_y);
+							Rotation next_rotation(block_rotation.getNextAngle());
+							if(strike_check(block_shape,next_rotation,block_pos) == 0)
+							{
+								erase_cur_block(block_shape,block_rotation,block_pos);
+								block_rotation.rotateClockwise();
+								show_cur_block(block_shape,block_rotation,block_pos);
+							}
 						}
 						break;
 					case KEY_LEFT:		//왼쪽으로 이동
-						if(block_x>1)
+						if(block_pos.getX()>1)
 						{
-							erase_cur_block(block_shape,block_angle,block_x,block_y);
-							block_x--;
-							if(strike_check(block_shape,block_angle,block_x,block_y) == 1)
-								block_x++;
+							erase_cur_block(block_shape,block_rotation,block_pos);
+							block_pos.moveLeft();
+							if(strike_check(block_shape,block_rotation,block_pos) == 1)
+								block_pos.moveRight();
 							
-							show_cur_block(block_shape,block_angle,block_x,block_y);
+							show_cur_block(block_shape,block_rotation,block_pos);
 						}
 						break;
 					case KEY_RIGHT:		//오른쪽으로 이동
 						
-						if(block_x<13)
+						if(block_pos.getX()<13)
 						{
-							erase_cur_block(block_shape,block_angle,block_x,block_y);
-							block_x++;
-							if(strike_check(block_shape,block_angle,block_x,block_y) == 1)
-								block_x--;
-							show_cur_block(block_shape,block_angle,block_x,block_y);
+							erase_cur_block(block_shape,block_rotation,block_pos);
+							block_pos.moveRight();
+							if(strike_check(block_shape,block_rotation,block_pos) == 1)
+								block_pos.moveLeft();
+							show_cur_block(block_shape,block_rotation,block_pos);
 						}
 						break;
 					case KEY_DOWN:		//아래로 이동
-						is_gameover = move_block(&block_shape,&block_angle,&block_x,&block_y,&next_block_shape);
-						show_cur_block(block_shape,block_angle,block_x,block_y);
+						is_gameover = move_block(&block_shape,block_rotation,block_pos,&next_block_shape);
+						show_cur_block(block_shape,block_rotation,block_pos);
 						break;
 					}
 				}
@@ -171,16 +177,16 @@ int main()
 				{
 					while(is_gameover == 0)
 					{
-						is_gameover = move_block(&block_shape,&block_angle,&block_x,&block_y,&next_block_shape);
+						is_gameover = move_block(&block_shape,block_rotation,block_pos,&next_block_shape);
 					}
-					show_cur_block(block_shape,block_angle,block_x,block_y);
+					show_cur_block(block_shape,block_rotation,block_pos);
 				}
 			}
 			if(i%stage_data[level].speed == 0)
 			{
-				is_gameover = move_block(&block_shape,&block_angle,&block_x,&block_y,&next_block_shape);
+				is_gameover = move_block(&block_shape,block_rotation,block_pos,&next_block_shape);
 				
-				show_cur_block(block_shape,block_angle,block_x,block_y);
+				show_cur_block(block_shape,block_rotation,block_pos);
 			}
 			
 			if(stage_data[level].clear_line <= lines)	//클리어 스테이지
@@ -250,8 +256,7 @@ int init()
 	//전역변수 초기화
 	level=0;
 	lines=0;
-	ab_x = 5;
-	ab_y = 1;
+	board_offset.set(5, 1);
 	score = 0;
 
 	stage_data[0].speed=40;
@@ -287,9 +292,12 @@ int init()
 	return 0;
 }
 
-int show_cur_block(int shape,int angle,int x,int y)
+int show_cur_block(int shape,const Rotation& rotation,const Position& pos)
 {
 	int i,j;
+	int x = pos.getX();
+	int y = pos.getY();
+	int angle = rotation.getAngle();
 	
 	switch(shape)
 	{
@@ -325,7 +333,7 @@ int show_cur_block(int shape,int angle,int x,int y)
 
 			if(block[shape][angle][j][i] == 1)
 			{
-				gotoxy((i+x)*2+ab_x,j+y+ab_y);
+				gotoxy((i+x)*2+board_offset.getX(),j+y+board_offset.getY());
 				printf("■");
 
 			}
@@ -336,16 +344,19 @@ int show_cur_block(int shape,int angle,int x,int y)
 	return 0;
 }
 
-int erase_cur_block(int shape,int angle,int x,int y)
+int erase_cur_block(int shape,const Rotation& rotation,const Position& pos)
 {
 	int i,j;
+	int x = pos.getX();
+	int y = pos.getY();
+	int angle = rotation.getAngle();
 	for(i=0;i<4;i++)
 	{
 		for(j=0;j<4;j++)
 		{
 			if(block[shape][angle][j][i] == 1)
 			{
-				gotoxy((i+x)*2+ab_x,j+y+ab_y);
+				gotoxy((i+x)*2+board_offset.getX(),j+y+board_offset.getY());
 				printf("  ");
 				//break;
 				
@@ -372,7 +383,7 @@ int show_total_block()
 			}else{
 				SetColor(DARK_GRAY);
 			}
-			gotoxy( (j*2)+ab_x, i+ab_y );
+			gotoxy( (j*2)+board_offset.getX(), i+board_offset.getY() );
 			if(total_block[i][j] == 1)
 			{	
 				printf("■");
@@ -400,10 +411,13 @@ int make_new_block()
 }
 
 
-int strike_check(int shape,int angle,int x,int y)
+int strike_check(int shape,const Rotation& rotation,const Position& pos)
 {
 	int i,j;
 	int block_dat = 0;
+	int x = pos.getX();
+	int y = pos.getY();
+	int angle = rotation.getAngle();
 
 	for(i=0;i<4;i++)
 	{
@@ -424,9 +438,12 @@ int strike_check(int shape,int angle,int x,int y)
 	return 0;
 }
 
-int merge_block(int shape,int angle,int x,int y)
+int merge_block(int shape,const Rotation& rotation,const Position& pos)
 {
 	int i,j;
+	int x = pos.getX();
+	int y = pos.getY();
+	int angle = rotation.getAngle();
 	for(i=0;i<4;i++)
 	{
 		for(j=0;j<4;j++)
@@ -440,12 +457,11 @@ int merge_block(int shape,int angle,int x,int y)
 	return 0;
 }
 
-int block_start(int shape,int* angle,int* x,int* y)
+int block_start(int shape,Rotation& rotation,Position& pos)
 {
 	
-	*x = 5;
-	*y = -4;
-	*angle = 0;
+	pos.set(5, -4);
+	rotation.reset();
 	return 0;	
 }
 
@@ -471,31 +487,31 @@ int show_gameover()
 	return 0;
 }
 
-int move_block(int* shape,int* angle,int* x,int* y,int* next_shape)
+int move_block(int* shape,Rotation& rotation,Position& pos,int* next_shape)
 {
-	erase_cur_block(*shape,*angle,*x,*y);
+	erase_cur_block(*shape,rotation,pos);
 	
-	(*y)++;	//블럭을 한칸 아래로 내림
-	if(strike_check(*shape,*angle,*x,*y) == 1)
+	pos.moveDown();	//블럭을 한칸 아래로 내림
+	if(strike_check(*shape,rotation,pos) == 1)
 	{
-		if(*y<=0)	//게임오버
+		if(pos.getY()<=0)	//게임오버
 		{
-			(*y)--;
+			pos.moveUp();
 			return 1;
 		}
-		(*y)--;
-		merge_block(*shape,*angle,*x,*y);
+		pos.moveUp();
+		merge_block(*shape,rotation,pos);
 		*shape = *next_shape;
 		*next_shape = make_new_block();
 		
-		block_start(*shape,angle,x,y);	//angle,x,y는 포인터임
+		block_start(*shape,rotation,pos);	//rotation,pos는 참조임
 		show_next_block(*next_shape);
 		return 2;
 	}
 	return 0;
 }
 
-int rotate_block(int shape,int* angle,int* x,int* y)
+int rotate_block(int shape,Rotation& rotation,Position& pos)
 {
 	return 0;
 }
@@ -515,13 +531,13 @@ int check_full_line()
 			lines++;
 			show_total_block(); 
 			SetColor(BLUE);
-			gotoxy(1*2+ab_x,i+ab_y);
+			gotoxy(1*2+board_offset.getX(),i+board_offset.getY());
 			for(j=1;j<13;j++)
 			{
 				printf("□");
 				Sleep(10);
 			}
-			gotoxy(1*2+ab_x,i+ab_y);
+			gotoxy(1*2+board_offset.getX(),i+board_offset.getY());
 			for(j=1;j<13;j++)
 			{
 				printf("  ");
@@ -560,7 +576,9 @@ int show_next_block(int shape)
 
 		}
 	}
-	show_cur_block(shape,0,15,1);
+	Position next_pos(15, 1);
+	Rotation next_rotation(0);
+	show_cur_block(shape,next_rotation,next_pos);
 	return 0;
 }
 
@@ -671,10 +689,18 @@ int show_logo()
 				
 				
 			}
-			show_cur_block(rand()%7,rand()%4,6,14);
-			show_cur_block(rand()%7,rand()%4,12,14);
-			show_cur_block(rand()%7,rand()%4,19,14);
-			show_cur_block(rand()%7,rand()%4,24,14);
+			Position logo_pos1(6, 14);
+			Position logo_pos2(12, 14);
+			Position logo_pos3(19, 14);
+			Position logo_pos4(24, 14);
+			Rotation logo_rot1(rand()%4);
+			Rotation logo_rot2(rand()%4);
+			Rotation logo_rot3(rand()%4);
+			Rotation logo_rot4(rand()%4);
+			show_cur_block(rand()%7,logo_rot1,logo_pos1);
+			show_cur_block(rand()%7,logo_rot2,logo_pos2);
+			show_cur_block(rand()%7,logo_rot3,logo_pos3);
+			show_cur_block(rand()%7,logo_rot4,logo_pos4);
 		}
 		if(_kbhit())
 			break;
