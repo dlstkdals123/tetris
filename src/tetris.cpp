@@ -7,6 +7,9 @@
 #include <iostream>
 #include "position.h"
 #include "rotation.h"
+#include "Stage.h"
+#include "Color.h"
+#include "gameState.h"
 
 using namespace std;
 
@@ -21,46 +24,16 @@ using namespace std;
 #define KEY_DOWN		0x50
 
 //*********************************
-//구조체 선언
-//*********************************
-struct STAGE{		//각 스테이지마다의 난이도 설정
-	int	speed;	//숫자가 낮을수록 속도가 빠르다
-	int stick_rate;		//막대가 나오는 확률 0~99 , 99면 막대기만 나옴
-	int clear_line;
-};
-
-enum { 
-		BLACK,      /*  0 : 까망 */ 
-		DARK_BLUE,    /*  1 : 어두운 파랑 */ 
-		DARK_GREEN,    /*  2 : 어두운 초록 */ 
-		DARK_SKY_BLUE,  /*  3 : 어두운 하늘 */ 
-		DARK_RED,    /*  4 : 어두운 빨강 */ 
-		DARK_VOILET,  /*  5 : 어두운 보라 */ 
-		DARK_YELLOW,  /*  6 : 어두운 노랑 */ 
-		GRAY,      /*  7 : 회색 */ 
-		DARK_GRAY,    /*  8 : 어두운 회색 */ 
-		BLUE,      /*  9 : 파랑 */ 
-		GREEN,      /* 10 : 초록 */ 
-		SKY_BLUE,    /* 11 : 하늘 */ 
-		RED,      /* 12 : 빨강 */ 
-		VOILET,      /* 13 : 보라 */ 
-		YELLOW,      /* 14 : 노랑 */ 	
-		WHITE,      /* 15 : 하양 */ 	
-}; 
-
-//*********************************
 //전역변수선언
 //*********************************
-int level;
+
+gameState gamestate;	// 게임 상태 관리하는 객체
 Position board_offset;	//화면중 블럭이 나타나는 좌표의 절대위치 (렌더링 원점)
 int block_shape;
 Rotation block_rotation;	//현재 블럭의 회전 상태
 Position block_pos;	//현재 블럭의 위치
 int next_block_shape;
-int score;
-int lines;
 char total_block[21][14];		//화면에 표시되는 블럭들
-struct STAGE stage_data[10];
 char block[7][4][4][4]={
 	//막대모양
 	1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,	1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,	1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,	1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -84,11 +57,27 @@ char block[7][4][4][4]={
 	0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,	1,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,	0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,	1,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0
 
 };
+
+// 스테이지별 설정 초기화
+// 순서대로 speed, stick_rate, clear_line
+const STAGE stage_data[10] = {
+	STAGE(40, 20, 20),		// Level 1
+	STAGE(38, 18, 20),		// Level 2
+	STAGE(35, 18, 20),		// Level 3
+	STAGE(30, 17, 20),		// Level 4
+	STAGE(25, 16, 20),		// Level 5
+	STAGE(20, 14, 20),		// Level 6
+	STAGE(15, 14, 20),		// Level 7
+	STAGE(10, 13, 20),		// Level 8
+	STAGE(6, 12, 20),		// Level 9
+	STAGE(4, 11, 99999)		// Level 10
+};
+
 //*********************************
 //함수 선언
 //*********************************
 int gotoxy(int x,int y);	//커서옮기기
-void SetColor(int color);	//색표현
+void SetColor(COLOR color);	//색표현
 int init();					//각종변수 초기화
 int show_cur_block(int shape,const Rotation& rotation,const Position& pos);	//진행중인 블럭을 화면에 표시한다
 int erase_cur_block(int shape,const Rotation& rotation,const Position& pos);	//블럭 진행의 잔상을 지우기 위한 함수
@@ -182,17 +171,16 @@ int main()
 					show_cur_block(block_shape,block_rotation,block_pos);
 				}
 			}
-			if(i%stage_data[level].speed == 0)
+			if(i%stage_data[gamestate.getLevel()].getSpeed() == 0)
 			{
 				is_gameover = move_block(&block_shape,block_rotation,block_pos,&next_block_shape);
 				
 				show_cur_block(block_shape,block_rotation,block_pos);
 			}
 			
-			if(stage_data[level].clear_line <= lines)	//클리어 스테이지
+			if(stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())	//클리어 스테이지
 			{
-				level++;
-				lines = 0;
+				gamestate.levelUp();
 				show_total_block();
 				show_gamestat();
 				show_next_block(next_block_shape);
@@ -200,7 +188,7 @@ int main()
 			if(is_gameover == 1)
 			{
 				show_gameover();
-				SetColor(GRAY);
+				SetColor(COLOR::GRAY);
 				is_gameover = 0;
 				break;
 			}
@@ -224,10 +212,11 @@ int gotoxy(int x,int y)
 	return 0;
 }
 
-void SetColor(int color) 
+void SetColor(COLOR color) 
 { 
 	static HANDLE std_output_handle=GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(std_output_handle, color); 
+	// enum 클래스를 int로 형변환
+	SetConsoleTextAttribute(std_output_handle, static_cast<int>(color));
 } 
 
 int init()
@@ -254,41 +243,9 @@ int init()
 		total_block[20][j]=1;
 	
 	//전역변수 초기화
-	level=0;
-	lines=0;
+	gamestate.resetState();
 	board_offset.set(5, 1);
-	score = 0;
 
-	stage_data[0].speed=40;
-	stage_data[0].stick_rate=20;	
-	stage_data[0].clear_line=20;
-	stage_data[1].speed=38;
-	stage_data[1].stick_rate=18;
-	stage_data[1].clear_line=20;
-	stage_data[2].speed=35;
-	stage_data[2].stick_rate=18;
-	stage_data[2].clear_line=20;
-	stage_data[3].speed=30;
-	stage_data[3].stick_rate=17;
-	stage_data[3].clear_line=20;
-	stage_data[4].speed=25;
-	stage_data[4].stick_rate=16;
-	stage_data[4].clear_line=20;
-	stage_data[5].speed=20;
-	stage_data[5].stick_rate=14;
-	stage_data[5].clear_line=20;
-	stage_data[6].speed=15;
-	stage_data[6].stick_rate=14;
-	stage_data[6].clear_line=20;
-	stage_data[7].speed=10;
-	stage_data[7].stick_rate=13;
-	stage_data[7].clear_line=20;
-	stage_data[8].speed=6;
-	stage_data[8].stick_rate=12;
-	stage_data[8].clear_line=20;
-	stage_data[9].speed=4;
-	stage_data[9].stick_rate=11;
-	stage_data[9].clear_line=99999;
 	return 0;
 }
 
@@ -302,25 +259,25 @@ int show_cur_block(int shape,const Rotation& rotation,const Position& pos)
 	switch(shape)
 	{
 	case 0:
-		SetColor(RED);
+		SetColor(COLOR::RED);
 		break;
 	case 1:
-		SetColor(BLUE);
+		SetColor(COLOR::BLUE);
 		break;
 	case 2:
-		SetColor(SKY_BLUE);
+		SetColor(COLOR::SKY_BLUE);
 		break;
 	case 3:
-		SetColor(WHITE);
+		SetColor(COLOR::WHITE);
 		break;
 	case 4:
-		SetColor(YELLOW);
+		SetColor(COLOR::YELLOW);
 		break;
 	case 5:
-		SetColor(VOILET);
+		SetColor(COLOR::VOILET);
 		break;
 	case 6:
-		SetColor(GREEN);
+		SetColor(COLOR::GREEN);
 		break;
 	}
 
@@ -339,7 +296,7 @@ int show_cur_block(int shape,const Rotation& rotation,const Position& pos)
 			}
 		}
 	}
-	SetColor(BLACK);
+	SetColor(COLOR::BLACK);
 	gotoxy(77,23);
 	return 0;
 }
@@ -371,17 +328,17 @@ int erase_cur_block(int shape,const Rotation& rotation,const Position& pos)
 int show_total_block()
 {
 	int i,j;
-	SetColor(DARK_GRAY);
+	SetColor(COLOR::DARK_GRAY);
 	for(i=0;i<21;i++)
 	{
 		for(j=0;j<14;j++)
 		{
 			if(j==0 || j==13 || i==20)		//레벨에 따라 외벽 색이 변함
 			{
-				SetColor((level %6) +1);
+				SetColor(static_cast<COLOR>((gamestate.getLevel() % 6) + 1));
 				
 			}else{
-				SetColor(DARK_GRAY);
+				SetColor(COLOR::DARK_GRAY);
 			}
 			gotoxy( (j*2)+board_offset.getX(), i+board_offset.getY() );
 			if(total_block[i][j] == 1)
@@ -393,7 +350,7 @@ int show_total_block()
 			
 		}
 	}
-	SetColor(BLACK);
+	SetColor(COLOR::BLACK);
 	gotoxy(77,23);
 	return 0;
 }
@@ -403,7 +360,7 @@ int make_new_block()
 	int shape;
 	int i;
 	i=rand()%100;
-	if(i<=stage_data[level].stick_rate)		//막대기 나올확률 계산
+	if(i<=stage_data[gamestate.getLevel()].getStickRate())		//막대기 나올확률 계산
 		return 0;							//막대기 모양으로 리턴
 
 	shape = (rand()%6)+1;		//shape에는 1~6의 값이 들어감
@@ -467,7 +424,7 @@ int block_start(int shape,Rotation& rotation,Position& pos)
 
 int show_gameover()
 {
-	SetColor(RED);
+	SetColor(COLOR::RED);
 	gotoxy(15,8);
 	printf("┏━━━━━━━━━━━━━┓");
 	gotoxy(15,9);
@@ -528,9 +485,9 @@ int check_full_line()
 		}
 		if(j == 13)	//한줄이 다 채워졌음
 		{
-			lines++;
+			gamestate.addLines(1);
 			show_total_block(); 
-			SetColor(BLUE);
+			SetColor(COLOR::BLUE);
 			gotoxy(1*2+board_offset.getX(),i+board_offset.getY());
 			for(j=1;j<13;j++)
 			{
@@ -551,7 +508,8 @@ int check_full_line()
 			}
 			for(j=1;j<13;j++)
 				total_block[0][j] = 0;
-			score+= 100+(level*10) + (rand()%10);
+			int plusScore = 100 + (gamestate.getLevel() * 10) + (rand() % 10);
+			gamestate.addScore(plusScore);
 			show_gamestat();
 		}
 	}
@@ -561,7 +519,7 @@ int check_full_line()
 int show_next_block(int shape)
 {
 	int i,j;
-	SetColor((level+1)%6+1);
+	SetColor(static_cast<COLOR>((gamestate.getLevel() + 1) % 6 + 1));
 	for(i=1;i<7;i++)
 	{
 		gotoxy(33,i);
@@ -584,7 +542,7 @@ int show_next_block(int shape)
 
 int show_gamestat(bool printed_text)
 {
-	SetColor(GRAY);
+	SetColor(COLOR::GRAY);
 	if(printed_text)
 	{
 		gotoxy(35,7);
@@ -597,18 +555,18 @@ int show_gamestat(bool printed_text)
 		printf("LINES");
 	}
 	gotoxy(41,7);
-	printf("%d",level+1);
+	printf("%d",gamestate.getLevel() + 1);
 	gotoxy(35,10);
-	printf("%10d",score);
+	printf("%10d", gamestate.getScore());
 	gotoxy(35,13);
-	printf("%10d",stage_data[level].clear_line - lines);
+	printf("%10d",stage_data[gamestate.getLevel()].getClearLine() - gamestate.getLines());
 	return 0;
 }
 
 int input_data()
 {
 	int i=0;
-	SetColor(GRAY);
+	SetColor(COLOR::GRAY);
 	gotoxy(10,7);
 	printf("┏━━━━<GAME KEY>━━━━━┓");
 	Sleep(10);
@@ -645,7 +603,7 @@ int input_data()
 	}
 	
 	
-	level = i-1;
+	gamestate.setLevel(i - 1);
 	system("cls");
 	return 0;
 }
