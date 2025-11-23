@@ -1,7 +1,7 @@
 #include "Utils.h"
-#include <window.h>
+#include <Windows.h>
 
-int Utils::gotoxy(int x, int y); {
+int Utils::gotoxy(int x, int y) {
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); 
 	COORD pos; 
 	pos.Y=y;

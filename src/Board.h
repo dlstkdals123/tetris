@@ -9,9 +9,15 @@ class Block {
     int angle;
     int x;
     int y;
-    int getShape(int x, int y) const;
-    int getx() const;
-    int gety() const;
+    int getShape(int x, int y) const {
+      return 0;
+    }
+    int getx() const {
+      return x;
+    }
+    int gety() const {
+      return y;
+    }
    
 };
 // =============================
