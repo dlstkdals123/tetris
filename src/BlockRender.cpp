@@ -48,7 +48,7 @@ void BlockRender::show_cur_block(BlockType shape,const Rotation& rotation,const 
 			if(BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1)
 			{
 				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY());
-				printf("¡á");
+				printf("ï¿½ï¿½");
 			}
 		}
 	}
@@ -86,7 +86,7 @@ void BlockRender::show_next_block(BlockType shape) {
 		{
 			if(i==1 || i==6 || j==0 || j==5)
 			{
-				printf("¡á");				
+				printf("â– ");				
 			}else{
 				printf("  ");
 			}
