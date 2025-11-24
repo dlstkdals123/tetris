@@ -1,59 +1,55 @@
 ﻿#include "BlockMover.h"
 #include "Block.h"
+#include "BlockGenerator.h"
+BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator) : renderer(renderer), board(board), blockGenerator(blockGenerator){}
 
-BlockMover::BlockMover(BlockRender& renderer, Board& board) : renderer(renderer), board(board){}
-
-int BlockMover::move_block(BlockType* shape,Rotation& rotation,Position& pos,BlockType* next_shape) {
-
-	pos.moveDown();	//블럭을 한칸 아래로 내림
-    Block thisBlock(*shape, rotation, pos);
-	if(board.isStrike(thisBlock) == 1)
-	{
-		if(pos.getY()<=0)	//게임오버
-		{
-			pos.moveUp();
+int BlockMover::move_block(Block& block, Block& nextBlock) {
+	renderer.erase_cur_block(block);
+	Block testBlock = block; // 테스트 블록 생성
+	testBlock.moveDown();
+	if(board.isStrike(block) == 1){
+		if(block.getPos().getY() <= 0);
 			return 1;
-		}
-		pos.moveUp();
-		board.mergeBlock(thisBlock);
-		Block nextBlock(*next_shape);
-		renderer.show_next_block(*next_shape);
+		block.moveUp();
+		board.mergeBlock(block);
+		nextBlock.block_start();
+		Block newBlock = blockGenerator.make_new_block();
+		renderer.show_next_block(newBlock);
 		return 2;
 	}
 	return 0;
 }    //게임오버는 1을리턴 바닥에 블럭이 닿으면 2를 리턴
 
-void BlockMover::rotate_block(BlockType* shape,Rotation& rotation,Position& pos) {
-    Rotation next_rotation(rotation.getNextAngle());
-    Block nextBlock(*shape, next_rotation, pos);
+void BlockMover::rotate_block(Block& block) {
+	Rotation rotation = block.getRotation();
+	Rotation next_rotation(rotation.getNextAngle());
+    Block nextBlock(block.getType(), next_rotation,block.getPos()); //임시객체
     if(board.isStrike(nextBlock) == 0)
     {
-        renderer.erase_cur_block(*shape,rotation,pos);
-        rotation.rotateClockwise();
-        renderer.show_cur_block(*shape,next_rotation,pos);
+        renderer.erase_cur_block(block);
+		block.rotate();
+        renderer.show_cur_block(block);
     }
 }
 
- void BlockMover::movedLeft(BlockType* shape,Rotation& rotation,Position& pos) {
-	Block thisBlock(*shape, rotation, pos);
-	if(pos.getX()>1)
+ void BlockMover::movedLeft(Block& block) {
+	if(block.getPos().getX()>1)
 	{
-		renderer.erase_cur_block(*shape, rotation, pos);
-		pos.moveLeft();
-		if(board.isStrike(thisBlock) == 1)
-			pos.moveRight();
-		renderer.show_cur_block(*shape,rotation,pos);
+		renderer.erase_cur_block(block);
+		block.moveLeft();
+		if(board.isStrike(block) == 1)
+			block.moveRight();
+		renderer.show_cur_block(block);
 	}
  }
 
-void BlockMover::movedRight(BlockType* shape,Rotation& rotation,Position& pos) {
-	Block thisBlock(*shape, rotation, pos);
-	if(pos.getX()<13)
+void BlockMover::movedRight(Block& block) {
+	if(block.getPos().getX()<13)
 	{
-		renderer.erase_cur_block(*shape,rotation,pos);
-		pos.moveRight();
-		if(board.isStrike(thisBlock) == 1)
-			pos.moveLeft();
-		renderer.show_cur_block(*shape,rotation,pos);
+		renderer.erase_cur_block(block);
+		block.moveRight();
+		if(board.isStrike(block) == 1)
+			block.moveLeft();
+		renderer.show_cur_block(block);
 	}
 }

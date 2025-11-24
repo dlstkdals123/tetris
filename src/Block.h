@@ -12,7 +12,7 @@ private:
 public:
     Block(BlockType type = BlockType::I) : type(type), rotation(0), pos(5, -4) {}
     Block(BlockType type, Rotation rotation, Position pos) : type(type), rotation(rotation), pos(pos) {}
-
+    ~Block() = default;
     BlockType getType() const {
         return type;
     }
@@ -22,13 +22,23 @@ public:
     const Position& getPos() const {
         return pos;
     }
-    Block moveDown() {
-        Block b = *this;
-        b.pos.moveDown();
-        return b;
+    void moveDown() {
+        this->pos.moveDown();
     }
-    void block_start(Rotation& rotation,Position& pos) {
-	    pos.set(5, -4);
-	    rotation.reset();
+    void moveUp() {
+        this->pos.moveUp();
+    }
+    void moveLeft() {
+        this->pos.moveLeft();
+    }
+    void moveRight() {
+        this->pos.moveRight();
+    }
+    void rotate() {
+        this->rotation.setAngle(rotation.getNextAngle());
+    }
+    void block_start() {
+        this->pos.set(5,-4);
+        this->rotation.reset();
     }
 };
