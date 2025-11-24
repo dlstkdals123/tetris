@@ -14,5 +14,4 @@ public:
     void movedLeft(BlockType* shape,Rotation& rotation,Position& pos);
 
     void movedRight(BlockType* shape,Rotation& rotation,Position& pos);
-
 };
