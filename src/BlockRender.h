@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "gameState.h"
 #include "Block.h"
 class BlockRender {

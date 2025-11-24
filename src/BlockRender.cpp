@@ -1,4 +1,4 @@
-#include "BlockRender.h"
+﻿#include "BlockRender.h"
 #include "Utils.h"
 #include "Block.h"
 #include "Board.h"
@@ -48,7 +48,7 @@ void BlockRender::show_cur_block(BlockType shape,const Rotation& rotation,const 
 			if(BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1)
 			{
 				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY());
-				printf("��");
+				printf("■");
 			}
 		}
 	}

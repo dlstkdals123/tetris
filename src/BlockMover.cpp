@@ -1,14 +1,14 @@
-#include "BlockMover.h"
+ï»¿#include "BlockMover.h"
 #include "Block.h"
 
 BlockMover::BlockMover(BlockRender& renderer, Board& board) : renderer(renderer), board(board){}
 
 int BlockMover::move_block(BlockType* shape,Rotation& rotation,Position& pos,BlockType* next_shape) {
-	pos.moveDown();	//ºí·°À» ÇÑÄ­ ¾Æ·¡·Î ³»¸²
+	pos.moveDown();	//ë¸”ëŸ­ì„ í•œì¹¸ ì•„ë˜ë¡œ ë‚´ë¦¼
     Block thisBlock(*shape, rotation, pos);
 	if(board.isStrike(thisBlock) == 1)
 	{
-		if(pos.getY()<=0)	//°ÔÀÓ¿À¹ö
+		if(pos.getY()<=0)	//ê²Œì„ì˜¤ë²„
 		{
 			pos.moveUp();
 			return 1;
@@ -20,7 +20,7 @@ int BlockMover::move_block(BlockType* shape,Rotation& rotation,Position& pos,Blo
 		return 2;
 	}
 	return 0;
-}    //°ÔÀÓ¿À¹ö´Â 1À»¸®ÅÏ ¹Ù´Ú¿¡ ºí·°ÀÌ ´êÀ¸¸é 2¸¦ ¸®ÅÏ
+}    //ê²Œì„ì˜¤ë²„ëŠ” 1ì„ë¦¬í„´ ë°”ë‹¥ì— ë¸”ëŸ­ì´ ë‹¿ìœ¼ë©´ 2ë¥¼ ë¦¬í„´
 
 void BlockMover::rotate_block(BlockType* shape,Rotation& rotation,Position& pos) {
     Rotation next_rotation(rotation.getNextAngle());

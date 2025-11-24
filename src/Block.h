@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 #include "BlockData.h"
 #include "rotation.h"
 #include "position.h"
 
-// ºí·Ï °´Ã¼ = shape, rotation, position º¸°ü, ÀÌµ¿+È¸Àü,
+// ë¸”ë¡ ê°ì²´ = shape, rotation, position ë³´ê´€, ì´ë™+íšŒì „,
 class Block{
 private:
     BlockType type;
