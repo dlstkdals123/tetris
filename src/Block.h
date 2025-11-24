@@ -15,23 +15,6 @@ public:
     BlockType getType() const {return type;}
     int getRotation() const {return rotation.getAngle();}
     const Position& getPos() const {return pos;}
-
-    Block movedDown() const {
-        Block b = *this;
-        b.pos.moveDown();
-        return b;
-    }
-    Block movedLeft() const {
-        Block b = *this;
-        b.pos.moveLeft();
-        return b;
-    }
-    Block movedRight() {
-        Block b = *this;
-        b.pos.moveRight();
-        return b;
-    }
-
     int rotate_block(int shape,Rotation& rotation,Position& pos){
 	    return 0;
     }
