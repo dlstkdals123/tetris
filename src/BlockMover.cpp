@@ -4,6 +4,7 @@
 BlockMover::BlockMover(BlockRender& renderer, Board& board) : renderer(renderer), board(board){}
 
 int BlockMover::move_block(BlockType* shape,Rotation& rotation,Position& pos,BlockType* next_shape) {
+
 	pos.moveDown();	//블럭을 한칸 아래로 내림
     Block thisBlock(*shape, rotation, pos);
 	if(board.isStrike(thisBlock) == 1)

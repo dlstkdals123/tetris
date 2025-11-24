@@ -95,6 +95,7 @@ void Board::draw(const int &level) const
 
 int Board::isStrike(const Block &block)
 {
+	Position pos = block.getPos();
     int i, j;
     int x = block.getPos().getX();
     int y = block.getPos().getY();
@@ -103,7 +104,7 @@ int Board::isStrike(const Block &block)
     {
         for (j = 0; j < 4; j++)
         {
-            if (block.getShape(i, j) == 0)
+            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == 0)
             { // 블럭의 해당 위치가 채워져있는지 검사.
                 continue;
             }
@@ -127,14 +128,15 @@ int Board::isStrike(const Block &block)
 
 void Board::mergeBlock(const Block &block)
 {
+    Position pos = block.getPos();
     int i, j;
-    int x = block.getx();
-    int y = block.gety();
+    int x = pos.getX();
+    int y = pos.getY();
     for (i = 0; i < 4; i++)
     {
         for (j = 0; j < 4; j++)
         {
-            if (block.getShape(i, j) == 1)
+            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == 1)
             {
                 if (y + i >= 0)
                 {
@@ -197,35 +199,4 @@ int Board::deleteFullLine()
         }
     }
     return deletedLines;
-}
-
-void Board::show_next_block()
-{
-    int i, j;
-    Utils::setColor(COLOR::DARK_GRAY);
-    for (i = 0; i < 21; i++)
-    {
-        for (j = 0; j < 14; j++)
-        {
-            if (j == 0 || j == 13 || i == 20) // 레벨에 따라 외벽 색이 변함
-            {
-                Utils::setColor(static_cast<COLOR>((gs.getLevel() % 6) + 1));
-            }
-            else
-            {
-                Utils::setColor(COLOR::DARK_GRAY);
-            }
-            Utils::gotoxy((j * 2) + boardOffset.getX(), i + boardOffset.getY());
-            int total_block = board.data if (total_block[i][j] == 1)
-            {
-                printf("■");
-            }
-            else
-            {
-                printf("  ");
-            }
-        }
-    }
-    Utils::setColor(COLOR::BLACK);
-    Utils::gotoxy(77, 23);
 }
