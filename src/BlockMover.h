@@ -7,7 +7,7 @@ private:
     Board board;
     BlockGenerator blockGenerator;
 public:
-    BlockMover(BlockRender& renderer, Board& board, BlockGenerator& BlockGenerator);
+    BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator);
     ~BlockMover() = default;
     int move_block(Block& block, Block& nextBlock);
     void rotate_block(Block& block);
