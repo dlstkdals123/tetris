@@ -1,3 +1,4 @@
+#pragma once
 #include "COLOR.h"
 
 namespace Utils {
