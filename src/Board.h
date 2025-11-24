@@ -2,18 +2,18 @@
 
 #include "Utils.h"
 
- // ======== ì„ì‹œ í´ë˜ìŠ¤ =========
-class Block {
-  public:
-    int shape;
-    int angle;
-    int x;
-    int y;
-    int getShape(int x, int y) const;
-    int getx() const;
-    int gety() const;
+ // ======== ?„?‹œ ?´?˜?Š¤ =========
+// class Block {
+//   public:
+//     int shape;
+//     int angle;
+//     int x;
+//     int y;
+//     int getShape(int x, int y) const;
+//     int getx() const;
+//     int gety() const;
    
-};
+// };
 // =============================
 
 class Board {
@@ -26,11 +26,13 @@ class Board {
     ~Board();
 
     int init();
-    // ì „ì²´ ë¸”ëŸ­ í™”ë©´ì— ê·¸ë¦¬ê¸°
+    // ? „ì²? ë¸”ëŸ­ ?™”ë©´ì— ê·¸ë¦¬ê¸?
     void draw(const int &level) const; 
     // strike_check
     int isStrike(const Block &block);
     void mergeBlock(const Block &block);
     // check_full_line
-    int deleteFullLine(); // ì‚­ì œëœ ë¼ì¸ ìˆ˜ ë°˜í™˜
+    int deleteFullLine(); // ?‚­? œ?œ ?¼?¸ ?ˆ˜ ë°˜í™˜
+
+    void show_next_block();
 };
