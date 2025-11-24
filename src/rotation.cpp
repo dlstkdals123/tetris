@@ -1,23 +1,23 @@
-#include "rotation.h"
+ï»¿#include "rotation.h"
 #include <iostream>
 
 using namespace std;
 
-// ±âº» »ý¼ºÀÚ
+// ê¸°ë³¸ ìƒì„±ìž
 Rotation::Rotation() : angle(0) {
 }
 
-// ¸Å°³º¯¼ö »ý¼ºÀÚ
+// ë§¤ê°œë³€ìˆ˜ ìƒì„±ìž
 Rotation::Rotation(int angle) {
-    // 0-3 ¹üÀ§·Î Á¤±ÔÈ­
+    // 0-3 ë²”ìœ„ë¡œ ì •ê·œí™”
     this->angle = ((angle % 4) + 4) % 4;
 }
 
-// º¹»ç »ý¼ºÀÚ
+// ë³µì‚¬ ìƒì„±ìž
 Rotation::Rotation(const Rotation& other) : angle(other.angle) {
 }
 
-// ´ëÀÔ ¿¬»êÀÚ
+// ëŒ€ìž… ì—°ì‚°ìž
 Rotation& Rotation::operator=(const Rotation& other) {
     if (this != &other) {
         angle = other.angle;
@@ -32,64 +32,64 @@ int Rotation::getAngle() const {
 
 // Setter
 void Rotation::setAngle(int angle) {
-    // 0-3 ¹üÀ§·Î Á¤±ÔÈ­
+    // 0-3 ë²”ìœ„ë¡œ ì •ê·œí™”
     this->angle = ((angle % 4) + 4) % 4;
 }
 
-// ½Ã°è¹æÇâ 90µµ È¸Àü
+// ì‹œê³„ë°©í–¥ 90ë„ íšŒì „
 void Rotation::rotateClockwise() {
     angle = (angle + 1) % 4;
 }
 
-// ¹Ý½Ã°è¹æÇâ 90µµ È¸Àü
+// ë°˜ì‹œê³„ë°©í–¥ 90ë„ íšŒì „
 void Rotation::rotateCounterClockwise() {
     angle = (angle - 1 + 4) % 4;
 }
 
-// 0µµ·Î ÃÊ±âÈ­
+// 0ë„ë¡œ ì´ˆê¸°í™”
 void Rotation::reset() {
     angle = 0;
 }
 
-// ´ÙÀ½ È¸Àü °¢µµ ¹ÝÈ¯
+// ë‹¤ìŒ íšŒì „ ê°ë„ ë°˜í™˜
 int Rotation::getNextAngle() const {
     return (angle + 1) % 4;
 }
 
-// ÀüÀ§ Áõ°¡ ¿¬»êÀÚ
+// ì „ìœ„ ì¦ê°€ ì—°ì‚°ìž
 Rotation& Rotation::operator++() {
     rotateClockwise();
     return *this;
 }
 
-// ÈÄÀ§ Áõ°¡ ¿¬»êÀÚ
+// í›„ìœ„ ì¦ê°€ ì—°ì‚°ìž
 Rotation Rotation::operator++(int) {
     Rotation temp(*this);
     rotateClockwise();
     return temp;
 }
 
-// µ¿µî ºñ±³ ¿¬»êÀÚ
+// ë™ë“± ë¹„êµ ì—°ì‚°ìž
 bool Rotation::operator==(const Rotation& other) const {
     return angle == other.angle;
 }
 
-// ºÎµî ºñ±³ ¿¬»êÀÚ
+// ë¶€ë“± ë¹„êµ ì—°ì‚°ìž
 bool Rotation::operator!=(const Rotation& other) const {
     return !(*this == other);
 }
 
-// °¢µµ¸¦ degree·Î º¯È¯
+// ê°ë„ë¥¼ degreeë¡œ ë³€í™˜
 int Rotation::toDegrees() const {
     return angle * 90;
 }
 
-// À¯È¿¼º °Ë»ç
+// ìœ íš¨ì„± ê²€ì‚¬
 bool Rotation::isValid() const {
     return angle >= 0 && angle <= 3;
 }
 
-// µð¹ö±×¿ë Ãâ·Â
+// ë””ë²„ê·¸ìš© ì¶œë ¥
 void Rotation::print() const {
-    cout << "Rotation(angle=" << angle << ", degrees=" << toDegrees() << "¡Æ)" << endl;
+    cout << "Rotation(angle=" << angle << ", degrees=" << toDegrees() << "Â°)" << endl;
 }
