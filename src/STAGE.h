@@ -1,20 +1,20 @@
-#pragma once
+ï»¿#pragma once
 
 /**
-* STAGE Å¬·¡½º
-* °¢ ½ºÅ×ÀÌÁöº° È¯°æ ÃÊ±âÈ­ÇÏ´Â Å¬·¡½º
+* STAGE í´ë˜ìŠ¤
+* ê° ìŠ¤í…Œì´ì§€ë³„ í™˜ê²½ ì´ˆê¸°í™”í•˜ëŠ” í´ë˜ìŠ¤
 */
 class STAGE
 {
 private:
-	const int speed;		// ÇöÀç ¼Óµµ
-	const int stick_rate;	// '¤Ó' ¸·´ë±â °³¼ö
-	const int clear_line;	// Å¬¸®¾îÇØ¾ß ÇÏ´Â ¶óÀÎ °³¼ö
+	const int speed;		// í˜„ì¬ ì†ë„
+	const int stick_rate;	// 'ã…£' ë§‰ëŒ€ê¸° ê°œìˆ˜
+	const int clear_line;	// í´ë¦¬ì–´í•´ì•¼ í•˜ëŠ” ë¼ì¸ ê°œìˆ˜
 public:
-	// »ı¼ºÀÚ
+	// ìƒì„±ì
 	STAGE(int sp, int sr, int cl);
 
-	// Getter ¸Ş¼­µå
+	// Getter ë©”ì„œë“œ
 	int getSpeed() const;
 	int getStickRate() const;
 	int getClearLine() const;

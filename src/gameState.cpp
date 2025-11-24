@@ -1,27 +1,27 @@
-#include "gamestate.h"
+ï»¿#include "gamestate.h"
 
-// »ı¼ºÀÚ
+// ìƒì„±ì
 gameState::gameState() : level(0), score(0), line(0) {
 }
 
-// ÃÊ±âÈ­ ÇÔ¼ö (gameover½Ã »ç¿ë)
+// ì´ˆê¸°í™” í•¨ìˆ˜ (gameoverì‹œ ì‚¬ìš©)
 void gameState::resetState() {
     level = 0;
     score = 0;
     line = 0;
 }
 
-// Getter ¸Ş¼­µå
+// Getter ë©”ì„œë“œ
 int gameState::getLevel() const { return level; }
 int gameState::getScore() const { return score; }
 int gameState::getLines() const { return line; }
 
-// Setter ¸Ş¼­µå : level ¼³Á¤
+// Setter ë©”ì„œë“œ : level ì„¤ì •
 void gameState::setLevel(int lvl) {
     level = lvl;
 }
 
-// »óÅÂ ¾÷µ¥ÀÌÆ® ¸Ş¼­µå
+// ìƒíƒœ ì—…ë°ì´íŠ¸ ë©”ì„œë“œ
 void gameState::addScore(int amount) {
     score += amount;
 }
@@ -30,13 +30,13 @@ void gameState::addLines(int amount) {
     line += amount;
 }
 
-// ·¹º§À» 1 ¿Ã¸®°í ¶óÀÎÀ» 0À¸·Î ÃÊ±âÈ­
+// ë ˆë²¨ì„ 1 ì˜¬ë¦¬ê³  ë¼ì¸ì„ 0ìœ¼ë¡œ ì´ˆê¸°í™”
 void gameState::levelUp() {
     level++;
     resetLines();
 }
 
-// ¶óÀÎ ¼ö¸¸ ÃÊ±âÈ­
+// ë¼ì¸ ìˆ˜ë§Œ ì´ˆê¸°í™”
 void gameState::resetLines() {
     line = 0;
 }

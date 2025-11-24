@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /**
  * Rotation 클래스

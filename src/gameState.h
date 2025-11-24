@@ -1,35 +1,35 @@
-#pragma once
+ï»¿#pragma once
 
 /**
-* gamestate Å¬·¡½º
-* ÇöÀç °ÔÀÓÀÇ »óÅÂ¸¦ ³ªÅ¸³»´Â Å¬·¡½º
+* gamestate í´ë˜ìŠ¤
+* í˜„ì¬ ê²Œì„ì˜ ìƒíƒœë¥¼ ë‚˜íƒ€ë‚´ëŠ” í´ë˜ìŠ¤
 */
 class gameState
 {
 private:
-	int level;  // ÇöÀç ÇÃ·¹ÀÌÇÏ´Â °ÔÀÓ ·¹º§
-	int score;  // ÇöÀç È¹µæÇÑ Á¡¼ö
-	int line;   // ÇöÀç Å¬¸®¾îÇÑ ¶óÀÎ ¼ö
+	int level;  // í˜„ì¬ í”Œë ˆì´í•˜ëŠ” ê²Œì„ ë ˆë²¨
+	int score;  // í˜„ì¬ íšë“í•œ ì ìˆ˜
+	int line;   // í˜„ì¬ í´ë¦¬ì–´í•œ ë¼ì¸ ìˆ˜
 
 public:
-    // »ı¼ºÀÚ
+    // ìƒì„±ì
     gameState();
 
-    // ÃÊ±âÈ­ ÇÔ¼ö (gameover½Ã »ç¿ë)
+    // ì´ˆê¸°í™” í•¨ìˆ˜ (gameoverì‹œ ì‚¬ìš©)
     void resetState();
 
-    // Getter ¸Ş¼­µå
+    // Getter ë©”ì„œë“œ
     int getLevel() const;
     int getScore() const;
     int getLines() const;
 
-    // Setter ¸Ş¼­µå
+    // Setter ë©”ì„œë“œ
     void setLevel(int lvl);
 
-    // »óÅÂ ¾÷µ¥ÀÌÆ® ¸Ş¼­µå
+    // ìƒíƒœ ì—…ë°ì´íŠ¸ ë©”ì„œë“œ
     void addScore(int amount);
     void addLines(int amount);
-    void levelUp();      // ·¹º§À» 1 ¿Ã¸®°í ¶óÀÎÀ» 0À¸·Î ÃÊ±âÈ­
-    void resetLines();   // ¶óÀÎ ¼ö¸¸ ÃÊ±âÈ­
+    void levelUp();      // ë ˆë²¨ì„ 1 ì˜¬ë¦¬ê³  ë¼ì¸ì„ 0ìœ¼ë¡œ ì´ˆê¸°í™”
+    void resetLines();   // ë¼ì¸ ìˆ˜ë§Œ ì´ˆê¸°í™”
 };
 

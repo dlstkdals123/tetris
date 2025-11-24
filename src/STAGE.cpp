@@ -1,11 +1,11 @@
-#include "STAGE.h"
+ï»¿#include "STAGE.h"
 
-// ¸Å°³º¯¼ö »ı¼ºÀÚ
+// ë§¤ê°œë³€ìˆ˜ ìƒì„±ì
 STAGE::STAGE(int sp, int sr, int cl)
 	: speed(sp), stick_rate(sr), clear_line(cl) {
 }
 
-// Getter ¸Ş¼­µå
+// Getter ë©”ì„œë“œ
 int STAGE::getSpeed() const { return speed; }
 int STAGE::getStickRate() const { return stick_rate; }
 int STAGE::getClearLine() const { return clear_line; }
