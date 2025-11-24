@@ -1,23 +1,17 @@
-ï»¿#pragma once
+#pragma once
 
 #include "Utils.h"
 
- // ======== ì„ì‹œ í´ë˜ìŠ¤ =========
+ // ======== ÀÓ½Ã Å¬·¡½º =========
 class Block {
   public:
     int shape;
     int angle;
     int x;
     int y;
-    int getShape(int x, int y) const {
-      return 0;
-    }
-    int getx() const {
-      return x;
-    }
-    int gety() const {
-      return y;
-    }
+    int getShape(int x, int y) const;
+    int getx() const;
+    int gety() const;
    
 };
 // =============================
@@ -32,11 +26,13 @@ class Board {
     ~Board();
 
     int init();
-    // ì „ì²´ ë¸”ëŸ­ í™”ë©´ì— ê·¸ë¦¬ê¸°
+    // ????? ºí·° ???¸é¿¡ ±×¸®??
     void draw(const int &level) const; 
     // strike_check
     int isStrike(const Block &block);
     void mergeBlock(const Block &block);
     // check_full_line
-    int deleteFullLine(); // ì‚­ì œëœ ë¼ì¸ ìˆ˜ ë°˜í™˜
+    int deleteFullLine(); // ????????? ?????? ??? ¹İÈ¯
+
+    void show_next_block();
 };

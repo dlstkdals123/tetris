@@ -12,14 +12,14 @@ Board::Board() {
 		{
 			if((j==0) || (j==13))
 			{
-				total_block[i][j]=1; // ì¢Œìš° ë²½
+				total_block[i][j]=1; // ì¢Œìš° ë²?
 			}else{
-				total_block[i][j]=0; // ë¹ˆ ê³µê°„
+				total_block[i][j]=0; // ë¹? ê³µê°„
 			}
 		}
 	}
 
-  for(j=0;j<14;j++) { //í™”ë©´ì˜ ì œì¼ ë°‘ì˜ ì¤„ì€ 1ë¡œ ì±„ìš´ë‹¤.
+  for(j=0;j<14;j++) { //?™”ë©´ì˜ ? œ?¼ ë°‘ì˜ ì¤„ì?? 1ë¡? ì±„ìš´?‹¤.
     total_block[20][j]=1; // ë°”ë‹¥
   }
 }
@@ -30,14 +30,14 @@ int Board::init() {
   for(i=0;i<20;i++) {
 		for(j=0;j<14;j++) {
 			if((j==0) || (j==13)) {
-				total_block[i][j]=1; // ì¢Œìš° ë²½
+				total_block[i][j]=1; // ì¢Œìš° ë²?
 			} else {
-				total_block[i][j]=0; // ë¹ˆ ê³µê°„
+				total_block[i][j]=0; // ë¹? ê³µê°„
 			}
 		}
 	}
 
-  for(j=0;j<14;j++) { //í™”ë©´ì˜ ì œì¼ ë°‘ì˜ ì¤„ì€ 1ë¡œ ì±„ìš´ë‹¤.
+  for(j=0;j<14;j++) { //?™”ë©´ì˜ ? œ?¼ ë°‘ì˜ ì¤„ì?? 1ë¡? ì±„ìš´?‹¤.
     total_block[20][j]=1; // ë°”ë‹¥
   }
 
@@ -50,18 +50,19 @@ void Board::draw(const int &level) const {
 
   for(i=0;i<21;i++) {
 		for(j=0;j<14;j++) {
-			if(j==0 || j==13 || i==20) {		//ë ˆë²¨ì— ë”°ë¼ ì™¸ë²½ ìƒ‰ì´ ë³€í•¨ 
+			if(j==0 || j==13 || i==20) {		//? ˆë²¨ì— ?”°?¼ ?™¸ë²? ?ƒ‰?´ ë³??•¨ 
 				Utils::setColor((level %6) +1);
 			} else {
 				Utils::setColor(COLOR::DARK_GRAY);
 			}
 			Utils::gotoxy( (j * 2) + Utils::ab_x, i + Utils::ab_y );
 			if(total_block[i][j] == 1) {
-        cout << "â– ";
+        cout << "?– ";
       } else {
         cout << "  ";
       }
     }
+    
 	}
 
   cout.flush();
@@ -77,16 +78,16 @@ int Board::isStrike(const Block &block) {
 
   for(i=0;i<4;i++) {
 		for(j=0;j<4;j++) {
-      if (block.getShape(i, j) == 0) { // ë¸”ëŸ­ì˜ í•´ë‹¹ ìœ„ì¹˜ê°€ ì±„ì›Œì ¸ìˆëŠ”ì§€ ê²€ì‚¬.
+      if (block.getShape(i, j) == 0) { // ë¸”ëŸ­?˜ ?•´?‹¹ ?œ„ì¹˜ê?? ì±„ì›Œ? ¸?ˆ?Š”ì§? ê²??‚¬.
         continue;
       }
 
-      if (((x+j) == 0) || ((x+j) == 13)) { // ë²½ ì¶©ëŒì‹œ
+      if (((x+j) == 0) || ((x+j) == 13)) { // ë²? ì¶©ëŒ?‹œ
         return 1;
       }
       
       if (y + i >= 0) {
-        if (total_block[y + i][x + j] == 1) {  // ë°”ë‹¥ or ë‹¤ë¥¸ ë¸”ë¡ì— ë‹¿ì•˜ëŠ”ì§€ ê²€ì‚¬
+        if (total_block[y + i][x + j] == 1) {  // ë°”ë‹¥ or ?‹¤ë¥? ë¸”ë¡?— ?‹¿?•˜?Š”ì§? ê²??‚¬
           return 1;
         }
       }
@@ -123,7 +124,7 @@ int Board::deleteFullLine() {
         break;
       }
 		}
-		if(j == 13) {	// í•œì¤„ì´ ë‹¤ ì±„ì›Œì¡Œì„ ë–„
+		if(j == 13) {	// ?•œì¤„ì´ ?‹¤ ì±„ì›Œì¡Œì„ ?–„
 			deletedLines++;
 			// show_total_block(); 
 
@@ -131,7 +132,7 @@ int Board::deleteFullLine() {
 			Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y);
 
 			for(j = 1; j < 13; j++) {
-        cout << "â–¡";
+        cout << "?–¡";
         cout.flush();
         Sleep(10);
       }
@@ -153,4 +154,33 @@ int Board::deleteFullLine() {
 		}
 	}
   return deletedLines;
+}
+
+void Borad::show_next_block() {
+  int i,j;
+	Utils::setColor(COLOR::DARK_GRAY);
+	for(i=0;i<21;i++)
+	{
+		for(j=0;j<14;j++)
+		{
+			if(j==0 || j==13 || i==20)		//·¹º§¿¡ µû¶ó ¿Üº® »öÀÌ º¯ÇÔ
+			{
+				Utils::setColor(static_cast<COLOR>((gs.getLevel() % 6) + 1));
+				
+			}else{
+				Utils::setColor(COLOR::DARK_GRAY);
+			}
+			Utils::gotoxy( (j*2)+boardOffset.getX(), i+boardOffset.getY() );
+            int total_block = board.data
+			if(total_block[i][j] == 1)
+			{	
+				printf("¡á");
+			}else{
+				printf("  ");
+			}
+			
+		}
+	}
+	Utils::setColor(COLOR::BLACK);
+	Utils::gotoxy(77,23);
 }
