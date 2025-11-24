@@ -1,6 +1,6 @@
 ﻿#include "BlockMover.h"
 #include "Block.h"
-#include "BlockGenerator.h"
+
 BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator) : renderer(renderer), board(board), blockGenerator(blockGenerator){}
 
 int BlockMover::move_block(Block& block, Block& nextBlock) {
