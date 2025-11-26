@@ -2,8 +2,14 @@
 
 25년 2학기 객체지향프로그래밍 프로젝트
 
+## Refactoring
+- [ ] show_gameState()을 gameState class에 포함시키기.
+- [ ] STAGE 내부에 배열을 가지고 있는 형식으로 수정.
+- [ ] input_data() 함수는 오로지 input만 받도록 하고, return값으로 int 값을 반환하여 main에서 설정.
+- [ ] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
+
 ## Improvement
-- [ ] "spacebar"을 통해 맨 아래로 내리는 것을 반복문이 아니라 알고리즘으로 O(1)에 발견
+- [ ] "spacebar"을 통해 맨 아래로 내리기
 - [ ] board의 한 칸을 1bit로 하는 방법
 - [ ] board 여러 줄 삭제
 - [ ] 줄 삭제 시 현재 블럭의 모양과 위치를 통해 최소화
@@ -14,6 +20,9 @@
 - [ ] 고득점 저장
 - [ ] 떨어질 위치 미리보기
 - [ ] 여러 줄 삭제 시 추가점수
+- [ ] WaitForSingleObject 사용하기
+- [ ] AI 사용
+- [ ] main에서 두 명의 화면 띄우기
 
 ## 커밋 메시지 컨벤션
 
