@@ -5,7 +5,7 @@ BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& bloc
 		: renderer(renderer), board(board), blockGenerator(blockGenerator), gamestate(gamestate){}
 
 int BlockMover::move_block(Block& block, Block& nextBlock) {
-	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근을 막음
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 
 	renderer.erase_cur_block(block);
 	block.moveDown();
@@ -49,7 +49,7 @@ void BlockMover::rotateBlock(Block& block) {
 }
 
  void BlockMover::movedLeft(Block& block) {
-	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);// 스레드 동시 접근을 막음
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 
 	if(block.getPos().getX()>1)
 	{
@@ -62,7 +62,7 @@ void BlockMover::rotateBlock(Block& block) {
  }
 
 void BlockMover::movedRight(Block& block) {
-	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);// 스레드 동시 접근을 막음
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 	
 	if(block.getPos().getX()<13)
 	{

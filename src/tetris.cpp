@@ -95,7 +95,7 @@ int main()
         std::atomic<int> is_gameover(0);
         {
             // 큐 비우기
-            std::lock_guard<std::mutex> lock(Utils::inputMutex); // 동시접근을 막음
+            std::lock_guard<std::mutex> lock(Utils::inputMutex); // 스레드 동시 접근 방지
             Utils::playerInputQueue = queue<char>();
             Utils::aiInputQueue = queue<char>();
         }
@@ -125,6 +125,7 @@ int main()
 
 void show_gamestat(const gameState &gs, bool isPlayer, bool printed_text)
 {
+    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
     Utils::setColor(COLOR::GRAY);
 
     if (printed_text)
@@ -299,19 +300,19 @@ void inputThread(std::atomic<int>& is_gameover)
             char keytemp = _getch();
             if (keytemp == EXT_KEY) {
                 keytemp = _getch();
-                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                std::lock_guard<std::mutex> lock(Utils::inputMutex); // 스레드 동시 접근 방지
                 Utils::playerInputQueue.push(keytemp);
             }
             else if (keytemp == 32) {
-                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                std::lock_guard<std::mutex> lock(Utils::inputMutex); // 스레드 동시 접근 방지
                 Utils::playerInputQueue.push(keytemp);
             }
             else if (keytemp == AI_LEFT || keytemp == AI_RIGHT || keytemp == AI_UP || keytemp == AI_DOWN || keytemp == AI_SPACE) {
-                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                std::lock_guard<std::mutex> lock(Utils::inputMutex); // 스레드 동시 접근 방지
                 Utils::aiInputQueue.push(keytemp);
             }
         }
-        Sleep(10);
+        Sleep(1);
     }
 }
 
@@ -417,7 +418,7 @@ void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlaye
         }
         
         {
-            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
             Utils::gotoxy(77, 23, true);
         }
         Sleep(15);
