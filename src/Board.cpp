@@ -5,7 +5,7 @@
 
 using namespace std;
 
-Board::Board()
+Board::Board(bool isPlayer) : isPlayer(isPlayer)
 {
     int i, j;
     for (i = 0; i < 20; i++)
@@ -60,6 +60,8 @@ int Board::init()
 
 void Board::draw(const int &level) const
 {
+    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+
     int i, j;
     Utils::setColor(COLOR::DARK_GRAY);
 
@@ -75,7 +77,7 @@ void Board::draw(const int &level) const
             {
                 Utils::setColor(COLOR::DARK_GRAY);
             }
-            Utils::gotoxy((j * 2) + Utils::ab_x, i + Utils::ab_y);
+            Utils::gotoxy((j * 2) + Utils::ab_x, i + Utils::ab_y, isPlayer);
             if (total_block[i][j] == 1)
             {
                 cout << "■";
@@ -151,6 +153,8 @@ void Board::mergeBlock(const Block &block)
 // check_full_line
 int Board::deleteFullLine()
 {
+    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+
     int i, j, k;
     int deletedLines = 0;
 
@@ -169,7 +173,7 @@ int Board::deleteFullLine()
             // show_total_block();
 
             Utils::setColor(COLOR::BLUE);
-            Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y);
+            Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
 
             for (j = 1; j < 13; j++)
             {
@@ -177,7 +181,7 @@ int Board::deleteFullLine()
                 cout.flush();
                 Sleep(10);
             }
-            Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y);
+            Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
             for (j = 1; j < 13; j++)
             {
                 cout << "  ";
