@@ -1,7 +1,7 @@
 ﻿#include <stdio.h>
-// #include <conio.h>
+#include <conio.h>
 #include <string.h>
-// #include <Windows.h>
+#include <Windows.h>
 #include <time.h>
 #include <iostream>
 
@@ -31,7 +31,7 @@ using namespace std;
 #define KEY_DOWN  0x50
 
 //*********************************
-// 전역 상수: 스테이지 데이터
+// 전역 상수 : 스테이지 데이터
 //*********************************
 
 // 순서대로 speed, stick_rate, clear_line
@@ -49,32 +49,17 @@ const STAGE stage_data[10] = {
 };
 
 //*********************************
-// 함수 선언 (클래스로 대체되지 않은 부분)
+// 함수 선언
 //*********************************
 
 // 현재 스코어 / 스테이지 / 남은 라인 표시
 void show_gamestat(const gameState &gs, bool printed_text = false);
-
 // 시작 레벨 입력
 void input_data(gameState &gs);
-
 // 로고 화면 + 랜덤 블록 애니메이션
 void show_logo(BlockRender &renderer);
-
 // 게임 오버 화면 표시
 void show_gameover();
-
-// 현재 falling block 을 한 칸 내리는 처리 (충돌/병합/라인 삭제/다음 블록 처리)
-int move_block(Block &curBlock,
-               Block &nextBlock,
-               Board &board,
-               BlockRender &renderer,
-               BlockGenerator &blockGenerator,
-               gameState &gs);
-
-//*********************************
-// main
-//*********************************
 
 int main()
 {
@@ -109,8 +94,7 @@ int main()
         renderer.show_cur_block(curBlock);
         renderer.show_next_block(nextBlock);
         show_gamestat(gamestate, true);
-        // gamestate.showGamestat(true);
-
+        
         int is_gameover = 0;
 
         for (int i = 1;; i++)
@@ -148,7 +132,7 @@ int main()
                 {
                     while (is_gameover == 0)
                     {
-                        is_gameover = move_block(curBlock, nextBlock, board, renderer, blockGenerator, gamestate);
+                        is_gameover = mover.move_block(curBlock, nextBlock);
                     }
                     show_gamestat(gamestate);
                 }
