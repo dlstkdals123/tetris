@@ -62,7 +62,7 @@ const STAGE stage_data[10] = {
 //*********************************
 
 // 현재 스코어 / 스테이지 / 남은 라인 표시
-void show_gamestat(const gameState &gs, bool printed_text = false);
+void show_gamestat(const gameState &gs, bool isPlayer = true ,bool printed_text = false);
 // 시작 레벨 입력
 void input_data(gameState &gs);
 // 로고 화면 + 랜덤 블록 애니메이션
@@ -123,29 +123,29 @@ int main()
 // 보조 함수 구현부
 //*********************************
 
-void show_gamestat(const gameState &gs, bool printed_text)
+void show_gamestat(const gameState &gs, bool isPlayer, bool printed_text)
 {
     Utils::setColor(COLOR::GRAY);
 
     if (printed_text)
     {
-        Utils::gotoxy(35, 7);
+        Utils::gotoxy(35, 7, isPlayer);
         printf("STAGE");
 
-        Utils::gotoxy(35, 9);
+        Utils::gotoxy(35, 9, isPlayer);
         printf("SCORE");
 
-        Utils::gotoxy(35, 12);
+        Utils::gotoxy(35, 12, isPlayer);
         printf("LINES");
     }
 
-    Utils::gotoxy(41, 7);
+    Utils::gotoxy(41, 7, isPlayer);
     printf("%d", gs.getLevel() + 1);
 
-    Utils::gotoxy(35, 10);
+    Utils::gotoxy(35, 10, isPlayer);
     printf("%10d", gs.getScore());
 
-    Utils::gotoxy(35, 13);
+    Utils::gotoxy(35, 13, isPlayer);
     int remain = stage_data[gs.getLevel()].getClearLine() - gs.getLines();
     if (remain < 0)
         remain = 0;
@@ -315,7 +315,7 @@ void inputThread(std::atomic<int>& is_gameover)
     }
 }
 
-void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlayer = true) 
+void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlayer) 
 {
     Board board(isPlayer); // 쌓인 블록 / 벽 / 바닥 관리
     Position boardOffset(5, 1); // 블록 생성 좌표
@@ -417,7 +417,7 @@ void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlaye
         }
         
         {
-            std::lock_guard<std::recursive_mutex> lock(Utils::consoleMutex);
+            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
             Utils::gotoxy(77, 23, true);
         }
         Sleep(15);

@@ -1,7 +1,7 @@
 ﻿#include "Utils.h"
 #include <Windows.h>
 
-std::recursive_mutex Utils::consoleMutex;
+std::recursive_mutex Utils::gameMutex;
 
 std::mutex Utils::inputMutex;
 std::queue<char> Utils::playerInputQueue;
