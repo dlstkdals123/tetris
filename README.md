@@ -24,6 +24,13 @@
 - [ ] AI 사용
 - [ ] main에서 두 명의 화면 띄우기
 
+## Development Pipeline
+1. for문 유지하고 두 개의 화면 띄우기
+2. thread_function 2개 생성 및 호출하는 방식으로 수정
+- `#include <thread>`
+- `thread t1(thread_function, true);`
+3. 나머지 기능 추가
+
 ## 커밋 메시지 컨벤션
 
 이 웹사이트는 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 규약을 따릅니다.
