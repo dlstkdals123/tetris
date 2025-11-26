@@ -6,9 +6,10 @@
 class Board {
   private:
     char total_block[21][14];
+    bool isPlayer;
 
   public:
-    Board();
+    Board(bool isPlayer = true);
     ~Board();
 
     int init();

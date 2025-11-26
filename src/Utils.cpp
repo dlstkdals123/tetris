@@ -1,11 +1,17 @@
 ﻿#include "Utils.h"
 #include <Windows.h>
 
-int Utils::gotoxy(int x, int y) {
+std::recursive_mutex Utils::consoleMutex;
+
+std::mutex Utils::inputMutex;
+std::queue<char> Utils::playerInputQueue;
+std::queue<char> Utils::aiInputQueue;
+
+int Utils::gotoxy(int x, int y, bool isPlayer) {
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); 
 	COORD pos; 
 	pos.Y=y;
-	pos.X=x;
+	isPlayer ? pos.X = x : pos.X = x + 60;
 	SetConsoleCursorPosition(hConsole, pos); 
 	return 0;
 }

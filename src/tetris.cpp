@@ -18,6 +18,9 @@
 #include "BlockMover.h"
 #include "Utils.h"
 
+#include <thread>
+#include <atomic>
+
 using namespace std;
 
 //*********************************
@@ -29,6 +32,12 @@ using namespace std;
 #define KEY_RIGHT 0x4d
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
+
+#define AI_LEFT 'a'
+#define AI_RIGHT 'd'
+#define AI_UP 'w'
+#define AI_DOWN 's'
+#define AI_SPACE 'c'
 
 //*********************************
 // 전역 상수 : 스테이지 데이터
@@ -61,111 +70,50 @@ void show_logo(BlockRender &renderer);
 // 게임 오버 화면 표시
 void show_gameover();
 
+//*********************************
+// 스레드 관련 함수 추가
+//*********************************
+
+// 키 입력 스레드
+void inputThread(std::atomic<int> &is_gameover);
+// 게임 스레드
+void gameThread(gameState gamestate, std::atomic<int> &is_gameover, bool isPlayer = true);
+
 int main()
 {
     srand(static_cast<unsigned int>(time(nullptr)));
 
     gameState gamestate; // 점수, 레벨, 라인 상태
-    Board board; // 쌓인 블록 / 벽 / 바닥 관리
     Position boardOffset(5, 1); // 블록 생성 좌표
-    BlockGenerator blockGenerator(stage_data, gamestate);
     BlockRender renderer(gamestate, boardOffset);
-    BlockMover mover(renderer, board, blockGenerator, gamestate);
 
     show_logo(renderer);
 
     while (1)
     {
         // 새 게임 시작 시 상태 초기화
+        std::atomic<int> is_gameover(0);
+        {
+            // 큐 비우기
+            std::lock_guard<std::mutex> lock(Utils::inputMutex); // 동시접근을 막음
+            Utils::playerInputQueue = queue<char>();
+            Utils::aiInputQueue = queue<char>();
+        }
         gamestate.resetState();
-        board.init();
 
         // 시작 레벨 입력
         input_data(gamestate);
 
-        // 보드 초기 출력
-        board.draw(gamestate.getLevel());
-
-        // 현재 조작 블록 / 다음 블록 생성
-        Block curBlock(blockGenerator.make_new_block());
-        Block nextBlock(blockGenerator.make_new_block());
-
-        curBlock.block_start();
-        renderer.show_cur_block(curBlock);
-        renderer.show_next_block(nextBlock);
-        show_gamestat(gamestate, true);
-        
-        int is_gameover = 0;
-
-        for (int i = 1;; i++)
-        {
-            // 키보드 입력 처리
-            if (_kbhit())
-            {
-                char keytemp = _getche();
-
-                if (keytemp == EXT_KEY)
-                {
-                    keytemp = _getche();
-                    switch (keytemp)
-                    {
-                    case KEY_UP: // 회전
-                    {
-                        mover.rotateBlock(curBlock);
-                        break;
-                    }
-                    case KEY_LEFT: // 왼쪽 이동
-                        mover.movedLeft(curBlock);
-                        break;
-
-                    case KEY_RIGHT: // 오른쪽 이동
-                        mover.movedRight(curBlock);
-                        break;
-
-                    case KEY_DOWN: // 한 칸 아래로
-                        is_gameover = mover.move_block(curBlock, nextBlock);
-                        show_gamestat(gamestate);
-                        break;
-                    }
-                }
-                else if (keytemp == 32) // 스페이스바: 바닥까지 즉시 드랍
-                {
-                    while (is_gameover == 0)
-                    {
-                        is_gameover = mover.move_block(curBlock, nextBlock);
-                    }
-                    show_gamestat(gamestate);
-                }
-            }
-
-            // 자동 낙하
-            if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
-            {
-                is_gameover = mover.move_block(curBlock, nextBlock);
-                show_gamestat(gamestate);
-            }
-
-            // 스테이지 클리어
-            if (stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())
-            {
-                gamestate.levelUp();
-                board.draw(gamestate.getLevel());
-                show_gamestat(gamestate);
-                renderer.show_next_block(nextBlock);
-            }
-
-            // 게임 오버
-            if (is_gameover == 1)
-            {
-                show_gameover();
-                Utils::setColor(COLOR::GRAY);
-                break; // 새 게임 시작
-            }
-
-            Utils::gotoxy(77, 23);
-            Sleep(15);
-            Utils::gotoxy(77, 23);
-        }
+        // 스레드 생성
+        thread tInput(inputThread, std::ref(is_gameover));
+        thread t1(gameThread, gamestate, std::ref(is_gameover), true);
+        Sleep(100);
+        thread t2(gameThread, gamestate, std::ref(is_gameover), false);
+        t1.join();
+        t2.join();
+        tInput.join();
+        show_gameover();
+        Utils::setColor(COLOR::GRAY);
     }
 
     return 0;
@@ -338,3 +286,141 @@ void show_gameover()
     _getche();
     system("cls");
 }
+
+//*********************************
+// 스레드 함수 구현부
+//*********************************
+
+void inputThread(std::atomic<int>& is_gameover) 
+{
+    while (!(is_gameover == 1)) {
+        if (_kbhit())
+        {
+            char keytemp = _getch();
+            if (keytemp == EXT_KEY) {
+                keytemp = _getch();
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::playerInputQueue.push(keytemp);
+            }
+            else if (keytemp == 32) {
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::playerInputQueue.push(keytemp);
+            }
+            else if (keytemp == AI_LEFT || keytemp == AI_RIGHT || keytemp == AI_UP || keytemp == AI_DOWN || keytemp == AI_SPACE) {
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::aiInputQueue.push(keytemp);
+            }
+        }
+        Sleep(10);
+    }
+}
+
+void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlayer = true) 
+{
+    Board board(isPlayer); // 쌓인 블록 / 벽 / 바닥 관리
+    Position boardOffset(5, 1); // 블록 생성 좌표
+    BlockGenerator blockGenerator(stage_data, gamestate);
+    BlockRender renderer(gamestate, boardOffset, isPlayer);
+    BlockMover mover(renderer, board, blockGenerator, gamestate);
+
+    board.init();
+
+    board.draw(gamestate.getLevel());
+
+    Block curBlock(blockGenerator.make_new_block());
+    Block nextBlock(blockGenerator.make_new_block());
+
+    curBlock.block_start();
+    renderer.show_cur_block(curBlock);
+    renderer.show_next_block(nextBlock);
+    show_gamestat(gamestate, isPlayer, true);
+
+    for (int i = 1;; i++) {
+        std::queue<char>& myQueue = isPlayer ? Utils::playerInputQueue : Utils::aiInputQueue;
+        char keytemp = 0;
+        if (!myQueue.empty())
+        {
+            {
+                keytemp = myQueue.front();
+                myQueue.pop();
+            }
+            if (isPlayer)
+            {
+                switch (keytemp)
+                {
+                case KEY_UP:
+                    mover.rotateBlock(curBlock);
+                    break;
+                case KEY_LEFT: // 왼쪽 이동
+                    mover.movedLeft(curBlock);
+                    break;
+                case KEY_RIGHT: // 오른쪽 이동
+                    mover.movedRight(curBlock);
+                    break;
+                case KEY_DOWN: // 한 칸 아래로
+                    is_gameover = mover.move_block(curBlock, nextBlock);
+                    show_gamestat(gamestate, isPlayer);
+                    break;
+                case 32:
+                    while (is_gameover == 0)
+                    {
+                        is_gameover = mover.move_block(curBlock, nextBlock);
+                    }
+                    show_gamestat(gamestate, isPlayer);
+                    break;
+                }
+            } else {
+                switch (keytemp)
+                {
+                case AI_UP: // 회전
+                    mover.rotateBlock(curBlock);
+                    break;
+                case AI_LEFT: // 왼쪽 이동
+                    mover.movedLeft(curBlock);
+                    break;
+                case AI_RIGHT: // 오른쪽 이동
+                    mover.movedRight(curBlock);
+                    break;
+                case AI_DOWN: // 한 칸 아래로
+                    is_gameover = mover.move_block(curBlock, nextBlock);
+                    show_gamestat(gamestate, isPlayer);
+                    break;
+                case AI_SPACE:
+                    while (is_gameover == 0)
+                    {
+                        is_gameover = mover.move_block(curBlock, nextBlock);
+                    }
+                    show_gamestat(gamestate, isPlayer);
+                    break;
+                }
+            }
+        }
+        // 자동 낙하
+        if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
+        {
+            is_gameover = mover.move_block(curBlock, nextBlock);
+            show_gamestat(gamestate, isPlayer);
+        }
+
+        // 스테이지 클리어
+        if (stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())
+        {
+            gamestate.levelUp();
+            board.draw(gamestate.getLevel());
+            show_gamestat(gamestate, isPlayer);
+            renderer.show_next_block(nextBlock);
+        }
+
+        if (is_gameover == 1)
+        {
+            return; // 새 게임 시작
+        }
+        
+        {
+            std::lock_guard<std::recursive_mutex> lock(Utils::consoleMutex);
+            Utils::gotoxy(77, 23, true);
+        }
+        Sleep(15);
+    }
+}
+
