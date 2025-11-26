@@ -153,7 +153,7 @@ void Board::mergeBlock(const Block &block)
 // check_full_line
 int Board::deleteFullLine()
 {
-    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);// 스레드 동시 접근을 막음
+    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 
     int i, j, k;
     int deletedLines = 0;
