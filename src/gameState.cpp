@@ -1,4 +1,6 @@
 ﻿#include "gameState.h"
+#include <iostream>
+using namespace std;
 
 // 생성자
 gameState::gameState() : level(0), score(0), line(0) {
@@ -39,4 +41,12 @@ void gameState::levelUp() {
 // 라인 수만 초기화
 void gameState::resetLines() {
     line = 0;
+}
+
+int gameState::input_data()
+{
+    int level = 0;
+    cin >> level;
+
+    return level;
 }

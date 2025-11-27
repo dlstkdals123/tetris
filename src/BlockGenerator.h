@@ -6,6 +6,7 @@
 #include "BlockData.h"
 #include "STAGE.h"
 #include "gameState.h"
+#include "Block.h"
 class BlockGenerator{
 private:
     const STAGE* stage_data;
@@ -23,4 +24,6 @@ public:
         int shape = (rand()%6)+1;
         return static_cast<BlockType> (shape);
     }
+
+    void make_logo_blocks(Block* block);
 };

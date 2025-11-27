@@ -30,6 +30,8 @@ public:
     void addScore(int amount);
     void addLines(int amount);
     void levelUp();      // 레벨을 1 올리고 라인을 0으로 초기화
-    void resetLines();   // 라인 수만 초기화
+    void resetLines();   // 라인 수만 초기화]
+
+    int input_data();
 };
 

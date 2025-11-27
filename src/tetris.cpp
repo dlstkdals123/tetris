@@ -63,8 +63,10 @@ const STAGE stage_data[10] = {
 
 // 현재 스코어 / 스테이지 / 남은 라인 표시
 void show_gamestat(const gameState &gs, bool isPlayer = true ,bool printed_text = false);
+// 시작 레벨 입력 화면 표시
+void show_input_data(gameState& gs);
 // 시작 레벨 입력
-void input_data(gameState &gs);
+int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
 void show_logo(BlockRender &renderer);
 // 게임 오버 화면 표시
@@ -102,7 +104,7 @@ int main()
         gamestate.resetState();
 
         // 시작 레벨 입력
-        input_data(gamestate);
+        show_input_data(gamestate);
 
         // 스레드 생성
         thread tInput(inputThread, std::ref(is_gameover));
@@ -153,8 +155,7 @@ void show_gamestat(const gameState &gs, bool isPlayer, bool printed_text)
     printf("%10d", remain);
 }
 
-void input_data(gameState &gs)
-{
+void show_input_data(gameState& gs) {
     int level = 0;
 
     Utils::setColor(COLOR::GRAY);
@@ -185,7 +186,7 @@ void input_data(gameState &gs)
         Utils::gotoxy(10, 3);
         printf("Select Start level[1-8]:       \b\b\b\b\b\b\b");
 
-        cin >> level;
+        level = gs.input_data();
         if (cin.fail())
         {
             cin.clear();
@@ -226,6 +227,9 @@ void show_logo(BlockRender &renderer)
     Utils::gotoxy(28, 20);
     printf("Please Press Any Key~!");
 
+    gameState tempGs;   // 임시 생성 (사용x)
+    BlockGenerator gen(stage_data, tempGs);
+
     for (i = 0;; ++i)
     {
         if (i % 40 == 0)
@@ -236,25 +240,12 @@ void show_logo(BlockRender &renderer)
                 printf("                                                          ");
             }
 
-            Position logo_pos1(6, 14);
-            Position logo_pos2(12, 14);
-            Position logo_pos3(19, 14);
-            Position logo_pos4(24, 14);
-
-            Rotation logo_rot1(rand() % 4);
-            Rotation logo_rot2(rand() % 4);
-            Rotation logo_rot3(rand() % 4);
-            Rotation logo_rot4(rand() % 4);
-
-            Block b1(static_cast<BlockType>(rand() % 7), logo_rot1, logo_pos1);
-            Block b2(static_cast<BlockType>(rand() % 7), logo_rot2, logo_pos2);
-            Block b3(static_cast<BlockType>(rand() % 7), logo_rot3, logo_pos3);
-            Block b4(static_cast<BlockType>(rand() % 7), logo_rot4, logo_pos4);
-
-            renderer.show_cur_block(b1);
-            renderer.show_cur_block(b2);
-            renderer.show_cur_block(b3);
-            renderer.show_cur_block(b4);
+            Block blocks[4];
+            gen.make_logo_blocks(blocks);
+            
+            for (int i = 0; i < 4; i++) {
+                renderer.show_cur_block(blocks[i]);
+            }
         }
 
         if (_kbhit())
