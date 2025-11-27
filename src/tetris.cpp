@@ -63,8 +63,6 @@ const STAGE stage_data[10] = {
 
 // 현재 스코어 / 스테이지 / 남은 라인 표시
 void show_gamestat(const gameState &gs, bool isPlayer = true ,bool printed_text = false);
-// 시작 레벨 입력 화면 표시
-void show_input_data(gameState& gs);
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
@@ -104,7 +102,9 @@ int main()
         gamestate.resetState();
 
         // 시작 레벨 입력
-        show_input_data(gamestate);
+        int startLevel = input_data();
+        gamestate.setLevel(startLevel);
+
 
         // 스레드 생성
         thread tInput(inputThread, std::ref(is_gameover));
@@ -155,7 +155,7 @@ void show_gamestat(const gameState &gs, bool isPlayer, bool printed_text)
     printf("%10d", remain);
 }
 
-void show_input_data(gameState& gs) {
+int input_data() {
     int level = 0;
 
     Utils::setColor(COLOR::GRAY);
@@ -186,7 +186,7 @@ void show_input_data(gameState& gs) {
         Utils::gotoxy(10, 3);
         printf("Select Start level[1-8]:       \b\b\b\b\b\b\b");
 
-        level = gs.input_data();
+        cin >> level;
         if (cin.fail())
         {
             cin.clear();
@@ -194,9 +194,9 @@ void show_input_data(gameState& gs) {
             continue;
         }
     }
-
-    gs.setLevel(level - 1);
     system("cls");
+
+    return level - 1;
 }
 
 void show_logo(BlockRender &renderer)
