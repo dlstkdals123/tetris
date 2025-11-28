@@ -174,10 +174,42 @@ TDLearner::Statistics TDLearner::runEpisode()
     stats.moves = moves;
     stats.averageReward = moves > 0 ? totalReward / moves : 0.0;
     
-    // Epsilon 감소
-    config_.epsilon = max(config_.minEpsilon, config_.epsilon * config_.epsilonDecay);
+    // Note: Epsilon은 train() 함수에서 updatePhase()로 관리됨
     
     return stats;
+}
+
+void TDLearner::updatePhase(int episode)
+{
+    if (!config_.useMultiStage || config_.phases.empty())
+    {
+        // 기본 epsilon decay
+        config_.epsilon = max(config_.minEpsilon, config_.epsilon * config_.epsilonDecay);
+        return;
+    }
+    
+    // 현재 phase 찾기
+    for (const auto& phase : config_.phases)
+    {
+        if (episode >= phase.startEpisode && episode < phase.endEpisode)
+        {
+            // Learning rate 업데이트
+            config_.learningRate = phase.learningRate;
+            
+            // Epsilon 선형 보간
+            int phaseProgress = episode - phase.startEpisode;
+            int phaseLength = phase.endEpisode - phase.startEpisode;
+            double progress = static_cast<double>(phaseProgress) / phaseLength;
+            
+            config_.epsilon = phase.startEpsilon + 
+                             (phase.endEpsilon - phase.startEpsilon) * progress;
+            
+            return;
+        }
+    }
+    
+    // 마지막 phase 이후에는 최소값 유지
+    config_.epsilon = config_.minEpsilon;
 }
 
 std::vector<TDLearner::Statistics> TDLearner::train(int numEpisodes)
@@ -187,25 +219,54 @@ std::vector<TDLearner::Statistics> TDLearner::train(int numEpisodes)
     
     cout << "=== TD-Learning Training Started ===" << endl;
     cout << "Episodes: " << numEpisodes << endl;
-    cout << "Learning Rate: " << config_.learningRate << endl;
+    
+    if (config_.useMultiStage)
+    {
+        cout << "Mode: Multi-Stage Training" << endl;
+        cout << "Phases:" << endl;
+        for (size_t i = 0; i < config_.phases.size(); i++)
+        {
+            const auto& phase = config_.phases[i];
+            cout << "  Phase " << (i+1) << ": Episodes " << phase.startEpisode 
+                 << "-" << phase.endEpisode << endl;
+            cout << "    Epsilon: " << phase.startEpsilon << " → " << phase.endEpsilon << endl;
+            cout << "    Learning Rate: " << phase.learningRate << endl;
+        }
+    }
+    else
+    {
+        cout << "Mode: Standard Training" << endl;
+        cout << "Learning Rate: " << config_.learningRate << endl;
+        cout << "Initial Epsilon: " << config_.epsilon << endl;
+    }
+    
     cout << "Discount Factor: " << config_.discountFactor << endl;
-    cout << "Initial Epsilon: " << config_.epsilon << endl;
     cout << "=====================================" << endl << endl;
     
     for (int episode = 0; episode < numEpisodes; episode++)
     {
+        // Phase 업데이트
+        updatePhase(episode);
+        
         Statistics stats = runEpisode();
         stats.episode = episode + 1;
         allStats.push_back(stats);
         
         // 주기적으로 진행 상황 출력
-        if (config_.verbose && (episode + 1) % 10 == 0)
+        if (config_.verbose && (episode + 1) % 100 == 0)
         {
             printStatistics(stats);
+            
+            // Phase 전환 알림
+            if (config_.useMultiStage)
+            {
+                cout << "  [LR=" << config_.learningRate 
+                     << ", ε=" << config_.epsilon << "]" << endl;
+            }
         }
         
         // 주기적으로 가중치 저장
-        if ((episode + 1) % 100 == 0)
+        if ((episode + 1) % 1000 == 0)
         {
             string filename = "weights_episode_" + to_string(episode + 1) + ".txt";
             saveWeights(filename);
@@ -219,6 +280,7 @@ std::vector<TDLearner::Statistics> TDLearner::train(int numEpisodes)
     
     cout << "\n=== Training Complete ===" << endl;
     cout << "Final Epsilon: " << config_.epsilon << endl;
+    cout << "Final Learning Rate: " << config_.learningRate << endl;
     
     return allStats;
 }

@@ -41,6 +41,23 @@ public:
     };
     
     /**
+     * 학습 단계 구조체
+     */
+    struct Phase {
+        int startEpisode;
+        int endEpisode;
+        double startEpsilon;
+        double endEpsilon;
+        double learningRate;
+        
+        Phase(int start, int end, double startEps, double endEps, double lr)
+            : startEpisode(start), endEpisode(end)
+            , startEpsilon(startEps), endEpsilon(endEps)
+            , learningRate(lr)
+        {}
+    };
+    
+    /**
      * 학습 설정 구조체
      */
     struct Config {
@@ -52,6 +69,8 @@ public:
         int maxEpisodes;          // 최대 에피소드 수
         int maxMovesPerEpisode;   // 에피소드당 최대 이동 수
         bool verbose;             // 상세 로그 출력 여부
+        bool useMultiStage;       // Multi-stage training 사용 여부
+        std::vector<Phase> phases; // 학습 단계들
         
         Config()
             : learningRate(0.001)
@@ -62,7 +81,22 @@ public:
             , maxEpisodes(1000)
             , maxMovesPerEpisode(10000)
             , verbose(true)
+            , useMultiStage(false)
         {}
+        
+        // Multi-stage training 설정 (3단계)
+        void setupMultiStage() {
+            useMultiStage = true;
+            maxEpisodes = 30000;
+            
+            phases.clear();
+            // Phase 1: Exploration (0-5000)
+            phases.push_back(Phase(0, 5000, 0.3, 0.1, 0.005));
+            // Phase 2: Exploitation (5000-15000)
+            phases.push_back(Phase(5000, 15000, 0.1, 0.05, 0.001));
+            // Phase 3: Fine-tuning (15000-30000)
+            phases.push_back(Phase(15000, 30000, 0.05, 0.01, 0.0001));
+        }
     };
     
     /**
@@ -164,6 +198,11 @@ public:
      * 학습 진행 상황을 저장합니다.
      */
     bool saveProgress(const std::string& filename, const std::vector<Statistics>& allStats) const;
+    
+    /**
+     * 현재 에피소드에 맞는 phase 설정을 업데이트합니다.
+     */
+    void updatePhase(int episode);
     
 private:
     Evaluator evaluator_;
