@@ -8,6 +8,7 @@
 - [x] input_data() 함수는 오로지 input만 받도록 하고, return값으로 int 값을 반환하여 main에서 설정.
 - [ ] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
 - [x] board 관련 매직넘버 상수화
+- [ ] 파일 디렉토리 구조화
 
 ## Improvement
 - [ ] "spacebar"을 통해 맨 아래로 내리기
