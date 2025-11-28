@@ -1,7 +1,7 @@
 # Tetris Evaluator Weights
-aggregateHeight 170.819
-completeLines 0.760666
-holes -245.919
-bumpiness -60.5272
-maxHeight -75.9756
-minHeight 2.54149
+aggregateHeight -0.510061
+completeLines 0.760658
+holes -0.442369
+bumpiness -0.184481
+maxHeight -0.499995
+minHeight 0

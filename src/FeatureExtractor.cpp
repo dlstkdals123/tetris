@@ -47,6 +47,14 @@ FeatureExtractor::Features FeatureExtractor::extractFeatures(const Board& board)
     // 완성된 줄 개수 계산
     features.completeLines = countCompleteLines(board);
     
+    // Feature 정규화 (0~1 범위로 스케일링)
+    features.aggregateHeight /= 240.0;  // 최대 20*12 = 240
+    features.completeLines /= 4.0;       // 최대 4줄
+    features.holes /= 50.0;             // 최대 약 50개
+    features.bumpiness /= 50.0;         // 최대 약 50
+    features.maxHeight /= 20.0;          // 최대 20
+    features.minHeight /= 20.0;          // 최대 20
+    
     return features;
 }
 

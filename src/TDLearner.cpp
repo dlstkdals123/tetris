@@ -2,8 +2,8 @@
 #include "BlockData.h"
 #include "BoardConstants.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
-#include <cmath>
 #include <chrono>
 
 using namespace std;
@@ -22,14 +22,7 @@ Action TDLearner::selectAction(const Board& board, const Block& block)
     if (dist_(rng_) < config_.epsilon)
     {
         // Exploration: 랜덤 액션 선택
-        vector<Action> actions = ActionSimulator::generatePossibleActions(block.getType());
-        if (actions.empty())
-        {
-            return Action(0, 5); // 기본 액션
-        }
-        
-        uniform_int_distribution<size_t> actionDist(0, actions.size() - 1);
-        return actions[actionDist(rng_)];
+        return selectRandomAction(block);
     }
     else
     {
@@ -37,6 +30,21 @@ Action TDLearner::selectAction(const Board& board, const Block& block)
         auto [bestAction, score] = evaluator_.selectBestAction(board, block);
         return bestAction;
     }
+}
+
+Action TDLearner::selectRandomAction(const Block& block)
+{
+    constexpr int DEFAULT_ROTATION = 0;
+    constexpr int DEFAULT_COLUMN = 5;
+    
+    vector<Action> actions = ActionSimulator::generatePossibleActions(block.getType());
+    if (actions.empty())
+    {
+        return Action(DEFAULT_ROTATION, DEFAULT_COLUMN);
+    }
+    
+    uniform_int_distribution<size_t> actionDist(0, actions.size() - 1);
+    return actions[actionDist(rng_)];
 }
 
 void TDLearner::updateWeights(const FeatureExtractor::Features& currentFeatures,
@@ -53,49 +61,67 @@ void TDLearner::updateWeights(const FeatureExtractor::Features& currentFeatures,
     // TD 오차: δ = r + γ·V(s') - V(s)
     double tdError = reward + config_.discountFactor * nextValue - currentValue;
     
-    // 가중치 업데이트: w ← w + α·δ·∇V(s)
+    // TD 오차 클리핑 (gradient explosion 방지)
+    constexpr double MAX_TD_ERROR = 50.0;
+    tdError = max(-MAX_TD_ERROR, min(MAX_TD_ERROR, tdError));
+    
+    // L2 정규화 계수
+    constexpr double L2_LAMBDA = 0.0001;
+    
+    // 가중치 업데이트: w ← w + α·δ·∇V(s) - α·λ·w (L2 regularization)
     // ∇V(s) = feature 값들 (linear approximation이므로)
     Evaluator::Weights currentWeights = evaluator_.getWeights();
     
-    currentWeights.aggregateHeight += config_.learningRate * tdError * currentFeatures.aggregateHeight;
-    currentWeights.completeLines += config_.learningRate * tdError * currentFeatures.completeLines;
-    currentWeights.holes += config_.learningRate * tdError * currentFeatures.holes;
-    currentWeights.bumpiness += config_.learningRate * tdError * currentFeatures.bumpiness;
-    currentWeights.maxHeight += config_.learningRate * tdError * currentFeatures.maxHeight;
-    currentWeights.minHeight += config_.learningRate * tdError * currentFeatures.minHeight;
+    currentWeights.aggregateHeight += config_.learningRate * tdError * currentFeatures.aggregateHeight
+                                     - config_.learningRate * L2_LAMBDA * currentWeights.aggregateHeight;
+    currentWeights.completeLines += config_.learningRate * tdError * currentFeatures.completeLines
+                                   - config_.learningRate * L2_LAMBDA * currentWeights.completeLines;
+    currentWeights.holes += config_.learningRate * tdError * currentFeatures.holes
+                           - config_.learningRate * L2_LAMBDA * currentWeights.holes;
+    currentWeights.bumpiness += config_.learningRate * tdError * currentFeatures.bumpiness
+                               - config_.learningRate * L2_LAMBDA * currentWeights.bumpiness;
+    currentWeights.maxHeight += config_.learningRate * tdError * currentFeatures.maxHeight
+                               - config_.learningRate * L2_LAMBDA * currentWeights.maxHeight;
+    currentWeights.minHeight += config_.learningRate * tdError * currentFeatures.minHeight
+                               - config_.learningRate * L2_LAMBDA * currentWeights.minHeight;
     
     evaluator_.setWeights(currentWeights);
 }
 
 double TDLearner::calculateReward(int linesCleared, int heightDiff, int holesDiff, bool gameOver) const
 {
+    // 보상 상수들
+    constexpr double GAME_OVER_PENALTY = -1000.0;
+    constexpr double LINE_REWARDS[] = {0.0, 40.0, 100.0, 300.0, 1200.0};
+    constexpr double HEIGHT_PENALTY_FACTOR = 5.0;
+    constexpr double HOLE_PENALTY_FACTOR = 20.0;
+    constexpr double SURVIVAL_REWARD = 1.0;
+    
     if (gameOver)
     {
-        return -1000.0; // 게임 오버는 큰 페널티
+        return GAME_OVER_PENALTY;
     }
     
-    double reward = 0.0;
+    double reward = SURVIVAL_REWARD;
     
     // 라인 제거 보상 (exponential reward for multiple lines)
-    if (linesCleared == 1) reward += 40.0;
-    else if (linesCleared == 2) reward += 100.0;
-    else if (linesCleared == 3) reward += 300.0;
-    else if (linesCleared >= 4) reward += 1200.0;
+    if (linesCleared > 0)
+    {
+        int index = min(linesCleared, 4);
+        reward += LINE_REWARDS[index];
+    }
     
     // 높이 증가 페널티
     if (heightDiff > 0)
     {
-        reward -= heightDiff * 5.0;
+        reward -= heightDiff * HEIGHT_PENALTY_FACTOR;
     }
     
     // 구멍 증가 페널티
     if (holesDiff > 0)
     {
-        reward -= holesDiff * 20.0;
+        reward -= holesDiff * HOLE_PENALTY_FACTOR;
     }
-    
-    // 생존 보상 (작은 양수)
-    reward += 1.0;
     
     return reward;
 }
@@ -253,47 +279,76 @@ std::vector<TDLearner::Statistics> TDLearner::train(int numEpisodes)
         allStats.push_back(stats);
         
         // 주기적으로 진행 상황 출력
-        if (config_.verbose && (episode + 1) % 100 == 0)
+        constexpr int PRINT_INTERVAL = 100;
+        constexpr int SAVE_INTERVAL = 1000;
+        
+        if (config_.verbose && (episode + 1) % PRINT_INTERVAL == 0)
         {
-            printStatistics(stats);
+            // 100 에피소드마다만 출력
+            printStatistics(stats, false);
             
             // Phase 전환 알림
             if (config_.useMultiStage)
             {
-                cout << "  [LR=" << config_.learningRate 
-                     << ", ε=" << config_.epsilon << "]" << endl;
+                cout << "  [LR=" << fixed << setprecision(5) << config_.learningRate 
+                     << ", ε=" << fixed << setprecision(3) << config_.epsilon << "]" << endl;
             }
         }
         
         // 주기적으로 가중치 저장
-        if ((episode + 1) % 1000 == 0)
+        if ((episode + 1) % SAVE_INTERVAL == 0)
         {
             string filename = "weights_episode_" + to_string(episode + 1) + ".txt";
             saveWeights(filename);
             
             if (config_.verbose)
             {
-                cout << "Weights saved to " << filename << endl;
+                cout << "✓ Weights saved to " << filename << endl << endl;
             }
         }
     }
     
     cout << "\n=== Training Complete ===" << endl;
-    cout << "Final Epsilon: " << config_.epsilon << endl;
-    cout << "Final Learning Rate: " << config_.learningRate << endl;
+    cout << "Final Epsilon: " << fixed << setprecision(4) << config_.epsilon << endl;
+    cout << "Final Learning Rate: " << fixed << setprecision(6) << config_.learningRate << endl;
     
     return allStats;
 }
 
-void TDLearner::printStatistics(const Statistics& stats) const
+void TDLearner::printStatistics(const Statistics& stats, bool sameLine) const
 {
-    cout << "Episode " << stats.episode << ": ";
-    cout << "Lines=" << stats.totalLines << ", ";
-    cout << "Moves=" << stats.moves << ", ";
-    cout << "MaxHeight=" << stats.maxHeight << ", ";
-    cout << "AvgReward=" << stats.averageReward << ", ";
-    cout << "Epsilon=" << config_.epsilon;
-    cout << endl;
+    // 같은 줄에 출력할 경우 커서를 줄 시작으로 이동
+    if (sameLine)
+    {
+        cout << "\r";  // 커서를 줄 시작으로
+    }
+    
+    // 진행률 바 생성
+    int barWidth = 30;
+    int progress = (stats.episode * barWidth) / config_.maxEpisodes;
+    
+    cout << "Episode " << stats.episode << "/" << config_.maxEpisodes << " [";
+    for (int i = 0; i < barWidth; i++)
+    {
+        if (i < progress) cout << "█";
+        else cout << "░";
+    }
+    cout << "] ";
+    
+    // 통계 출력
+    cout << "Lines=" << stats.totalLines 
+         << " Moves=" << stats.moves 
+         << " Height=" << stats.maxHeight 
+         << " Reward=" << fixed << setprecision(2) << stats.averageReward;
+    
+    if (sameLine)
+    {
+        cout << flush;  // 버퍼만 비우기 (줄바꿈 안함)
+    }
+    else
+    {
+        cout << endl;  // 줄바꿈
+    }
 }
 
 bool TDLearner::saveProgress(const string& filename, const vector<Statistics>& allStats) const

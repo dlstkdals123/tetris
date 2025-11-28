@@ -191,8 +191,10 @@ public:
     
     /**
      * 학습 통계를 출력합니다.
+     * @param stats 출력할 통계
+     * @param sameLine true면 같은 줄에 덮어쓰기, false면 새 줄에 출력
      */
-    void printStatistics(const Statistics& stats) const;
+    void printStatistics(const Statistics& stats, bool sameLine = false) const;
     
     /**
      * 학습 진행 상황을 저장합니다.
@@ -205,6 +207,11 @@ public:
     void updatePhase(int episode);
     
 private:
+    /**
+     * 랜덤 액션을 선택합니다 (Exploration).
+     */
+    Action selectRandomAction(const Block& block);
+    
     Evaluator evaluator_;
     Config config_;
     std::mt19937 rng_;

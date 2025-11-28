@@ -185,6 +185,9 @@ void testProgressSaving()
 
 int main()
 {
+    system("cls");
+
+    
     cout << "======================================" << endl;
     cout << "TD-Learner Test Program" << endl;
     cout << "======================================" << endl;
