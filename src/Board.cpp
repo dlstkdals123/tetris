@@ -204,3 +204,33 @@ int Board::deleteFullLine()
     }
     return deletedLines;
 }
+
+// Feature 추출을 위한 접근 함수들
+char Board::getCell(int row, int col) const
+{
+    if (row < 0 || row >= 21 || col < 0 || col >= 14)
+    {
+        return 0;
+    }
+    return total_block[row][col];
+}
+
+const char* Board::getRow(int row) const
+{
+    if (row < 0 || row >= 21)
+    {
+        return nullptr;
+    }
+    return total_block[row];
+}
+
+void Board::copyBoard(char dest[21][14]) const
+{
+    for (int i = 0; i < 21; i++)
+    {
+        for (int j = 0; j < 14; j++)
+        {
+            dest[i][j] = total_block[i][j];
+        }
+    }
+}

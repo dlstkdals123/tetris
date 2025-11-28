@@ -20,4 +20,9 @@ class Board {
     void mergeBlock(const Block &block);
     // check_full_line
     int deleteFullLine(); // 삭제된 라인 수 반환
+    
+    // Feature 추출을 위한 접근 함수들
+    char getCell(int row, int col) const;
+    const char* getRow(int row) const;
+    void copyBoard(char dest[21][14]) const;
 };
