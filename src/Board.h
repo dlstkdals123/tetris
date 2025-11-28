@@ -10,13 +10,14 @@ class Board {
 
   public:
     Board(bool isPlayer = true);
+    Board(const Board& other); // 복사 생성자
     ~Board();
 
     int init();
     // 전체 블럭 화면에 그리기
     void draw(const int &level) const; 
     // strike_check
-    int isStrike(const Block &block);
+    int isStrike(const Block &block) const;
     void mergeBlock(const Block &block);
     // check_full_line
     int deleteFullLine(); // 삭제된 라인 수 반환

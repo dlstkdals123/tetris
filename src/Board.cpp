@@ -28,6 +28,18 @@ Board::Board(bool isPlayer) : isPlayer(isPlayer)
         total_block[20][j] = 1; // 바닥
     }
 }
+
+Board::Board(const Board& other) : isPlayer(other.isPlayer)
+{
+    for (int i = 0; i < 21; i++)
+    {
+        for (int j = 0; j < 14; j++)
+        {
+            total_block[i][j] = other.total_block[i][j];
+        }
+    }
+}
+
 Board::~Board()
 {
 }
@@ -95,7 +107,7 @@ void Board::draw(const int &level) const
     Utils::gotoxy(77, 23);
 }
 
-int Board::isStrike(const Block &block)
+int Board::isStrike(const Block &block) const
 {
 	Position pos = block.getPos();
     int i, j;
