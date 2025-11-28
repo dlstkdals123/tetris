@@ -1,5 +1,6 @@
 #include "ActionSimulator.h"
 #include "BlockData.h"
+#include "BoardConstants.h"
 #include <algorithm>
 
 std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType)
@@ -17,8 +18,8 @@ std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType
     // 각 회전에 대해
     for (int rot = 0; rot < numRotations; rot++)
     {
-        // 각 열 위치에 대해 (1~12)
-        for (int col = 1; col <= 12; col++)
+        // 각 열 위치에 대해
+        for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
         {
             actions.push_back(Action(rot, col));
         }
@@ -47,16 +48,14 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     // 블록이 유효한 위치인지 확인
     if (!isValidPosition(simBoard, simBlock))
     {
-        result.isValid = false;
-        return result;
+        return result; // isValid는 이미 false
     }
     
     // 블록을 바닥까지 떨어뜨림
     if (!dropBlock(simBoard, simBlock))
     {
-        result.isValid = false;
         result.gameOver = true;
-        return result;
+        return result; // isValid는 이미 false
     }
     
     // 블록을 보드에 병합

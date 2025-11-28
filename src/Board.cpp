@@ -109,7 +109,6 @@ void Board::draw(const int &level) const
 
 int Board::isStrike(const Block &block) const
 {
-	Position pos = block.getPos();
     int i, j;
     int x = block.getPos().getX();
     int y = block.getPos().getY();
