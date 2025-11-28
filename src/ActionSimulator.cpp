@@ -40,7 +40,8 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     Board simBoard(board);
     
     // 블록 복사 및 초기 위치 설정
-    Block simBlock(block.getType(), Rotation(action.rotation), Position(action.column, -4));
+    Block simBlock(block.getType(), Rotation(action.rotation), 
+                   Position(action.column, BoardConstants::BLOCK_START_Y));
     
     // 블록을 목표 위치로 이동
     moveBlockToPosition(simBlock, action.rotation, action.column);

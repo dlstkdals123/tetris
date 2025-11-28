@@ -23,5 +23,9 @@ namespace BoardConstants {
     // 벽 위치
     constexpr int LEFT_WALL = 0;         // 왼쪽 벽
     constexpr int RIGHT_WALL = 13;       // 오른쪽 벽
+    
+    // 블록 시작 위치
+    constexpr int BLOCK_START_Y = -4;    // 블록 생성 시 Y 위치
+    constexpr int BLOCK_START_X = 5;     // 블록 생성 시 X 위치 (중앙)
 }
 

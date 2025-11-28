@@ -1,0 +1,111 @@
+#pragma once
+
+#include "FeatureExtractor.h"
+#include "ActionSimulator.h"
+#include <vector>
+#include <string>
+
+/**
+ * Evaluator 클래스
+ * Linear function approximation을 사용하여 보드 상태를 평가합니다.
+ * 
+ * 평가 함수: V(s) = w1*f1 + w2*f2 + ... + wn*fn
+ * 여기서 fi는 feature, wi는 가중치입니다.
+ */
+class Evaluator {
+public:
+    /**
+     * Weights 구조체
+     * 각 feature에 대한 가중치를 저장합니다.
+     */
+    struct Weights {
+        double aggregateHeight;
+        double completeLines;
+        double holes;
+        double bumpiness;
+        double maxHeight;
+        double minHeight;
+        
+        // 기본 생성자 - 초기 가중치 설정
+        Weights();
+        
+        // 커스텀 가중치로 생성
+        Weights(double agg, double lines, double holes, double bump, double maxH, double minH);
+    };
+    
+    /**
+     * 생성자
+     * @param weights 사용할 가중치 (기본값: 휴리스틱 기반 초기 가중치)
+     */
+    Evaluator(const Weights& weights = Weights());
+    
+    /**
+     * Feature를 사용하여 보드 상태를 평가합니다.
+     * @param features 평가할 feature
+     * @return 평가 점수 (높을수록 좋은 상태)
+     */
+    double evaluate(const FeatureExtractor::Features& features) const;
+    
+    /**
+     * 보드 상태를 직접 평가합니다.
+     * @param board 평가할 보드
+     * @return 평가 점수
+     */
+    double evaluateBoard(const Board& board) const;
+    
+    /**
+     * 시뮬레이션 결과를 평가합니다.
+     * @param result 시뮬레이션 결과
+     * @return 평가 점수
+     */
+    double evaluateResult(const SimulationResult& result) const;
+    
+    /**
+     * 가능한 모든 액션 중 최고의 액션을 선택합니다.
+     * @param board 현재 보드 상태
+     * @param block 현재 블록
+     * @return 최고의 액션과 그 평가 점수
+     */
+    std::pair<Action, double> selectBestAction(const Board& board, const Block& block) const;
+    
+    /**
+     * 가능한 모든 액션을 평가하고 정렬된 결과를 반환합니다.
+     * @param board 현재 보드 상태
+     * @param block 현재 블록
+     * @return (액션, 점수) 쌍의 벡터 (점수 내림차순 정렬)
+     */
+    std::vector<std::pair<Action, double>> evaluateAllActions(const Board& board, const Block& block) const;
+    
+    /**
+     * 현재 가중치를 반환합니다.
+     */
+    const Weights& getWeights() const { return weights_; }
+    
+    /**
+     * 가중치를 설정합니다.
+     */
+    void setWeights(const Weights& weights) { weights_ = weights; }
+    
+    /**
+     * 가중치를 파일에 저장합니다.
+     * @param filename 저장할 파일명
+     * @return 성공 여부
+     */
+    bool saveWeights(const std::string& filename) const;
+    
+    /**
+     * 파일에서 가중치를 로드합니다.
+     * @param filename 로드할 파일명
+     * @return 성공 여부
+     */
+    bool loadWeights(const std::string& filename);
+    
+    /**
+     * 가중치를 출력합니다 (디버깅용).
+     */
+    void printWeights() const;
+    
+private:
+    Weights weights_;
+};
+
