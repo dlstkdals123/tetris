@@ -60,7 +60,6 @@ public:
      */
     static std::vector<SimulationResult> simulateAllActions(const Board& board, const Block& block);
     
-private:
     /**
      * 블록을 특정 회전과 열 위치로 이동시킵니다.
      * @param block 이동시킬 블록 (참조)
@@ -77,6 +76,7 @@ private:
      */
     static bool dropBlock(const Board& board, Block& block);
     
+private:
     /**
      * 블록이 현재 위치에서 유효한지 확인합니다.
      * @param board 보드 상태
