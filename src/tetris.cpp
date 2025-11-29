@@ -40,33 +40,13 @@ using namespace std;
 #define AI_SPACE 'c'
 
 //*********************************
-// 전역 상수 : 스테이지 데이터
-//*********************************
-
-// 순서대로 speed, stick_rate, clear_line
-const STAGE stage_data[10] = {
-    STAGE(40, 20, 20),       // Level 1
-    STAGE(38, 18, 20),       // Level 2
-    STAGE(35, 18, 20),       // Level 3
-    STAGE(30, 17, 20),       // Level 4
-    STAGE(25, 16, 20),       // Level 5
-    STAGE(20, 14, 20),       // Level 6
-    STAGE(15, 14, 20),       // Level 7
-    STAGE(10, 13, 20),       // Level 8
-    STAGE(6,  12, 20),       // Level 9
-    STAGE(4,  11, 99999)     // Level 10 (사실상 마지막)
-};
-
-//*********************************
 // 함수 선언
 //*********************************
 
-// 현재 스코어 / 스테이지 / 남은 라인 표시
-void show_gamestat(const gameState &gs, bool isPlayer = true ,bool printed_text = false);
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
-void show_logo(BlockRender &renderer);
+void show_logo(BlockRender& renderer);
 // 게임 오버 화면 표시
 void show_gameover();
 
@@ -75,9 +55,9 @@ void show_gameover();
 //*********************************
 
 // 키 입력 스레드
-void inputThread(std::atomic<int> &is_gameover);
+void inputThread(std::atomic<int>& is_gameover);
 // 게임 스레드
-void gameThread(gameState gamestate, std::atomic<int> &is_gameover, bool isPlayer = true);
+void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlayer = true);
 
 int main()
 {
@@ -125,36 +105,6 @@ int main()
 // 보조 함수 구현부
 //*********************************
 
-void show_gamestat(const gameState &gs, bool isPlayer, bool printed_text)
-{
-    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
-    Utils::setColor(COLOR::GRAY);
-
-    if (printed_text)
-    {
-        Utils::gotoxy(35, 7, isPlayer);
-        printf("STAGE");
-
-        Utils::gotoxy(35, 9, isPlayer);
-        printf("SCORE");
-
-        Utils::gotoxy(35, 12, isPlayer);
-        printf("LINES");
-    }
-
-    Utils::gotoxy(41, 7, isPlayer);
-    printf("%d", gs.getLevel() + 1);
-
-    Utils::gotoxy(35, 10, isPlayer);
-    printf("%10d", gs.getScore());
-
-    Utils::gotoxy(35, 13, isPlayer);
-    int remain = stage_data[gs.getLevel()].getClearLine() - gs.getLines();
-    if (remain < 0)
-        remain = 0;
-    printf("%10d", remain);
-}
-
 int input_data() {
     int level = 0;
 
@@ -199,7 +149,7 @@ int input_data() {
     return level - 1;
 }
 
-void show_logo(BlockRender &renderer)
+void show_logo(BlockRender& renderer)
 {
     int i, j;
 
@@ -228,7 +178,7 @@ void show_logo(BlockRender &renderer)
     printf("Please Press Any Key~!");
 
     gameState tempGs;   // 임시 생성 (사용x)
-    BlockGenerator gen(stage_data, tempGs);
+    BlockGenerator gen(tempGs);
 
     for (i = 0;; ++i)
     {
@@ -242,7 +192,7 @@ void show_logo(BlockRender &renderer)
 
             Block blocks[4];
             gen.make_logo_blocks(blocks);
-            
+
             for (int i = 0; i < 4; i++) {
                 renderer.show_cur_block(blocks[i]);
             }
@@ -283,7 +233,7 @@ void show_gameover()
 // 스레드 함수 구현부
 //*********************************
 
-void inputThread(std::atomic<int>& is_gameover) 
+void inputThread(std::atomic<int>& is_gameover)
 {
     while (!(is_gameover == 1)) {
         if (_kbhit())
@@ -307,11 +257,11 @@ void inputThread(std::atomic<int>& is_gameover)
     }
 }
 
-void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlayer) 
+void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlayer)
 {
     Board board(isPlayer); // 쌓인 블록 / 벽 / 바닥 관리
     Position boardOffset(5, 1); // 블록 생성 좌표
-    BlockGenerator blockGenerator(stage_data, gamestate);
+    BlockGenerator blockGenerator(gamestate);
     BlockRender renderer(gamestate, boardOffset, isPlayer);
     BlockMover mover(renderer, board, blockGenerator, gamestate);
 
@@ -325,7 +275,7 @@ void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlaye
     curBlock.block_start();
     renderer.show_cur_block(curBlock);
     renderer.show_next_block(nextBlock);
-    show_gamestat(gamestate, isPlayer, true);
+    gamestate.show_gamestat(isPlayer, true);
 
     for (int i = 1;; i++) {
         std::queue<char>& myQueue = isPlayer ? Utils::playerInputQueue : Utils::aiInputQueue;
@@ -351,17 +301,18 @@ void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlaye
                     break;
                 case KEY_DOWN: // 한 칸 아래로
                     is_gameover = mover.move_block(curBlock, nextBlock);
-                    show_gamestat(gamestate, isPlayer);
+                    gamestate.show_gamestat(isPlayer);
                     break;
                 case 32:
                     while (is_gameover == 0)
                     {
                         is_gameover = mover.move_block(curBlock, nextBlock);
                     }
-                    show_gamestat(gamestate, isPlayer);
+                    gamestate.show_gamestat(isPlayer);
                     break;
                 }
-            } else {
+            }
+            else {
                 switch (keytemp)
                 {
                 case AI_UP: // 회전
@@ -375,31 +326,31 @@ void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlaye
                     break;
                 case AI_DOWN: // 한 칸 아래로
                     is_gameover = mover.move_block(curBlock, nextBlock);
-                    show_gamestat(gamestate, isPlayer);
+                    gamestate.show_gamestat(isPlayer);
                     break;
                 case AI_SPACE:
                     while (is_gameover == 0)
                     {
                         is_gameover = mover.move_block(curBlock, nextBlock);
                     }
-                    show_gamestat(gamestate, isPlayer);
+                    gamestate.show_gamestat(isPlayer);
                     break;
                 }
             }
         }
         // 자동 낙하
-        if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
+        if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
             is_gameover = mover.move_block(curBlock, nextBlock);
-            show_gamestat(gamestate, isPlayer);
+            gamestate.show_gamestat(isPlayer);
         }
 
         // 스테이지 클리어
-        if (stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())
+        if (STAGE::getStage(gamestate.getLevel()).getClearLine() <= gamestate.getLines())
         {
             gamestate.levelUp();
             board.draw(gamestate.getLevel());
-            show_gamestat(gamestate, isPlayer);
+            gamestate.show_gamestat(isPlayer);
             renderer.show_next_block(nextBlock);
         }
 
@@ -407,7 +358,7 @@ void gameThread(gameState gamestate, std::atomic<int>& is_gameover, bool isPlaye
         {
             return; // 새 게임 시작
         }
-        
+
         {
             std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
             Utils::gotoxy(77, 23, true);

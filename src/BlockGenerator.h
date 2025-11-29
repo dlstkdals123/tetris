@@ -9,16 +9,16 @@
 #include "Block.h"
 class BlockGenerator{
 private:
-    const STAGE* stage_data;
     const gameState& gs;
 public:
-    BlockGenerator(const STAGE stage_data[], const gameState& gs): stage_data(stage_data) ,gs(gs) {};
+    BlockGenerator(const gameState& gs): gs(gs) {};
     ~BlockGenerator() = default;
     
     BlockType make_new_block()
     {
         int i = rand()%100;
-        if(i <= stage_data[gs.getLevel()].getStickRate())		
+        STAGE stage_data = STAGE::getStage(gs.getLevel());
+        if(i <= stage_data.getStickRate())		
             return BlockType::I;
 
         int shape = (rand()%6)+1;

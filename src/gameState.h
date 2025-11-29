@@ -32,37 +32,6 @@ public:
     void levelUp();      // 레벨을 1 올리고 라인을 0으로 초기화
     void resetLines();   // 라인 수만 초기화]
 
-
-    void show_gamestat(bool isPlayer, bool printed_text)
-    {
-        std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
-        Utils::setColor(COLOR::GRAY);
-
-        if (printed_text)
-        {
-            Utils::gotoxy(35, 7, isPlayer);
-            printf("STAGE");
-
-            Utils::gotoxy(35, 9, isPlayer);
-            printf("SCORE");
-
-            Utils::gotoxy(35, 12, isPlayer);
-            printf("LINES");
-        }
-
-        Utils::gotoxy(41, 7, isPlayer);
-        printf("%d", this->getLevel() + 1);
-
-        Utils::gotoxy(35, 10, isPlayer);
-        printf("%10d", this->getScore());
-
-        Utils::gotoxy(35, 13, isPlayer);
-        
-        int remain = STAGE::getStage(this->getLevel()).getClearLine() - this->getLines();
-        if (remain < 0)
-            remain = 0;
-        printf("%10d", remain);
-    }
-
+    void show_gamestat(bool isPlayer = true, bool printed_text = false);
 };
 
