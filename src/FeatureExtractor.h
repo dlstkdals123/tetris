@@ -10,13 +10,12 @@ class FeatureExtractor {
 public:
     struct Features {
         int aggregateHeight;    // 모든 열의 높이 합
-        int completeLines;      // 완성된 줄 수
         int holes;              // 블록 위에 빈 공간이 있는 셀 수
         int bumpiness;          // 인접한 열들의 높이 차이 합
         int maxHeight;          // 최대 높이
         int minHeight;          // 최소 높이 (벽 제외)
         
-        Features() : aggregateHeight(0), completeLines(0), holes(0), 
+        Features() : aggregateHeight(0), holes(0), 
                      bumpiness(0), maxHeight(0), minHeight(0) {}
     };
     
@@ -42,13 +41,6 @@ public:
      * @return 구멍의 총 개수
      */
     static int countHoles(const Board& board);
-    
-    /**
-     * 완성된 줄의 개수를 셉니다.
-     * @param board 보드 상태
-     * @return 완성된 줄의 개수
-     */
-    static int countCompleteLines(const Board& board);
     
     /**
      * 인접한 열들의 높이 차이 합을 계산합니다.

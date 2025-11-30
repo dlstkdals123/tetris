@@ -8,10 +8,7 @@ using namespace std;
 FeatureExtractor::Features FeatureExtractor::extractFeatures(const Board& board)
 {
     Features features;
-    
-    // 각 열의 높이를 저장 (bumpiness 계산에 재사용)
-    int columnHeights[BoardConstants::PLAY_WIDTH];
-    
+
     int totalHeight = 0;
     int maxH = 0;
     int minH = BoardConstants::PLAY_HEIGHT;
@@ -20,7 +17,6 @@ FeatureExtractor::Features FeatureExtractor::extractFeatures(const Board& board)
     for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
     {
         int height = getColumnHeight(board, col);
-        columnHeights[col - 1] = height;
         totalHeight += height;
         
         if (height > maxH)
@@ -29,38 +25,19 @@ FeatureExtractor::Features FeatureExtractor::extractFeatures(const Board& board)
             minH = height;
     }
     
-    features.aggregateHeight = totalHeight;
-    features.maxHeight = maxH;
-    features.minHeight = minH;
-    
-    // Bumpiness 계산 (저장된 높이 배열 사용)
-    int bumpiness = 0;
-    for (int i = 0; i < BoardConstants::PLAY_WIDTH - 1; i++)
-    {
-        bumpiness += abs(columnHeights[i] - columnHeights[i + 1]);
-    }
-    features.bumpiness = bumpiness;
-    
-    // 구멍 개수 계산
-    features.holes = countHoles(board);
-    
-    // 완성된 줄 개수 계산
-    features.completeLines = countCompleteLines(board);
-    
-    // Feature 정규화 (0~1 범위로 스케일링)
-    features.aggregateHeight /= 240.0;  // 최대 20*12 = 240
-    features.completeLines /= 4.0;       // 최대 4줄
-    features.holes /= 50.0;             // 최대 약 50개
-    features.bumpiness /= 50.0;         // 최대 약 50
-    features.maxHeight /= 20.0;          // 최대 20
-    features.minHeight /= 20.0;          // 최대 20
+    // Feature 정규화 (0~1 범위로)
+    features.aggregateHeight = totalHeight / 240.0;  // 최대 240
+    features.holes = countHoles(board) / 100.0;                   // 최대 100 가정
+    features.bumpiness = calculateBumpiness(board) / 50.0;            // 최대 50 가정
+    features.maxHeight = maxH / 20.0;                 // 최대 20
+    features.minHeight = minH / 20.0;                 // 최대 20
     
     return features;
 }
 
 int FeatureExtractor::getColumnHeight(const Board& board, int col)
 {
-    if (col < BoardConstants::MIN_COLUMN || col > BoardConstants::MAX_COLUMN)
+    if (col < BoardConstants::MIN_COLUMN || col > BoardConstants::MAX_COLUMN) 
         return 0;
     
     // 위에서부터 아래로 스캔하여 첫 번째 블록을 찾음
@@ -104,34 +81,6 @@ int FeatureExtractor::countHoles(const Board& board)
     return holes;
 }
 
-int FeatureExtractor::countCompleteLines(const Board& board)
-{
-    int completeLines = 0;
-    
-    // 각 행에 대해
-    for (int row = BoardConstants::MIN_ROW; row < BoardConstants::PLAY_HEIGHT; row++)
-    {
-        bool isComplete = true;
-        
-        // 플레이 영역의 모든 열 확인
-        for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
-        {
-            if (board.getCell(row, col) == 0)
-            {
-                isComplete = false;
-                break;
-            }
-        }
-        
-        if (isComplete)
-        {
-            completeLines++;
-        }
-    }
-    
-    return completeLines;
-}
-
 int FeatureExtractor::calculateBumpiness(const Board& board)
 {
     int bumpiness = 0;
@@ -151,7 +100,6 @@ void FeatureExtractor::printFeatures(const Features& features)
 {
     cout << "=== Features ===" << endl;
     cout << "Aggregate Height: " << features.aggregateHeight << endl;
-    cout << "Complete Lines:   " << features.completeLines << endl;
     cout << "Holes:            " << features.holes << endl;
     cout << "Bumpiness:        " << features.bumpiness << endl;
     cout << "Max Height:       " << features.maxHeight << endl;

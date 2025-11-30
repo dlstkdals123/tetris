@@ -9,22 +9,33 @@
 #include <random>
 
 /**
- * TDLearner 클래스
- * Temporal Difference Learning을 사용하여 가중치를 학습합니다.
+ * MonteCarloLearner 클래스
+ * Monte Carlo Learning을 사용하여 가중치를 학습합니다.
  * 
- * TD(0) 업데이트 규칙:
- * w ← w + α[r + γ·V(s') - V(s)]·∇V(s)
+ * Monte Carlo 업데이트 규칙:
+ * w ← w + α[G - V(s)]·∇V(s)
  * 
  * 여기서:
  * - α (alpha): 학습률
  * - γ (gamma): 할인 인자
- * - r: 즉시 보상
+ * - G: 에피소드 끝까지의 누적 할인 보상
  * - V(s): 현재 상태의 가치
- * - V(s'): 다음 상태의 가치
  * - ∇V(s): 가치 함수의 그래디언트 (= feature 값들)
  */
-class TDLearner {
+class MCLearner {
 public:
+    /**
+     * 경험 구조체 (Monte Carlo용)
+     */
+    struct Experience {
+        FeatureExtractor::Features state;
+        Action action;
+        double reward;
+        
+        Experience(const FeatureExtractor::Features& s, const Action& a, double r)
+            : state(s), action(a), reward(r) {}
+    };
+    
     /**
      * 학습 통계 구조체
      */
@@ -74,7 +85,7 @@ public:
         
         Config()
             : learningRate(0.001)
-            , discountFactor(0.95)
+            , discountFactor(0.99)
             , epsilon(0.1)
             , epsilonDecay(0.9995)
             , minEpsilon(0.01)
@@ -84,18 +95,18 @@ public:
             , useMultiStage(false)
         {}
         
-        // Multi-stage training 설정 (3단계)
+        // Multi-stage training 설정 (3단계, Monte Carlo용 50K 에피소드)
         void setupMultiStage() {
             useMultiStage = true;
-            maxEpisodes = 30000;
+            maxEpisodes = 50000;
             
             phases.clear();
-            // Phase 1: Exploration (0-5000)
-            phases.push_back(Phase(0, 5000, 0.3, 0.1, 0.005));
-            // Phase 2: Exploitation (5000-15000)
-            phases.push_back(Phase(5000, 15000, 0.1, 0.05, 0.001));
-            // Phase 3: Fine-tuning (15000-30000)
-            phases.push_back(Phase(15000, 30000, 0.05, 0.01, 0.0001));
+            // Phase 1: 더 강한 Exploration (0-15000)
+            phases.push_back(Phase(0, 15000, 0.5, 0.15, 0.01));  // 마지막 값이 learningRate
+            // Phase 2: Exploitation (15000-40000)
+            phases.push_back(Phase(15000, 40000, 0.15, 0.08, 0.005));
+            // Phase 3: Fine-tuning (40000-50000)
+            phases.push_back(Phase(40000, 50000, 0.08, 0.02, 0.001));
         }
     };
     
@@ -104,14 +115,15 @@ public:
      * @param config 학습 설정
      * @param initialWeights 초기 가중치 (기본값: 휴리스틱 가중치)
      */
-    TDLearner(const Config& config = Config(), 
+    MCLearner(const Config& config = Config(), 
               const Evaluator::Weights& initialWeights = Evaluator::Weights());
     
     /**
      * 한 에피소드를 실행합니다.
+     * @param initialStateType 초기 상태 타입 (0=비어있음, 1=1줄, 2=2줄, 3=3줄, 4=4줄)
      * @return 에피소드 통계
      */
-    Statistics runEpisode();
+    Statistics runEpisode(int initialStateType = 0);
     
     /**
      * 여러 에피소드를 실행하여 학습합니다.
@@ -124,31 +136,22 @@ public:
      * ε-greedy 정책으로 액션을 선택합니다.
      * @param board 현재 보드
      * @param block 현재 블록
+     * @param nextBlock 다음 블록 (선택적, look-ahead 사용 시)
      * @return 선택된 액션
      */
-    Action selectAction(const Board& board, const Block& block);
-    
-    /**
-     * TD 업데이트를 수행합니다.
-     * @param currentFeatures 현재 상태의 feature
-     * @param reward 즉시 보상
-     * @param nextFeatures 다음 상태의 feature
-     * @param isTerminal 종료 상태 여부
-     */
-    void updateWeights(const FeatureExtractor::Features& currentFeatures,
-                      double reward,
-                      const FeatureExtractor::Features& nextFeatures,
-                      bool isTerminal);
+    Action selectAction(const Board& board, const Block& block, const Block* nextBlock = nullptr);
     
     /**
      * 보상 함수: 상태 전이에 대한 보상을 계산합니다.
      * @param linesCleared 제거된 라인 수
-     * @param heightDiff 높이 변화
-     * @param holesDiff 구멍 변화
+     * @param currentMaxHeight 현재 최대 높이
+     * @param currentHoles 현재 구멍 수
+     * @param currentBumpiness 현재 울퉁불퉁함
+     * @param holesDiff 구멍 변화량 (음수면 구멍 감소)
      * @param gameOver 게임 오버 여부
      * @return 보상 값
      */
-    double calculateReward(int linesCleared, int heightDiff, int holesDiff, bool gameOver) const;
+    double calculateReward(int linesCleared, int currentMaxHeight, int currentHoles, int currentBumpiness, int holesDiff, int bumpinessDiff, bool gameOver) const;
     
     /**
      * 현재 evaluator를 반환합니다.
@@ -207,6 +210,16 @@ public:
     void updatePhase(int episode);
     
 private:
+    /**
+     * Monte Carlo 방식으로 가중치를 업데이트합니다.
+     * @param state 현재 상태의 feature
+     * @param G 누적 할인 보상
+     * @param isTerminal 종료 상태 여부
+     */
+    void updateWeightsMonteCarlo(const FeatureExtractor::Features& state,
+                                  double G,
+                                  bool isTerminal);
+    
     /**
      * 랜덤 액션을 선택합니다 (Exploration).
      */

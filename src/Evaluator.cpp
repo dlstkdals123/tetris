@@ -1,4 +1,5 @@
 #include "Evaluator.h"
+#include "BoardConstants.h"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -8,20 +9,17 @@
 using namespace std;
 
 // 기본 휴리스틱 가중치
-// 문헌 기반 초기값 (Pierre Dellacherie's algorithm 참고)
 Evaluator::Weights::Weights()
-    : aggregateHeight(-0.510066)  // 높이는 낮을수록 좋음 (음수)
-    , completeLines(0.760666)     // 라인 제거는 많을수록 좋음 (양수)
-    , holes(-0.35663)             // 구멍은 적을수록 좋음 (음수)
-    , bumpiness(-0.184483)        // 울퉁불퉁함은 적을수록 좋음 (음수)
-    , maxHeight(-0.5)             // 최대 높이는 낮을수록 좋음 (음수)
+    : aggregateHeight(-1)  // 높이는 낮을수록 좋음 (음수)
+    , holes(-5)             // 구멍은 적을수록 좋음 (음수)
+    , bumpiness(-1)        // 울퉁불퉁함은 적을수록 좋음 (음수)
+    , maxHeight(-5)             // 최대 높이는 낮을수록 좋음 (음수)
     , minHeight(0.0)              // 최소 높이는 영향 적음
-{
+{ 
 }
 
-Evaluator::Weights::Weights(double agg, double lines, double holes, double bump, double maxH, double minH)
+Evaluator::Weights::Weights(double agg, double holes, double bump, double maxH, double minH)
     : aggregateHeight(agg)
-    , completeLines(lines)
     , holes(holes)
     , bumpiness(bump)
     , maxHeight(maxH)
@@ -40,7 +38,6 @@ double Evaluator::evaluate(const FeatureExtractor::Features& features) const
     double score = 0.0;
     
     score += weights_.aggregateHeight * features.aggregateHeight;
-    score += weights_.completeLines * features.completeLines;
     score += weights_.holes * features.holes;
     score += weights_.bumpiness * features.bumpiness;
     score += weights_.maxHeight * features.maxHeight;
@@ -94,6 +91,85 @@ std::pair<Action, double> Evaluator::selectBestAction(const Board& board, const 
     return {bestAction, bestScore};
 }
 
+std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
+    const Board& board, 
+    const Block& currentBlock, 
+    const Block* nextBlock,
+    double lookAheadDiscount) const
+{
+    // 현재 블록의 모든 가능한 액션 시뮬레이션
+    vector<SimulationResult> currentResults = ActionSimulator::simulateAllActions(board, currentBlock);
+    
+    if (currentResults.empty())
+    {
+        // 가능한 액션이 없으면 기본 액션 반환
+        return {Action(0, 5), -std::numeric_limits<double>::infinity()};
+    }
+    
+    Action bestAction = currentResults[0].action;
+    double bestScore = -std::numeric_limits<double>::infinity();
+    
+    // 각 현재 블록 액션에 대해 평가
+    for (const auto& currentResult : currentResults)
+    {
+        if (!currentResult.isValid || currentResult.gameOver)
+        {
+            continue;  // 유효하지 않은 액션은 스킵
+        }
+        
+        // 현재 블록 배치 후 보드 상태 시뮬레이션
+        Board simBoard(board);
+        Block simBlock(currentBlock.getType(), Rotation(currentResult.action.rotation),
+                      Position(currentResult.action.column, BoardConstants::BLOCK_START_Y));
+        ActionSimulator::moveBlockToPosition(simBlock, currentResult.action.rotation, currentResult.action.column);
+        ActionSimulator::dropBlock(simBoard, simBlock);
+        simBoard.mergeBlock(simBlock);
+        simBoard.deleteFullLine();  // 라인 삭제
+        
+        // 현재 블록 점수
+        double currentScore = evaluateResult(currentResult);
+        
+        // 다음 블록까지 고려
+        if (nextBlock != nullptr)
+        {
+            // 다음 블록의 모든 가능한 액션 시뮬레이션
+            vector<SimulationResult> nextResults = ActionSimulator::simulateAllActions(simBoard, *nextBlock);
+            
+            if (!nextResults.empty())
+            {
+                // 다음 블록의 최고 점수 찾기
+                double bestNextScore = -std::numeric_limits<double>::infinity();
+                for (const auto& nextResult : nextResults)
+                {
+                    if (nextResult.isValid && !nextResult.gameOver)
+                    {
+                        double nextScore = evaluateResult(nextResult);
+                        if (nextScore > bestNextScore)
+                        {
+                            bestNextScore = nextScore;
+                        }
+                    }
+                }
+                
+                // 현재 점수 + (다음 블록 최고 점수 * 할인 인자)
+                if (bestNextScore > -std::numeric_limits<double>::infinity())
+                {
+                    currentScore += bestNextScore * lookAheadDiscount;
+                }
+            }
+        }
+        
+        // 최고 점수 업데이트
+        if (currentScore > bestScore)
+        {
+            bestScore = currentScore;
+            bestAction = currentResult.action;
+        }
+    }
+    
+    return {bestAction, bestScore};
+}
+
 std::vector<std::pair<Action, double>> Evaluator::evaluateAllActions(const Board& board, const Block& block) const
 {
     vector<SimulationResult> results = ActionSimulator::simulateAllActions(board, block);
@@ -125,7 +201,6 @@ bool Evaluator::saveWeights(const string& filename) const
     
     file << "# Tetris Evaluator Weights" << endl;
     file << "aggregateHeight " << weights_.aggregateHeight << endl;
-    file << "completeLines " << weights_.completeLines << endl;
     file << "holes " << weights_.holes << endl;
     file << "bumpiness " << weights_.bumpiness << endl;
     file << "maxHeight " << weights_.maxHeight << endl;
@@ -148,7 +223,6 @@ bool Evaluator::loadWeights(const string& filename)
     // 가중치 포인터 맵 (더 확장 가능하고 유지보수 쉬움)
     unordered_map<string, double*> weightMap = {
         {"aggregateHeight", &weights_.aggregateHeight},
-        {"completeLines", &weights_.completeLines},
         {"holes", &weights_.holes},
         {"bumpiness", &weights_.bumpiness},
         {"maxHeight", &weights_.maxHeight},
@@ -185,7 +259,6 @@ void Evaluator::printWeights() const
 {
     cout << "=== Evaluator Weights ===" << endl;
     cout << "Aggregate Height: " << weights_.aggregateHeight << endl;
-    cout << "Complete Lines:   " << weights_.completeLines << endl;
     cout << "Holes:            " << weights_.holes << endl;
     cout << "Bumpiness:        " << weights_.bumpiness << endl;
     cout << "Max Height:       " << weights_.maxHeight << endl;

@@ -1,4 +1,4 @@
-# Tetris 프로젝트 Makefile
+# Tetris Monte Carlo Learning Project Makefile
 # Compiler and flags
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -I./src
@@ -6,9 +6,8 @@ LDFLAGS =
 
 # Directories
 SRC_DIR = src
-BUILD_DIR = build
 
-# Source files
+# Common source files
 COMMON_SRCS = $(SRC_DIR)/Board.cpp \
               $(SRC_DIR)/Utils.cpp \
               $(SRC_DIR)/COLOR.cpp \
@@ -20,164 +19,90 @@ COMMON_SRCS = $(SRC_DIR)/Board.cpp \
               $(SRC_DIR)/BlockRender.cpp \
               $(SRC_DIR)/BlockMover.cpp
 
+# AI/Learning source files
+AI_SRCS = $(SRC_DIR)/Evaluator.cpp \
+          $(SRC_DIR)/ActionSimulator.cpp \
+          $(SRC_DIR)/FeatureExtractor.cpp
+
+# Main executables source files
 TETRIS_SRCS = $(SRC_DIR)/tetris.cpp $(COMMON_SRCS)
-FEATURE_TEST_SRCS = $(SRC_DIR)/test_features.cpp \
-                    $(SRC_DIR)/FeatureExtractor.cpp \
-                    $(SRC_DIR)/Board.cpp \
-                    $(SRC_DIR)/Utils.cpp \
-                    $(SRC_DIR)/COLOR.cpp \
-                    $(SRC_DIR)/position.cpp \
-                    $(SRC_DIR)/rotation.cpp
-
-ACTION_TEST_SRCS = $(SRC_DIR)/test_action_simulator.cpp \
-                   $(SRC_DIR)/ActionSimulator.cpp \
-                   $(SRC_DIR)/FeatureExtractor.cpp \
-                   $(SRC_DIR)/Board.cpp \
-                   $(SRC_DIR)/Utils.cpp \
-                   $(SRC_DIR)/COLOR.cpp \
-                   $(SRC_DIR)/position.cpp \
-                   $(SRC_DIR)/rotation.cpp
-
-EVALUATOR_TEST_SRCS = $(SRC_DIR)/test_evaluator.cpp \
-                      $(SRC_DIR)/Evaluator.cpp \
-                      $(SRC_DIR)/ActionSimulator.cpp \
-                      $(SRC_DIR)/FeatureExtractor.cpp \
-                      $(SRC_DIR)/Board.cpp \
-                      $(SRC_DIR)/Utils.cpp \
-                      $(SRC_DIR)/COLOR.cpp \
-                      $(SRC_DIR)/position.cpp \
-                      $(SRC_DIR)/rotation.cpp
-
-TD_LEARNER_TEST_SRCS = $(SRC_DIR)/test_td_learner.cpp \
-                       $(SRC_DIR)/TDLearner.cpp \
-                       $(SRC_DIR)/Evaluator.cpp \
-                       $(SRC_DIR)/ActionSimulator.cpp \
-                       $(SRC_DIR)/FeatureExtractor.cpp \
-                       $(SRC_DIR)/Board.cpp \
-                       $(SRC_DIR)/Utils.cpp \
-                       $(SRC_DIR)/COLOR.cpp \
-                       $(SRC_DIR)/position.cpp \
-                       $(SRC_DIR)/rotation.cpp
-
-TRAIN_MULTISTAGE_SRCS = $(SRC_DIR)/train_multistage.cpp \
-                        $(SRC_DIR)/TDLearner.cpp \
-                        $(SRC_DIR)/Evaluator.cpp \
-                        $(SRC_DIR)/ActionSimulator.cpp \
-                        $(SRC_DIR)/FeatureExtractor.cpp \
-                        $(SRC_DIR)/Board.cpp \
-                        $(SRC_DIR)/Utils.cpp \
-                        $(SRC_DIR)/COLOR.cpp \
-                        $(SRC_DIR)/position.cpp \
-                        $(SRC_DIR)/rotation.cpp
+TETRIS_AI_SRCS = $(SRC_DIR)/tetris_ai.cpp $(AI_SRCS) $(COMMON_SRCS)
+TRAIN_SRCS = $(SRC_DIR)/train_multistage.cpp \
+             $(SRC_DIR)/MCLearner.cpp \
+             $(AI_SRCS) \
+             $(SRC_DIR)/Board.cpp \
+             $(SRC_DIR)/Utils.cpp \
+             $(SRC_DIR)/COLOR.cpp \
+             $(SRC_DIR)/position.cpp \
+             $(SRC_DIR)/rotation.cpp
 
 # Executables
 TETRIS_EXE = tetris.exe
-FEATURE_TEST_EXE = test_features.exe
-ACTION_TEST_EXE = test_action_simulator.exe
-EVALUATOR_TEST_EXE = test_evaluator.exe
-TD_LEARNER_TEST_EXE = test_td_learner.exe
-TRAIN_MULTISTAGE_EXE = train_multistage.exe
+TETRIS_AI_EXE = tetris_ai.exe
+TRAIN_EXE = train_multistage.exe
 
 # Default target
-all: $(TETRIS_EXE) $(FEATURE_TEST_EXE) $(ACTION_TEST_EXE) $(EVALUATOR_TEST_EXE) $(TD_LEARNER_TEST_EXE)
+all: $(TETRIS_EXE) $(TETRIS_AI_EXE) $(TRAIN_EXE)
 
-# Build tetris game
+# Build tetris game (player only)
 $(TETRIS_EXE): $(TETRIS_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "Tetris game compiled successfully!"
 
-# Build feature extractor test
-$(FEATURE_TEST_EXE): $(FEATURE_TEST_SRCS)
+# Build tetris with AI (player vs AI)
+$(TETRIS_AI_EXE): $(TETRIS_AI_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Feature test compiled successfully!"
+	@echo "Tetris AI game compiled successfully!"
 
-# Build action simulator test
-$(ACTION_TEST_EXE): $(ACTION_TEST_SRCS)
+# Build Monte Carlo training program
+$(TRAIN_EXE): $(TRAIN_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Action simulator test compiled successfully!"
+	@echo "Monte Carlo training compiled successfully!"
 
-# Build evaluator test
-$(EVALUATOR_TEST_EXE): $(EVALUATOR_TEST_SRCS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Evaluator test compiled successfully!"
-
-# Build TD learner test
-$(TD_LEARNER_TEST_EXE): $(TD_LEARNER_TEST_SRCS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "TD learner test compiled successfully!"
-
-# Build multi-stage training
-$(TRAIN_MULTISTAGE_EXE): $(TRAIN_MULTISTAGE_SRCS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Multi-stage training compiled successfully!"
-
-# Build only tetris
+# Individual build targets
 tetris: $(TETRIS_EXE)
 
-# Build only feature test
-test: $(FEATURE_TEST_EXE)
+tetris-ai: $(TETRIS_AI_EXE)
 
-# Build only action simulator test
-test-action: $(ACTION_TEST_EXE)
+train: $(TRAIN_EXE)
 
-# Build only evaluator test
-test-evaluator: $(EVALUATOR_TEST_EXE)
-
-# Build only TD learner test
-test-td: $(TD_LEARNER_TEST_EXE)
-
-# Build multi-stage training
-train: $(TRAIN_MULTISTAGE_EXE)
-
-# Run feature test
-run-test: $(FEATURE_TEST_EXE)
-	./$(FEATURE_TEST_EXE)
-
-# Run action simulator test
-run-action-test: $(ACTION_TEST_EXE)
-	./$(ACTION_TEST_EXE)
-
-# Run evaluator test
-run-evaluator-test: $(EVALUATOR_TEST_EXE)
-	./$(EVALUATOR_TEST_EXE)
-
-# Run TD learner test
-run-td-test: $(TD_LEARNER_TEST_EXE)
-	./$(TD_LEARNER_TEST_EXE)
-
-# Run multi-stage training
-run-train: $(TRAIN_MULTISTAGE_EXE)
-	./$(TRAIN_MULTISTAGE_EXE)
-
-# Run tetris game
-run-tetris: $(TETRIS_EXE)
+# Run targets
+run: $(TETRIS_EXE)
 	./$(TETRIS_EXE)
+
+run-tetris-ai: $(TETRIS_AI_EXE)
+	./$(TETRIS_AI_EXE)
+
+run-train: $(TRAIN_EXE)
+	./$(TRAIN_EXE)
 
 # Clean build artifacts
 clean:
-	rm -f $(TETRIS_EXE) $(FEATURE_TEST_EXE) $(ACTION_TEST_EXE) $(EVALUATOR_TEST_EXE) $(TD_LEARNER_TEST_EXE) $(TRAIN_MULTISTAGE_EXE)
-	rm -f test_weights.txt test_td_weights.txt test_training_progress.csv
-	rm -f weights_episode_*.txt final_weights_multistage.txt training_progress_multistage.csv
+	rm -f $(TETRIS_EXE) $(TETRIS_AI_EXE) $(TRAIN_EXE)
+	rm -f *.txt *.csv
 	@echo "Cleaned build artifacts"
 
 # Help target
 help:
+	@echo "========================================="
+	@echo "Tetris Monte Carlo Learning Project"
+	@echo "========================================="
+	@echo ""
 	@echo "Available targets:"
-	@echo "  all                - Build everything (default)"
-	@echo "  tetris             - Build tetris game only"
-	@echo "  test               - Build feature test only"
-	@echo "  test-action        - Build action simulator test only"
-	@echo "  test-evaluator     - Build evaluator test only"
-	@echo "  test-td            - Build TD learner test only"
-	@echo "  train              - Build multi-stage training program"
-	@echo "  run-test           - Build and run feature test"
-	@echo "  run-action-test    - Build and run action simulator test"
-	@echo "  run-evaluator-test - Build and run evaluator test"
-	@echo "  run-td-test        - Build and run TD learner test"
-	@echo "  run-train          - Build and run multi-stage training (30K episodes!)"
-	@echo "  run-tetris         - Build and run tetris game"
-	@echo "  clean              - Remove all executables"
-	@echo "  help               - Show this help message"
+	@echo "  all           - Build all executables (default)"
+	@echo "  tetris        - Build player-only tetris game"
+	@echo "  tetris-ai     - Build player vs AI tetris game"
+	@echo "  train         - Build Monte Carlo training program"
+	@echo ""
+	@echo "Run targets:"
+	@echo "  run           - Run player-only tetris game"
+	@echo "  run-tetris-ai - Run player vs AI game"
+	@echo "  run-train     - Run Monte Carlo training (20K episodes)"
+	@echo ""
+	@echo "Other:"
+	@echo "  clean         - Remove all executables and output files"
+	@echo "  help          - Show this help message"
+	@echo ""
 
-.PHONY: all tetris test test-action test-evaluator test-td train run-test run-action-test run-evaluator-test run-td-test run-train run-tetris clean help
+.PHONY: all tetris tetris-ai train run run-tetris-ai run-train clean help
 

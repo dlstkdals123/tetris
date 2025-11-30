@@ -1,7 +1,0 @@
-# Tetris Evaluator Weights
-aggregateHeight nan
-completeLines nan
-holes nan
-bumpiness nan
-maxHeight nan
-minHeight nan

@@ -1,36 +1,39 @@
 #include <iostream>
-#include "TDLearner.h"
+#include "MCLearner.h"
 
 using namespace std;
 
 /**
- * Multi-Stage Training 프로그램
+ * Multi-Stage Monte Carlo Training 프로그램
  * 
- * Phase 1 (0-5000): Exploration
+ * Phase 1 Exploration (0-5000)
  *   - Epsilon: 0.3 → 0.1
- *   - Learning Rate: 0.005
+ *   - Learning Rate: 0.01
  *   - 목표: 다양한 전략 탐색
  * 
- * Phase 2 (5000-15000): Exploitation
+ * Phase 2 Exploitation (5000-15000)
  *   - Epsilon: 0.1 → 0.05
- *   - Learning Rate: 0.001
+ *   - Learning Rate: 0.005
  *   - 목표: 좋은 전략 강화
  * 
- * Phase 3 (15000-30000): Fine-tuning
+ * Phase 3 Fine-tuning (15000-20000)
  *   - Epsilon: 0.05 → 0.01
- *   - Learning Rate: 0.0001
+ *   - Learning Rate: 0.001
  *   - 목표: 미세 조정
+ * 
+ * Monte Carlo는 에피소드 전체를 보고 학습하므로
+ * TD-Learning보다 적은 에피소드로도 효과적입니다.
  */
 
 int main()
 {
     cout << "========================================" << endl;
-    cout << "Multi-Stage TD-Learning Training" << endl;
+    cout << "Multi-Stage Monte Carlo Training" << endl;
     cout << "Training the Ultimate Tetris Bot!" << endl;
     cout << "========================================" << endl << endl;
     
     // Multi-stage 설정
-    TDLearner::Config config;
+    MCLearner::Config config;
     config.setupMultiStage();  // 3단계 학습 활성화
     config.discountFactor = 0.95;
     config.maxMovesPerEpisode = 1000;
@@ -40,23 +43,25 @@ int main()
     cout << "  Total Episodes: " << config.maxEpisodes << endl;
     cout << "  Max Moves per Episode: " << config.maxMovesPerEpisode << endl;
     cout << "  Discount Factor: " << config.discountFactor << endl;
+    cout << "  Print Interval: Every 500 episodes" << endl;
+    cout << "  Save: Only final weights" << endl;
     cout << endl;
     
     // 초기 가중치 (휴리스틱 기반)
-    TDLearner learner(config);
+    MCLearner learner(config);
     
     cout << "Initial Weights:" << endl;
     learner.getEvaluator().printWeights();
     cout << endl;
     
     // 학습 시작
-    cout << "Starting training... (This will take a while!)" << endl;
+    cout << "Starting training...)" << endl;
     cout << "Press Ctrl+C to stop early if needed." << endl;
-    cout << "Weights will be saved every 1000 episodes." << endl << endl;
+    cout << "Weights will be saved only at completion." << endl << endl;
     
     auto startTime = chrono::steady_clock::now();
     
-    vector<TDLearner::Statistics> stats = learner.train(config.maxEpisodes);
+    vector<MCLearner::Statistics> stats = learner.train(config.maxEpisodes);
     
     auto endTime = chrono::steady_clock::now();
     auto duration = chrono::duration_cast<chrono::minutes>(endTime - startTime);

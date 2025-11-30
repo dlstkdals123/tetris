@@ -40,11 +40,46 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     Board simBoard(board);
     
     // 블록 복사 및 초기 위치 설정
-    Block simBlock(block.getType(), Rotation(action.rotation), 
-                   Position(action.column, BoardConstants::BLOCK_START_Y));
+    Block simBlock(block.getType(), Rotation(0), 
+                   Position(BoardConstants::BLOCK_START_X, BoardConstants::BLOCK_START_Y));
     
-    // 블록을 목표 위치로 이동
-    moveBlockToPosition(simBlock, action.rotation, action.column);
+    // 회전 시도 (Wall Kick 없이)
+    for (int i = 0; i < action.rotation; i++)
+    {
+        Rotation next_rotation(simBlock.getRotation() + 1);
+        Block testBlock(simBlock.getType(), next_rotation, simBlock.getPos());
+        
+        // 회전 가능 여부 확인
+        if (simBoard.isStrike(testBlock) == 0)
+        {
+            simBlock.rotate();
+        }
+        else
+        {
+            // 회전 불가능하면 이 액션은 무효
+            return result; // isValid = false
+        }
+    }
+    
+    // 목표 열로 이동
+    int currentX = simBlock.getPos().getX();
+    int targetX = action.column;
+    int diff = targetX - currentX;
+    
+    if (diff > 0)
+    {
+        for (int i = 0; i < diff; i++)
+        {
+            simBlock.moveRight();
+        }
+    }
+    else if (diff < 0)
+    {
+        for (int i = 0; i < -diff; i++)
+        {
+            simBlock.moveLeft();
+        }
+    }
     
     // 블록이 유효한 위치인지 확인
     if (!isValidPosition(simBoard, simBlock))
@@ -62,11 +97,11 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     // 블록을 보드에 병합
     simBoard.mergeBlock(simBlock);
     
-    // 완성된 라인 제거
-    result.linesCleared = simBoard.deleteFullLine();
-    
     // Feature 추출
     result.features = FeatureExtractor::extractFeatures(simBoard);
+    
+    // 완성된 라인 제거
+    result.linesCleared = simBoard.deleteFullLine();
     
     result.isValid = true;
     return result;

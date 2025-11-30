@@ -20,7 +20,6 @@ public:
      */
     struct Weights {
         double aggregateHeight;
-        double completeLines;
         double holes;
         double bumpiness;
         double maxHeight;
@@ -30,7 +29,7 @@ public:
         Weights();
         
         // 커스텀 가중치로 생성
-        Weights(double agg, double lines, double holes, double bump, double maxH, double minH);
+        Weights(double agg, double holes, double bump, double maxH, double minH);
     };
     
     /**
@@ -67,6 +66,20 @@ public:
      * @return 최고의 액션과 그 평가 점수
      */
     std::pair<Action, double> selectBestAction(const Board& board, const Block& block) const;
+    
+    /**
+     * 다음 블록까지 고려하여 최고의 액션을 선택합니다 (Look-ahead).
+     * @param board 현재 보드 상태
+     * @param currentBlock 현재 블록
+     * @param nextBlock 다음 블록 (선택적, nullptr이면 look-ahead 없음)
+     * @param lookAheadDiscount 다음 블록 점수에 적용할 할인 인자 (기본값: 1.0)
+     * @return 최고의 액션과 그 평가 점수
+     */
+    std::pair<Action, double> selectBestActionWithLookAhead(
+        const Board& board, 
+        const Block& currentBlock, 
+        const Block* nextBlock = nullptr,
+        double lookAheadDiscount = 1.0) const;
     
     /**
      * 가능한 모든 액션을 평가하고 정렬된 결과를 반환합니다.
