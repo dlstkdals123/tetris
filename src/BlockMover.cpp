@@ -1,5 +1,6 @@
 ﻿#include "BlockMover.h"
 #include "Block.h"
+#include "BoardConstants.h"
 
 BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate) 
 		: renderer(renderer), board(board), blockGenerator(blockGenerator), gamestate(gamestate){}
@@ -48,7 +49,7 @@ void BlockMover::rotateBlock(Block& block) {
 }
 
  void BlockMover::movedLeft(Block& block) {
-	if(block.getPos().getX()>1)
+	if(block.getPos().getX() > BoardConstants::MIN_COLUMN)
 	{
 		renderer.erase_cur_block(block);
 		block.moveLeft();
@@ -59,7 +60,7 @@ void BlockMover::rotateBlock(Block& block) {
  }
 
 void BlockMover::movedRight(Block& block) {
-	if(block.getPos().getX()<13)
+	if(block.getPos().getX() < BoardConstants::RIGHT_WALL)
 	{
 		renderer.erase_cur_block(block);
 		block.moveRight();

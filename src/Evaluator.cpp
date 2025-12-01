@@ -91,7 +91,6 @@ double Evaluator::evaluateBoard(const Board& board) const
 double Evaluator::evaluateResult(const SimulationResult& result) const
 {
     // 유효하지 않거나 게임 오버인 경우 최악의 점수
-    // -infinity 대신 유한한 큰 페널티를 사용하여 계산이 망가지지 않도록 함
     if (!result.isValid || result.gameOver)
     {
         return DEATH_PENALTY;
@@ -238,7 +237,6 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
                 }
                 
                 // 현재 점수 + (다음 블록 최고 점수 * 할인 인자)
-                // 다음 턴에 죽는다면 현재 점수에도 큰 페널티를 반영해야 함
                 currentScore += bestNextScore * lookAheadDiscount;
             }
         }

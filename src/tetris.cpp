@@ -35,7 +35,7 @@ using namespace std;
 #define KEY_RIGHT 0x4d
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
-#define AI_SLEEP  500  // AI 동작 속도
+#define AI_SLEEP  0  // AI 동작 속도
 
 //*********************************
 // 전역 상수 : 스테이지 데이터

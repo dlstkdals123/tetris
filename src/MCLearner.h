@@ -94,17 +94,13 @@ public:
             , useMultiStage(false)
         {}
         
-        // Multi-stage training 설정 (3단계, Monte Carlo용 50K 에피소드)
         void setupMultiStage() {
             useMultiStage = true;
             maxEpisodes = 50000;
             
             phases.clear();
-            // Phase 1: 더 강한 Exploration (0-15000) - 학습률 증가
-            phases.push_back(Phase(0, 15000, 0.01, 0.0, 0.000001));
-            // Phase 2: Exploitation (15000-40000) - 학습률 증가
+            phases.push_back(Phase(0, 15000, 0.05, 0.0, 0.0000001));
             phases.push_back(Phase(15000, 40000, 0.0, 0.0, 0.0000001));
-            // Phase 3: Fine-tuning (40000-50000) - 학습률 증가
             phases.push_back(Phase(40000, 50000, 0.0, 0.0, 0.0000001));
         }
     };
