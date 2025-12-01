@@ -10,7 +10,6 @@ SRC_DIR = src
 # Common source files
 COMMON_SRCS = $(SRC_DIR)/Board.cpp \
               $(SRC_DIR)/Utils.cpp \
-              $(SRC_DIR)/COLOR.cpp \
               $(SRC_DIR)/position.cpp \
               $(SRC_DIR)/rotation.cpp \
               $(SRC_DIR)/STAGE.cpp \
@@ -32,7 +31,6 @@ TRAIN_SRCS = $(SRC_DIR)/train_multistage.cpp \
              $(AI_SRCS) \
              $(SRC_DIR)/Board.cpp \
              $(SRC_DIR)/Utils.cpp \
-             $(SRC_DIR)/COLOR.cpp \
              $(SRC_DIR)/position.cpp \
              $(SRC_DIR)/rotation.cpp
 
