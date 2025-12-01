@@ -3,16 +3,12 @@
 25년 2학기 객체지향프로그래밍 프로젝트
 
 ## Refactoring
-- [ ] show_gameState()을 gameState class에 포함시키기.
-- [ ] STAGE 내부에 배열을 가지고 있는 형식으로 수정.
-- [ ] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
-- [ ] 파일 디렉토리 구조화
+- [x] show_gameState()을 gameState class에 포함시키기.
+- [x] STAGE 내부에 배열을 가지고 있는 형식으로 수정.
+- [x] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
 
 ## Improvement
 - [ ] "spacebar"을 통해 맨 아래로 내리기
-- [ ] board의 한 칸을 1bit로 하는 방법
-- [ ] board 여러 줄 삭제
-- [ ] 줄 삭제 시 현재 블럭의 모양과 위치를 통해 최소화
 
 ## new Function
 - [ ] 일시정지
