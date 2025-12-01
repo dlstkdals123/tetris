@@ -3,7 +3,6 @@
 #include "BoardConstants.h"
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 #include <chrono>
 #include <cmath>
 
@@ -62,13 +61,28 @@ void MCLearner::updateWeightsMonteCarlo(const FeatureExtractor::Features& state,
 {
     // Monte Carlo 업데이트: w ← w + α[G - V(s)]·∇V(s)
     
-    // 현재 상태의 가치 계산
+    // 현재 상태의 가치 계산 (Bertsekas & Tsitsiklis: 26개 feature)
     const auto& weights = evaluator_.getWeights();
-    double currentValue = weights.aggregateHeight * state.aggregateHeight +
-                         weights.holes * state.holes +
-                         weights.bumpiness * state.bumpiness +
-                         weights.maxHeight * state.maxHeight +
-                         weights.minHeight * state.minHeight;
+    double currentValue = 0.0;
+    
+    // 1. 각 열의 높이 (12개)
+    for (int i = 0; i < 12; i++) {
+        currentValue += weights.columnHeights[i] * state.columnHeights[i];
+    }
+    
+    // 2. 인접한 열의 높이 차이 (11개)
+    for (int i = 0; i < 11; i++) {
+        currentValue += weights.heightDiffs[i] * state.heightDiffs[i];
+    }
+    
+    // 3. 최대 높이 (1개)
+    currentValue += weights.maxHeight * state.maxHeight;
+    
+    // 4. 구멍의 개수 (1개)
+    currentValue += weights.holes * state.holes;
+    
+    // 5. 우물 깊이 합 (1개)
+    currentValue += weights.wells * state.wells;
     
     // Monte Carlo 에러 계산: G - V(s)
     double error = G - currentValue;
@@ -76,77 +90,130 @@ void MCLearner::updateWeightsMonteCarlo(const FeatureExtractor::Features& state,
     // 가중치 업데이트
     Evaluator::Weights newWeights = weights;
     
-    newWeights.aggregateHeight += config_.learningRate * error * state.aggregateHeight;
-    newWeights.holes += config_.learningRate * error * state.holes;
-    newWeights.bumpiness += config_.learningRate * error * state.bumpiness;
+    // 1. 각 열의 높이 가중치 업데이트 (12개)
+    for (int i = 0; i < 12; i++) {
+        newWeights.columnHeights[i] += config_.learningRate * error * state.columnHeights[i];
+    }
+    
+    // 2. 인접한 열의 높이 차이 가중치 업데이트 (11개)
+    for (int i = 0; i < 11; i++) {
+        newWeights.heightDiffs[i] += config_.learningRate * error * state.heightDiffs[i];
+    }
+    
+    // 3. 최대 높이 가중치 업데이트 (1개)
     newWeights.maxHeight += config_.learningRate * error * state.maxHeight;
-    newWeights.minHeight += config_.learningRate * error * state.minHeight;
+    
+    // 4. 구멍의 개수 가중치 업데이트 (1개)
+    newWeights.holes += config_.learningRate * error * state.holes;
+    
+    // 5. 우물 깊이 합 가중치 업데이트 (1개)
+    newWeights.wells += config_.learningRate * error * state.wells;
     
     // L2 Regularization (Weight Decay)
     constexpr double L2_LAMBDA = 0.0001;
-    newWeights.aggregateHeight *= (1.0 - config_.learningRate * L2_LAMBDA);
-    newWeights.holes *= (1.0 - config_.learningRate * L2_LAMBDA);
-    newWeights.bumpiness *= (1.0 - config_.learningRate * L2_LAMBDA);
+    for (int i = 0; i < 12; i++) {
+        newWeights.columnHeights[i] *= (1.0 - config_.learningRate * L2_LAMBDA);
+    }
+    for (int i = 0; i < 11; i++) {
+        newWeights.heightDiffs[i] *= (1.0 - config_.learningRate * L2_LAMBDA);
+    }
     newWeights.maxHeight *= (1.0 - config_.learningRate * L2_LAMBDA);
-    newWeights.minHeight *= (1.0 - config_.learningRate * L2_LAMBDA);
+    newWeights.holes *= (1.0 - config_.learningRate * L2_LAMBDA);
+    newWeights.wells *= (1.0 - config_.learningRate * L2_LAMBDA);
     
     // Weight Normalization
     constexpr double MAX_NORM = 1000.0;
-    double norm = sqrt(newWeights.aggregateHeight * newWeights.aggregateHeight +
-                      newWeights.holes * newWeights.holes +
-                      newWeights.bumpiness * newWeights.bumpiness +
-                      newWeights.maxHeight * newWeights.maxHeight +
-                      newWeights.minHeight * newWeights.minHeight);
+    double norm = 0.0;
+    for (int i = 0; i < 12; i++) {
+        norm += newWeights.columnHeights[i] * newWeights.columnHeights[i];
+    }
+    for (int i = 0; i < 11; i++) {
+        norm += newWeights.heightDiffs[i] * newWeights.heightDiffs[i];
+    }
+    norm += newWeights.maxHeight * newWeights.maxHeight;
+    norm += newWeights.holes * newWeights.holes;
+    norm += newWeights.wells * newWeights.wells;
+    norm = sqrt(norm);
     
     if (norm > MAX_NORM)
     {
         double scale = MAX_NORM / norm;
-        newWeights.aggregateHeight *= scale;
-        newWeights.holes *= scale;
-        newWeights.bumpiness *= scale;
+        for (int i = 0; i < 12; i++) {
+            newWeights.columnHeights[i] *= scale;
+        }
+        for (int i = 0; i < 11; i++) {
+            newWeights.heightDiffs[i] *= scale;
+        }
         newWeights.maxHeight *= scale;
-        newWeights.minHeight *= scale;
+        newWeights.holes *= scale;
+        newWeights.wells *= scale;
     }
     
     // 가중치 적용
     evaluator_.setWeights(newWeights);
 }
 
-double MCLearner::calculateReward(int linesCleared, int currentMaxHeight, int currentHoles, int currentBumpiness, int holesDiff, int bumpinessDiff, bool gameOver) const
+double MCLearner::calculateReward(const FeatureExtractor::Features& currentFeatures,
+    const FeatureExtractor::Features& newFeatures,
+    int linesCleared, bool gameOver) const
 {
-    // 보상 관련 상수
-    constexpr double GAME_OVER_PENALTY = -5000.0;           // 게임 오버 시 패널티
-    constexpr double LIVING_REWARD = 1.0;                   // 살아있을 때 기본 보상
-    constexpr double LINE_CLEAR_REWARD = 20.0;              // 한 줄 지울 때 보상 (선형)
-    constexpr double HEIGHT_PENALTIES[] = {0.0, 20.0, 100.0, 500.0, 2000.0}; // 높이 구간별 패널티
-    constexpr double HOLE_PENALTY = 20.0;                   // 구멍 증가 패널티
-    constexpr double HOLE_STATE_PENALTY = 5.0;              // 남아있는 구멍 패널티
-    constexpr double BUMPINESS_PENALTY = 2.0;               // 울퉁불퉁함 변화 패널티
-    constexpr double BUMPINESS_STATE_PENALTY = 1.0;         // 현재 울퉁불퉁함 패널티
+    if (gameOver) return -10;
+    return (double) linesCleared * 0.1;
+    // // Bertsekas & Tsitsiklis 논문 스타일 보상 함수
+    // // 비율: 구멍(15배) > 높이 차이(3.5배) > 높이(1배)
+    
+    // constexpr double GAME_OVER_PENALTY = -100.0;
+    // constexpr double LINE_CLEAR_REWARD = 10.0;
+    // constexpr double LIVING_REWARD = 1.0;
+    
+    // // 기본 단위: 높이 패널티
+    // constexpr double HEIGHT_PENALTY = 1.0;           // 기본 단위 (가장 작음)
+    // constexpr double HEIGHT_DIFF_PENALTY = 3.5;     // 높이의 3.5배 (2~5배 중간값)
+    // constexpr double HOLES_PENALTY = 15.0;          // 높이의 15배 (10~20배 중간값)
+    
+    // // 상태 유지 패널티 (구멍이 있으면 계속 패널티)
+    // constexpr double HOLES_STATE_PENALTY = 1.5;     // 구멍 상태 자체에 대한 작은 패널티
+    
+    // if (gameOver) return GAME_OVER_PENALTY;
 
-    // 게임 오버 시 패널티만 반환
-    if (gameOver)
-        return GAME_OVER_PENALTY;
+    // double reward = 0.0;
 
-    double reward = LIVING_REWARD;
+    // // 라인 클리어 보상
+    // if (linesCleared > 0) {
+    //     reward += linesCleared * LINE_CLEAR_REWARD;
+    // }
 
-    // 줄 삭제 보상 (선형, 여러 줄 보너스 없음)
-    if (linesCleared > 0)
-        reward += linesCleared * LINE_CLEAR_REWARD;
+    // // 1. 높이 변화 패널티 (기본 단위)
+    // // 각 열의 높이 변화량 합계
+    // int totalHeightChange = 0;
+    // for (int i = 0; i < 12; i++) {
+    //     int heightDiff = newFeatures.columnHeights[i] - currentFeatures.columnHeights[i];
+    //     totalHeightChange += heightDiff;
+    // }
+    // reward -= totalHeightChange * HEIGHT_PENALTY;
+    
+    // // 최대 높이 변화 패널티
+    // int maxHeightDiff = newFeatures.maxHeight - currentFeatures.maxHeight;
+    // reward -= maxHeightDiff * HEIGHT_PENALTY;
 
-    // 높이 패널티 (구간별 적용)
-    int heightIndex = std::min(currentMaxHeight / 5, 4);
-    reward -= HEIGHT_PENALTIES[heightIndex];
+    // // 2. 인접한 열의 높이 차이 변화 패널티 (높이의 3.5배)
+    // // 울퉁불퉁해지면 큰 패널티
+    // int totalDiffChange = 0;
+    // for (int i = 0; i < 11; i++) {
+    //     int diffChange = newFeatures.heightDiffs[i] - currentFeatures.heightDiffs[i];
+    //     totalDiffChange += diffChange;
+    // }
+    // reward -= totalDiffChange * HEIGHT_DIFF_PENALTY;
 
-    // 구멍 패널티
-    reward -= holesDiff * HOLE_PENALTY;
-    reward -= currentHoles * HOLE_STATE_PENALTY;
+    // // 3. 구멍 변화 패널티 (높이의 15배 - 절대 악)
+    // // 구멍이 생기면 압도적으로 큰 패널티
+    // int holesDiff = newFeatures.holes - currentFeatures.holes;
+    // reward -= holesDiff * HOLES_PENALTY;
+    
+    // // 구멍 상태 자체에도 패널티 (구멍이 있으면 계속 패널티)
+    // reward -= newFeatures.holes * HOLES_STATE_PENALTY;
 
-    // 울퉁불퉁함 패널티
-    reward -= bumpinessDiff * BUMPINESS_PENALTY;
-    reward -= currentBumpiness * BUMPINESS_STATE_PENALTY;
-
-    return reward;
+    // return reward;
 }
 
 MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
@@ -192,7 +259,9 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
         if (!result.isValid || result.gameOver)
         {
             // 게임 오버
-            double reward = calculateReward(0, currentFeatures.maxHeight, currentFeatures.holes, currentFeatures.bumpiness, 0, 0, true);
+            // 게임 오버 시에는 현재 feature를 그대로 사용
+            FeatureExtractor::Features dummyFeatures = currentFeatures;
+            double reward = calculateReward(currentFeatures, dummyFeatures, 0, true);
             episode.push_back(Experience(currentFeatures, action, reward));
             gameOver = true;
             break;
@@ -203,22 +272,17 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
                       Position(action.column, BoardConstants::BLOCK_START_Y));
         ActionSimulator::moveBlockToPosition(simBlock, action.rotation, action.column);
         ActionSimulator::dropBlock(board, simBlock);
-        board.mergeBlock(simBlock);
         
-        // Feature 추출 (라인 삭제 전)
-        FeatureExtractor::Features newFeatures = FeatureExtractor::extractFeatures(board);
+        board.mergeBlock(simBlock);
         
         // 라인 삭제
         int linesCleared = board.deleteFullLine();
         
-        // 구멍 변화량 계산 (이전 상태와 비교)
-        int holesDiff = newFeatures.holes - currentFeatures.holes;
+        // Feature 추출 (Bertsekas & Tsitsiklis 스타일: 26개 feature)
+        FeatureExtractor::Features newFeatures = FeatureExtractor::extractFeatures(board);
         
-        // Bumpiness 변화량 계산 (이전 상태와 비교)
-        int bumpinessDiff = newFeatures.bumpiness - currentFeatures.bumpiness;
-        
-        // 보상 계산
-        double reward = calculateReward(linesCleared, newFeatures.maxHeight, newFeatures.holes, newFeatures.bumpiness, holesDiff, bumpinessDiff, false);
+        // 보상 계산 (각 feature를 직접 사용)
+        double reward = calculateReward(currentFeatures, newFeatures, linesCleared, false);
         
         // 경험 저장 (가중치 업데이트는 나중에!)
         episode.push_back(Experience(currentFeatures, action, reward));
@@ -226,7 +290,7 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
         // 통계 업데이트
         stats.totalLines += linesCleared;
         stats.totalScore += reward;
-        stats.maxHeight = max(stats.maxHeight, newFeatures.maxHeight);
+        // maxHeight는 더 이상 feature가 아니므로 제거
         moves++;
         
         // 다음 스텝 준비
@@ -370,6 +434,11 @@ std::vector<MCLearner::Statistics> MCLearner::train(int numEpisodes)
             }
             cout << "  [Max Lines: " << maxLinesCleared << " (Ep " << maxLinesEpisode 
             << "), Max Moves: " << maxMoves << " (Ep " << maxMovesEpisode << ")]" << endl;
+            
+            // 현재 가중치 출력
+            cout << "\nCurrent Weights (Episode " << (episode + 1) << "):" << endl;
+            evaluator_.printWeights();
+            cout << endl;
         }
     }
     
@@ -406,7 +475,6 @@ void MCLearner::printStatistics(const Statistics& stats, bool sameLine) const
     // 통계 출력 (더 자세한 정보)
     cout << "Lines=" << stats.totalLines 
          << " Moves=" << stats.moves 
-         << " Height=" << stats.maxHeight 
          << " Reward=" << fixed << setprecision(2) << stats.averageReward
          << " Score=" << (int)stats.totalScore;
     
@@ -419,31 +487,3 @@ void MCLearner::printStatistics(const Statistics& stats, bool sameLine) const
         cout << endl;  // 줄바꿈
     }
 }
-
-bool MCLearner::saveProgress(const string& filename, const vector<Statistics>& allStats) const
-{
-    ofstream file(filename);
-    if (!file.is_open())
-    {
-        cerr << "Error: Could not open file for writing: " << filename << endl;
-        return false;
-    }
-    
-    file << "# TD-Learning Training Progress" << endl;
-    file << "# Episode,TotalLines,TotalScore,MaxHeight,Moves,AverageReward" << endl;
-    
-    for (const auto& stats : allStats)
-    {
-        file << stats.episode << ","
-             << stats.totalLines << ","
-             << stats.totalScore << ","
-             << stats.maxHeight << ","
-             << stats.moves << ","
-             << stats.averageReward << endl;
-    }
-    
-    file.close();
-    cout << "Training progress saved to " << filename << endl;
-    return true;
-}
-

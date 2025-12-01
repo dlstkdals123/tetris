@@ -19,17 +19,28 @@ public:
      * 각 feature에 대한 가중치를 저장합니다.
      */
     struct Weights {
-        double aggregateHeight;
-        double holes;
-        double bumpiness;
+        // Bertsekas & Tsitsiklis 논문 스타일: 26개 feature (12열 기준)
+        // 1. 각 열의 높이 가중치 (12개)
+        double columnHeights[12];
+        
+        // 2. 인접한 열의 높이 차이 가중치 (11개)
+        double heightDiffs[11];
+        
+        // 3. 최대 높이 가중치 (1개)
         double maxHeight;
-        double minHeight;
+        
+        // 4. 구멍의 개수 가중치 (1개)
+        double holes;
+        
+        // 5. 우물 깊이 합 가중치 (1개)
+        double wells;
         
         // 기본 생성자 - 초기 가중치 설정
         Weights();
         
         // 커스텀 가중치로 생성
-        Weights(double agg, double holes, double bump, double maxH, double minH);
+        Weights(const double heights[12], const double diffs[11],
+                double maxH, double holes, double wells);
     };
     
     /**

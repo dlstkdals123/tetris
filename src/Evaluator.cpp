@@ -8,23 +8,36 @@
 
 using namespace std;
 
-// 기본 휴리스틱 가중치
+// Bertsekas & Tsitsiklis 논문 스타일: 26개 feature 초기 가중치
+// 모든 가중치는 학습을 통해 최적값을 찾습니다.
 Evaluator::Weights::Weights()
-    : aggregateHeight(-1)  // 높이는 낮을수록 좋음 (음수)
-    , holes(-5)             // 구멍은 적을수록 좋음 (음수)
-    , bumpiness(-1)        // 울퉁불퉁함은 적을수록 좋음 (음수)
-    , maxHeight(-5)             // 최대 높이는 낮을수록 좋음 (음수)
-    , minHeight(0.0)              // 최소 높이는 영향 적음
+    : maxHeight(-3.0)      // 최대 높이는 낮을수록 좋음
+    , holes(-20.0)          // 구멍은 치명적
+    , wells(-4.0)          // 우물은 낮을수록 좋음
 { 
+    // 각 열의 높이 가중치 초기화 (높이는 낮을수록 좋음)
+    for (int i = 0; i < 12; i++) {
+        columnHeights[i] = -4.0;
+    }
+    
+    // 인접한 열의 높이 차이 가중치 초기화 (차이는 적을수록 좋음)
+    for (int i = 0; i < 11; i++) {
+        heightDiffs[i] = -3.0;
+    }
 }
 
-Evaluator::Weights::Weights(double agg, double holes, double bump, double maxH, double minH)
-    : aggregateHeight(agg)
+Evaluator::Weights::Weights(const double heights[12], const double diffs[11],
+                            double maxH, double holes, double wells)
+    : maxHeight(maxH)
     , holes(holes)
-    , bumpiness(bump)
-    , maxHeight(maxH)
-    , minHeight(minH)
+    , wells(wells)
 {
+    for (int i = 0; i < 12; i++) {
+        columnHeights[i] = heights[i];
+    }
+    for (int i = 0; i < 11; i++) {
+        heightDiffs[i] = diffs[i];
+    }
 }
 
 Evaluator::Evaluator(const Weights& weights)
@@ -35,13 +48,27 @@ Evaluator::Evaluator(const Weights& weights)
 double Evaluator::evaluate(const FeatureExtractor::Features& features) const
 {
     // Linear combination: V(s) = w1*f1 + w2*f2 + ... + wn*fn
+    // Bertsekas & Tsitsiklis 논문 스타일: 26개 feature 사용
     double score = 0.0;
     
-    score += weights_.aggregateHeight * features.aggregateHeight;
-    score += weights_.holes * features.holes;
-    score += weights_.bumpiness * features.bumpiness;
+    // 1. 각 열의 높이 (12개)
+    for (int i = 0; i < 12; i++) {
+        score += weights_.columnHeights[i] * features.columnHeights[i];
+    }
+    
+    // 2. 인접한 열의 높이 차이 (11개)
+    for (int i = 0; i < 11; i++) {
+        score += weights_.heightDiffs[i] * features.heightDiffs[i];
+    }
+    
+    // 3. 최대 높이 (1개)
     score += weights_.maxHeight * features.maxHeight;
-    score += weights_.minHeight * features.minHeight;
+    
+    // 4. 구멍의 개수 (1개)
+    score += weights_.holes * features.holes;
+    
+    // 5. 우물 깊이 합 (1개)
+    score += weights_.wells * features.wells;
     
     return score;
 }
@@ -199,12 +226,16 @@ bool Evaluator::saveWeights(const string& filename) const
         return false;
     }
     
-    file << "# Tetris Evaluator Weights" << endl;
-    file << "aggregateHeight " << weights_.aggregateHeight << endl;
-    file << "holes " << weights_.holes << endl;
-    file << "bumpiness " << weights_.bumpiness << endl;
+    file << "# Tetris Evaluator Weights (Bertsekas & Tsitsiklis Style - 26 features)" << endl;
+    for (int i = 0; i < 12; i++) {
+        file << "columnHeight" << i << " " << weights_.columnHeights[i] << endl;
+    }
+    for (int i = 0; i < 11; i++) {
+        file << "heightDiff" << i << " " << weights_.heightDiffs[i] << endl;
+    }
     file << "maxHeight " << weights_.maxHeight << endl;
-    file << "minHeight " << weights_.minHeight << endl;
+    file << "holes " << weights_.holes << endl;
+    file << "wells " << weights_.wells << endl;
     
     file.close();
     cout << "Weights saved to " << filename << endl;
@@ -220,14 +251,19 @@ bool Evaluator::loadWeights(const string& filename)
         return false;
     }
     
-    // 가중치 포인터 맵 (더 확장 가능하고 유지보수 쉬움)
-    unordered_map<string, double*> weightMap = {
-        {"aggregateHeight", &weights_.aggregateHeight},
-        {"holes", &weights_.holes},
-        {"bumpiness", &weights_.bumpiness},
-        {"maxHeight", &weights_.maxHeight},
-        {"minHeight", &weights_.minHeight}
-    };
+    // 가중치 포인터 맵 (Bertsekas & Tsitsiklis: 26개 feature)
+    unordered_map<string, double*> weightMap;
+    for (int i = 0; i < 12; i++) {
+        string key = "columnHeight" + to_string(i);
+        weightMap[key] = &weights_.columnHeights[i];
+    }
+    for (int i = 0; i < 11; i++) {
+        string key = "heightDiff" + to_string(i);
+        weightMap[key] = &weights_.heightDiffs[i];
+    }
+    weightMap["maxHeight"] = &weights_.maxHeight;
+    weightMap["holes"] = &weights_.holes;
+    weightMap["wells"] = &weights_.wells;
     
     string line, key;
     double value;
@@ -257,12 +293,20 @@ bool Evaluator::loadWeights(const string& filename)
 
 void Evaluator::printWeights() const
 {
-    cout << "=== Evaluator Weights ===" << endl;
-    cout << "Aggregate Height: " << weights_.aggregateHeight << endl;
-    cout << "Holes:            " << weights_.holes << endl;
-    cout << "Bumpiness:        " << weights_.bumpiness << endl;
-    cout << "Max Height:       " << weights_.maxHeight << endl;
-    cout << "Min Height:       " << weights_.minHeight << endl;
-    cout << "=========================" << endl;
+    cout << "=== Evaluator Weights (Bertsekas & Tsitsiklis - 26 features) ===" << endl;
+    cout << "Column Heights: ";
+    for (int i = 0; i < 12; i++) {
+        cout << weights_.columnHeights[i] << " ";
+    }
+    cout << endl;
+    cout << "Height Diffs: ";
+    for (int i = 0; i < 11; i++) {
+        cout << weights_.heightDiffs[i] << " ";
+    }
+    cout << endl;
+    cout << "Max Height: " << weights_.maxHeight << endl;
+    cout << "Holes: " << weights_.holes << endl;
+    cout << "Wells: " << weights_.wells << endl;
+    cout << "================================================================" << endl;
 }
 

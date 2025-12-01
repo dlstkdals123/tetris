@@ -43,12 +43,11 @@ public:
         int episode;
         int totalLines;
         int totalScore;
-        int maxHeight;
         int moves;
         double averageReward;
         
         Statistics() : episode(0), totalLines(0), totalScore(0), 
-                       maxHeight(0), moves(0), averageReward(0.0) {}
+                       moves(0), averageReward(0.0) {}
     };
     
     /**
@@ -101,12 +100,12 @@ public:
             maxEpisodes = 50000;
             
             phases.clear();
-            // Phase 1: 더 강한 Exploration (0-15000)
-            phases.push_back(Phase(0, 15000, 0.5, 0.15, 0.01));  // 마지막 값이 learningRate
-            // Phase 2: Exploitation (15000-40000)
-            phases.push_back(Phase(15000, 40000, 0.15, 0.08, 0.005));
-            // Phase 3: Fine-tuning (40000-50000)
-            phases.push_back(Phase(40000, 50000, 0.08, 0.02, 0.001));
+            // Phase 1: 더 강한 Exploration (0-15000) - 학습률 증가
+            phases.push_back(Phase(0, 15000, 0.2, 0.1, 0.001));  // 0.01 -> 0.1로 증가
+            // Phase 2: Exploitation (15000-40000) - 학습률 증가
+            phases.push_back(Phase(15000, 40000, 0.1, 0.01, 0.0005));  // 0.005 -> 0.02로 증가
+            // Phase 3: Fine-tuning (40000-50000) - 학습률 증가
+            phases.push_back(Phase(40000, 50000, 0.01, 0.0, 0.0001));  // 0.001 -> 0.005로 증가
         }
     };
     
@@ -143,15 +142,16 @@ public:
     
     /**
      * 보상 함수: 상태 전이에 대한 보상을 계산합니다.
+     * 각 feature를 직접 받아서 reward를 계산합니다.
+     * @param currentFeatures 이전 상태의 feature
+     * @param newFeatures 현재 상태의 feature
      * @param linesCleared 제거된 라인 수
-     * @param currentMaxHeight 현재 최대 높이
-     * @param currentHoles 현재 구멍 수
-     * @param currentBumpiness 현재 울퉁불퉁함
-     * @param holesDiff 구멍 변화량 (음수면 구멍 감소)
      * @param gameOver 게임 오버 여부
      * @return 보상 값
      */
-    double calculateReward(int linesCleared, int currentMaxHeight, int currentHoles, int currentBumpiness, int holesDiff, int bumpinessDiff, bool gameOver) const;
+    double calculateReward(const FeatureExtractor::Features& currentFeatures,
+                          const FeatureExtractor::Features& newFeatures,
+                          int linesCleared, bool gameOver) const;
     
     /**
      * 현재 evaluator를 반환합니다.
@@ -198,11 +198,6 @@ public:
      * @param sameLine true면 같은 줄에 덮어쓰기, false면 새 줄에 출력
      */
     void printStatistics(const Statistics& stats, bool sameLine = false) const;
-    
-    /**
-     * 학습 진행 상황을 저장합니다.
-     */
-    bool saveProgress(const std::string& filename, const std::vector<Statistics>& allStats) const;
     
     /**
      * 현재 에피소드에 맞는 phase 설정을 업데이트합니다.

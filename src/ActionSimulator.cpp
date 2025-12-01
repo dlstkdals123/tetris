@@ -2,6 +2,7 @@
 #include "BlockData.h"
 #include "BoardConstants.h"
 #include <algorithm>
+#include <vector>
 
 std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType)
 {
@@ -97,11 +98,11 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     // 블록을 보드에 병합
     simBoard.mergeBlock(simBlock);
     
-    // Feature 추출
-    result.features = FeatureExtractor::extractFeatures(simBoard);
-    
     // 완성된 라인 제거
     result.linesCleared = simBoard.deleteFullLine();
+    
+    // Feature 추출 (Bertsekas & Tsitsiklis 스타일: 26개 feature)
+    result.features = FeatureExtractor::extractFeatures(simBoard);
     
     result.isValid = true;
     return result;

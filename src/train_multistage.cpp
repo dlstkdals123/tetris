@@ -81,11 +81,6 @@ int main()
     learner.saveWeights(finalWeightsFile);
     cout << "\nFinal weights saved to: " << finalWeightsFile << endl;
     
-    // 학습 진행 상황 저장
-    string progressFile = "training_progress_multistage.csv";
-    learner.saveProgress(progressFile, stats);
-    cout << "Training progress saved to: " << progressFile << endl;
-    
     // 통계 요약
     cout << "\n========================================" << endl;
     cout << "Training Statistics Summary" << endl;
