@@ -24,7 +24,7 @@ AI_SRCS = $(SRC_DIR)/Evaluator.cpp \
           $(SRC_DIR)/FeatureExtractor.cpp
 
 # Main executables source files
-TETRIS_AI_SRCS = $(SRC_DIR)/tetris_ai.cpp $(AI_SRCS) $(COMMON_SRCS)
+TETRIS_AI_SRCS = $(SRC_DIR)/tetris.cpp $(AI_SRCS) $(COMMON_SRCS)
 TRAIN_SRCS = $(SRC_DIR)/train_multistage.cpp \
              $(SRC_DIR)/MCLearner.cpp \
              $(AI_SRCS) \
@@ -74,13 +74,13 @@ help:
 	@echo "Tetris Monte Carlo Learning Project"
 	@echo "========================================="
 	@echo ""
-    @echo "Available targets:"
-    @echo "  all           - Build all executables (default)"
-    @echo "  tetris-ai     - Build player vs AI tetris game"
-    @echo "  train         - Build Monte Carlo training program"
-    @echo ""
-    @echo "Run targets:"
-    @echo "  run-tetris-ai - Run player vs AI game"
+	@echo "Available targets:"
+	@echo "  all           - Build all executables (default)"
+	@echo "  tetris-ai     - Build player vs AI tetris game"
+	@echo "  train         - Build Monte Carlo training program"
+	@echo ""
+	@echo "Run targets:"
+	@echo "  run-tetris-ai - Run player vs AI game"
 	@echo "  run-train     - Run Monte Carlo training (20K episodes)"
 	@echo ""
 	@echo "Other:"
