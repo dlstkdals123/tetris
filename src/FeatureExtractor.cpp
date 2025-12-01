@@ -1,4 +1,4 @@
-#include "FeatureExtractor.h"
+﻿#include "FeatureExtractor.h"
 #include "BoardConstants.h"
 #include <iostream>
 #include <cmath>

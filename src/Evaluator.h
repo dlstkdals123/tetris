@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "FeatureExtractor.h"
 #include "ActionSimulator.h"

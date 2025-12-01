@@ -1,18 +1,15 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <conio.h>
-#include <string.h>
 #include <Windows.h>
 #include <time.h>
 #include <iostream>
 
 #include "Board.h"
 #include "position.h"
-#include "rotation.h"
 #include "STAGE.h"
 #include "COLOR.h"
 #include "gameState.h"
 #include "Block.h"
-#include "BlockData.h"
 #include "BlockGenerator.h"
 #include "BlockRender.h"
 #include "BlockMover.h"

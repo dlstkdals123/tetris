@@ -1,7 +1,6 @@
-#include "ActionSimulator.h"
+﻿#include "ActionSimulator.h"
 #include "BlockData.h"
 #include "BoardConstants.h"
-#include <algorithm>
 #include <vector>
 
 std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType)

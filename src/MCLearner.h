@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Evaluator.h"
 #include "Board.h"
