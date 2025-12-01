@@ -398,9 +398,8 @@ std::vector<MCLearner::Statistics> MCLearner::train(int numEpisodes)
         // Phase 업데이트
         updatePhase(episode);
         
-        // 6가지 초기 상태를 골고루 사용 (에피소드 번호에 따라 순환)
-        // 0: 4줄, 1: 3줄, 2: 2줄, 3: 1줄, 4: empty, 5: random
-        int initialStateType = episode % 6;
+        // 항상 empty 보드에서 시작 (stateType = 0)
+        int initialStateType = 0;
         
         Statistics stats = runEpisode(initialStateType);
         stats.episode = episode + 1;
