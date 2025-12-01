@@ -34,7 +34,7 @@ using namespace std;
 #define KEY_RIGHT 0x4d
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
-#define AI_SLEEP  15
+#define AI_SLEEP  1500  // AI 동작 속도
 
 //*********************************
 // 전역 상수 : 스테이지 데이터
@@ -62,7 +62,7 @@ int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
 void show_logo(BlockRender& renderer);
 // 게임 오버 화면 표시
-void show_gameover();
+void show_gameover(int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
@@ -74,10 +74,6 @@ int main()
     srand(static_cast<unsigned int>(time(nullptr)));
     
     string weightsFile = "initial_weights.txt";
-    if (argc > 1)
-    {
-        weightsFile = argv[1];
-    }
 
     gameState gamestate;
     Position boardOffset(5, 1);
@@ -213,8 +209,10 @@ void show_logo(BlockRender& renderer)
             Block blocks[4];
             gen.make_logo_blocks(blocks);
 
-            for (int i = 0; i < 4; i++) {
-                renderer.show_cur_block(blocks[i]);
+            {
+                for (int i = 0; i < 4; i++) {
+                    renderer.show_cur_block(blocks[i]);
+                }
             }
         }
 
@@ -313,9 +311,10 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
 
 void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner) 
 {
+    bool isPlayer = true;
     Board board(true);
     Position boardOffset(5, 1);
-    BlockGenerator blockGenerator(stage_data, gamestate);
+    BlockGenerator blockGenerator(gamestate);
     BlockRender renderer(gamestate, boardOffset, true);
     BlockMover mover(renderer, board, blockGenerator, gamestate);
 
@@ -326,8 +325,11 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     Block nextBlock(blockGenerator.make_new_block());
 
     curBlock.block_start();
-    renderer.show_cur_block(curBlock);
-    renderer.show_next_block(nextBlock);
+    {
+        std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+        renderer.show_cur_block(curBlock);
+        renderer.show_next_block(nextBlock);
+    }
     gamestate.show_gamestat(isPlayer, true);
 
     for (int i = 1;; i++) {
@@ -352,14 +354,14 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
                 break;
             case KEY_DOWN:
                 is_gameover = mover.move_block(curBlock, nextBlock);
-                show_gamestat(gamestate, true);
+                gamestate.show_gamestat(isPlayer);
                 break;
             case 32:  // SPACE
                 while (is_gameover == 0)
                 {
                     is_gameover = mover.move_block(curBlock, nextBlock);
                 }
-                show_gamestat(gamestate, true);
+                gamestate.show_gamestat(isPlayer);
                 break;
             }
         }
@@ -392,13 +394,14 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
 void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner) 
 {
+    bool isPlayer = false;
     // AI Evaluator 초기화
     Evaluator evaluator;
     evaluator.loadWeights(weightsFile);
     
     Board board(false);  // AI 보드
     Position boardOffset(5, 1);
-    BlockGenerator blockGenerator(stage_data, gamestate);
+    BlockGenerator blockGenerator(gamestate);
     BlockRender renderer(gamestate, boardOffset, false);
     BlockMover mover(renderer, board, blockGenerator, gamestate);
 
@@ -409,9 +412,12 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     Block nextBlock(blockGenerator.make_new_block());
 
     curBlock.block_start();
-    renderer.show_cur_block(curBlock);
-    renderer.show_next_block(nextBlock);
-    show_gamestat(gamestate, false, true);
+    {
+        std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+        renderer.show_cur_block(curBlock);
+        renderer.show_next_block(nextBlock);
+    }
+    gamestate.show_gamestat(isPlayer, true);
 
     bool actionInProgress = false;
     Action targetAction;
@@ -442,7 +448,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
                     break;
                 case 's':  // 아래
                     is_gameover = mover.move_block(curBlock, nextBlock);
-                    show_gamestat(gamestate, false);
+                    gamestate.show_gamestat(isPlayer);
                     actionInProgress = false;
                     break;
                 case 'c':  // 하드 드롭
@@ -450,7 +456,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
                     {
                         is_gameover = mover.move_block(curBlock, nextBlock);
                     }
-                    show_gamestat(gamestate, false);
+                    gamestate.show_gamestat(isPlayer);
                     actionInProgress = false;
                     break;
                 }
@@ -497,17 +503,21 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
                     is_gameover = mover.move_block(curBlock, nextBlock);
                     if (is_gameover != 0) break;
                 }
-                show_gamestat(gamestate, false);
+                gamestate.show_gamestat(isPlayer);
                 actionInProgress = false;
                 Sleep(AI_SLEEP);  // 블록 배치 후 잠시 대기
             }
         }
         
-        // 자동 낙하 (AI는 하드 드롭을 사용하므로 영향 적음)
-        if (!actionInProgress && i % stage_data[gamestate.getLevel()].getSpeed() == 0)
+        // 자동 낙하 (AI도 플레이어처럼 시간이 지나면 자동으로 내려옴)
+        if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
         {
-            is_gameover = mover.move_block(curBlock, nextBlock);
-            show_gamestat(gamestate, false);
+            // AI가 회전/이동 중이 아닐 때만 자동 낙하
+            if (!actionInProgress || (curBlock.getRotation() == targetRotation && curBlock.getPos().getX() == targetColumn))
+            {
+                is_gameover = mover.move_block(curBlock, nextBlock);
+                gamestate.show_gamestat(isPlayer);
+            }
         }
 
         // 스테이지 클리어
@@ -515,7 +525,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
         {
             gamestate.levelUp();
             board.draw(gamestate.getLevel());
-            show_gamestat(gamestate, false);
+            gamestate.show_gamestat(isPlayer);
             renderer.show_next_block(nextBlock);
         }
 
@@ -529,7 +539,6 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
             Utils::gotoxy(77, 23, true);
         }
-        Sleep(15);
     }
 }
 

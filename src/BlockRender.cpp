@@ -55,7 +55,7 @@ void BlockRender::show_cur_block(Block& block) {
 		}
 	}
 	Utils::setColor(COLOR::BLACK);
-	Utils::gotoxy(77,23);
+	Utils::gotoxy(77,23, isPlayer);
 }
 
 void BlockRender::erase_cur_block(Block& block) {
@@ -81,6 +81,7 @@ void BlockRender::erase_cur_block(Block& block) {
 }
 
 void BlockRender::show_next_block(Block& block) {
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
     int i,j;
     Utils::setColor(static_cast<COLOR>((gs.getLevel() + 1) % 6 + 1));
 	for(i=1;i<7;i++)

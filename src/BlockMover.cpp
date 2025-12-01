@@ -42,6 +42,7 @@ void BlockMover::rotateBlock(Block& block) {
     Block nextBlock(block.getType(), next_rotation,block.getPos()); //임시객체
     if(board.isStrike(nextBlock) == 0)
     {
+		std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
         renderer.erase_cur_block(block);
 		block.rotate();
         renderer.show_cur_block(block);
