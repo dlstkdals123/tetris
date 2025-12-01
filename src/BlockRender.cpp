@@ -8,7 +8,9 @@ using namespace std;
 BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, bool isPlayer): gs(gs), boardOffset(boardOffset), isPlayer(isPlayer) {};
 
 void BlockRender::show_cur_block(Block& block) {
-    int i,j;
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+
+  int i,j;
 	Position pos = block.getPos();
 	Rotation rotation = block.getRotation();
 	int x = pos.getX();
@@ -59,6 +61,8 @@ void BlockRender::show_cur_block(Block& block) {
 }
 
 void BlockRender::erase_cur_block(Block& block) {
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+
 	Position pos = block.getPos();
     int i,j;
 	int x = pos.getX();
@@ -81,7 +85,8 @@ void BlockRender::erase_cur_block(Block& block) {
 }
 
 void BlockRender::show_next_block(Block& block) {
-	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+		std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+		
     int i,j;
     Utils::setColor(static_cast<COLOR>((gs.getLevel() + 1) % 6 + 1));
 	for(i=1;i<7;i++)
