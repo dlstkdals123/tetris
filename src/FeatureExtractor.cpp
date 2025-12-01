@@ -176,6 +176,18 @@ int FeatureExtractor::calculateWells(const Board& board)
                     // 우물 깊이의 제곱 합 (Dellacherie 스타일)
                     totalWellDepth += wellDepth * (wellDepth + 1) / 2;
                     inWell = false;
+                    wellDepth = 0;
+                }
+            }
+            else
+            {
+                // 빈칸이지만 양옆이 막히지 않은 경우 - 우물 끊김
+                if (inWell)
+                {
+                    // 현재까지의 우물을 종료하고 합산
+                    totalWellDepth += wellDepth * (wellDepth + 1) / 2;
+                    inWell = false;
+                    wellDepth = 0;
                 }
             }
         }

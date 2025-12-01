@@ -8,21 +8,24 @@
 
 using namespace std;
 
+// 죽음/불가능한 상태에 대한 페널티
+constexpr double DEATH_PENALTY = -100000.0;
+
 // Bertsekas & Tsitsiklis 논문 스타일: 26개 feature 초기 가중치
 // 모든 가중치는 학습을 통해 최적값을 찾습니다.
 Evaluator::Weights::Weights()
-    : maxHeight(-3.0)      // 최대 높이는 낮을수록 좋음
-    , holes(-20.0)          // 구멍은 치명적
+    : maxHeight(-1.0)      // 최대 높이는 낮을수록 좋음
+    , holes(-40.0)         // 구멍은 치명적
     , wells(-4.0)          // 우물은 낮을수록 좋음
 { 
     // 각 열의 높이 가중치 초기화 (높이는 낮을수록 좋음)
     for (int i = 0; i < 12; i++) {
-        columnHeights[i] = -4.0;
+        columnHeights[i] = -0.5;
     }
     
     // 인접한 열의 높이 차이 가중치 초기화 (차이는 적을수록 좋음)
     for (int i = 0; i < 11; i++) {
-        heightDiffs[i] = -3.0;
+        heightDiffs[i] = -8.0;
     }
 }
 
@@ -47,29 +50,35 @@ Evaluator::Evaluator(const Weights& weights)
 
 double Evaluator::evaluate(const FeatureExtractor::Features& features) const
 {
-    // Linear combination: V(s) = w1*f1 + w2*f2 + ... + wn*fn
-    // Bertsekas & Tsitsiklis 논문 스타일: 26개 feature 사용
+    // 모든 feature를 20으로 정규화
+    constexpr double FEATURE_NORM = 20.0;
+
     double score = 0.0;
-    
+
     // 1. 각 열의 높이 (12개)
     for (int i = 0; i < 12; i++) {
-        score += weights_.columnHeights[i] * features.columnHeights[i];
+        double normalizedHeight = features.columnHeights[i] / FEATURE_NORM;
+        score += weights_.columnHeights[i] * normalizedHeight;
     }
-    
+
     // 2. 인접한 열의 높이 차이 (11개)
     for (int i = 0; i < 11; i++) {
-        score += weights_.heightDiffs[i] * features.heightDiffs[i];
+        double normalizedDiff = features.heightDiffs[i] / FEATURE_NORM;
+        score += weights_.heightDiffs[i] * normalizedDiff;
     }
-    
+
     // 3. 최대 높이 (1개)
-    score += weights_.maxHeight * features.maxHeight;
-    
+    double normalizedMaxHeight = features.maxHeight / FEATURE_NORM;
+    score += weights_.maxHeight * normalizedMaxHeight;
+
     // 4. 구멍의 개수 (1개)
-    score += weights_.holes * features.holes;
-    
+    double normalizedHoles = features.holes / FEATURE_NORM;
+    score += weights_.holes * normalizedHoles;
+
     // 5. 우물 깊이 합 (1개)
-    score += weights_.wells * features.wells;
-    
+    double normalizedWells = features.wells / FEATURE_NORM;
+    score += weights_.wells * normalizedWells;
+
     return score;
 }
 
@@ -82,9 +91,10 @@ double Evaluator::evaluateBoard(const Board& board) const
 double Evaluator::evaluateResult(const SimulationResult& result) const
 {
     // 유효하지 않거나 게임 오버인 경우 최악의 점수
+    // -infinity 대신 유한한 큰 페널티를 사용하여 계산이 망가지지 않도록 함
     if (!result.isValid || result.gameOver)
     {
-        return -std::numeric_limits<double>::infinity();
+        return DEATH_PENALTY;
     }
     
     return evaluate(result.features);
@@ -98,20 +108,52 @@ std::pair<Action, double> Evaluator::selectBestAction(const Board& board, const 
     if (results.empty())
     {
         // 가능한 액션이 없으면 기본 액션 반환
-        return {Action(0, 5), -std::numeric_limits<double>::infinity()};
+        return {Action(0, 5), DEATH_PENALTY};
     }
     
-    // 최고 점수 찾기
-    Action bestAction = results[0].action;
-    double bestScore = evaluateResult(results[0]);
+    // 유효한 액션이 있는지 확인
+    bool hasValidAction = false;
+    for (const auto& result : results)
+    {
+        if (result.isValid && !result.gameOver)
+        {
+            hasValidAction = true;
+            break;
+        }
+    }
     
+    if (!hasValidAction)
+    {
+        // 유효한 액션이 없으면 기본 액션 반환
+        return {Action(0, 5), DEATH_PENALTY};
+    }
+    
+    // 최고 점수 찾기 (유효한 액션 중에서)
+    Action bestAction = results[0].action;
+    double bestScore = DEATH_PENALTY;
+    
+    // 첫 번째 유효한 액션을 찾아서 초기값으로 설정
+    for (const auto& result : results)
+    {
+        if (result.isValid && !result.gameOver)
+        {
+            bestAction = result.action;
+            bestScore = evaluateResult(result);
+            break;
+        }
+    }
+    
+    // 나머지 유효한 액션들과 비교
     for (size_t i = 1; i < results.size(); i++)
     {
-        double score = evaluateResult(results[i]);
-        if (score > bestScore)
+        if (results[i].isValid && !results[i].gameOver)
         {
-            bestScore = score;
-            bestAction = results[i].action;
+            double score = evaluateResult(results[i]);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestAction = results[i].action;
+            }
         }
     }
     
@@ -130,11 +172,28 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
     if (currentResults.empty())
     {
         // 가능한 액션이 없으면 기본 액션 반환
-        return {Action(0, 5), -std::numeric_limits<double>::infinity()};
+        return {Action(0, 5), DEATH_PENALTY};
+    }
+    
+    // 유효한 액션이 있는지 확인
+    bool hasValidAction = false;
+    for (const auto& result : currentResults)
+    {
+        if (result.isValid && !result.gameOver)
+        {
+            hasValidAction = true;
+            break;
+        }
+    }
+    
+    if (!hasValidAction)
+    {
+        // 유효한 액션이 없으면 기본 액션 반환
+        return {Action(0, 5), DEATH_PENALTY};
     }
     
     Action bestAction = currentResults[0].action;
-    double bestScore = -std::numeric_limits<double>::infinity();
+    double bestScore = DEATH_PENALTY;
     
     // 각 현재 블록 액션에 대해 평가
     for (const auto& currentResult : currentResults)
@@ -165,7 +224,7 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
             if (!nextResults.empty())
             {
                 // 다음 블록의 최고 점수 찾기
-                double bestNextScore = -std::numeric_limits<double>::infinity();
+                double bestNextScore = DEATH_PENALTY;
                 for (const auto& nextResult : nextResults)
                 {
                     if (nextResult.isValid && !nextResult.gameOver)
@@ -179,10 +238,8 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
                 }
                 
                 // 현재 점수 + (다음 블록 최고 점수 * 할인 인자)
-                if (bestNextScore > -std::numeric_limits<double>::infinity())
-                {
-                    currentScore += bestNextScore * lookAheadDiscount;
-                }
+                // 다음 턴에 죽는다면 현재 점수에도 큰 페널티를 반영해야 함
+                currentScore += bestNextScore * lookAheadDiscount;
             }
         }
         

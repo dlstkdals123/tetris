@@ -35,7 +35,7 @@ int main()
     // Multi-stage 설정
     MCLearner::Config config;
     config.setupMultiStage();  // 3단계 학습 활성화
-    config.discountFactor = 0.95;
+    config.discountFactor = 0.99;
     config.maxMovesPerEpisode = 1000;
     config.verbose = true;
     
@@ -47,10 +47,17 @@ int main()
     cout << "  Save: Only final weights" << endl;
     cout << endl;
     
-    // 초기 가중치 (휴리스틱 기반)
+    // 초기 가중치 로드 시도
     MCLearner learner(config);
+    const string initialWeightsFile = "initial_weights.txt";
     
-    cout << "Initial Weights:" << endl;
+    if (learner.loadWeights(initialWeightsFile)) {
+        cout << "Loaded initial weights from: " << initialWeightsFile << endl;
+    } else {
+        cout << "Using default heuristic weights (file not found: " << initialWeightsFile << ")" << endl;
+    }
+    
+    cout << "\nInitial Weights:" << endl;
     learner.getEvaluator().printWeights();
     cout << endl;
     

@@ -1,0 +1,28 @@
+# Tetris Evaluator Weights (Bertsekas & Tsitsiklis Style - 26 features)
+columnHeight0 -209.858
+columnHeight1 -207.500
+columnHeight2 -210.182
+columnHeight3 -214.231
+columnHeight4 -213.810
+columnHeight5 -214.005
+columnHeight6 -212.972
+columnHeight7 -214.962
+columnHeight8 -215.478
+columnHeight9 -206.426
+columnHeight10 -186.614
+columnHeight11 -182.149
+heightDiff0 -66.624
+heightDiff1 -90.637
+heightDiff2 -86.648
+heightDiff3 -86.872
+heightDiff4 -86.724
+heightDiff5 -86.796
+heightDiff6 -87.432
+heightDiff7 -86.066
+heightDiff8 -85.814
+heightDiff9 -85.808
+heightDiff10 -54.404
+maxHeight -391.266
+holes -414.000
+wells -287.613
+

@@ -101,11 +101,11 @@ public:
             
             phases.clear();
             // Phase 1: 더 강한 Exploration (0-15000) - 학습률 증가
-            phases.push_back(Phase(0, 15000, 1.0, 0.2, 0.001));  // 0.01 -> 0.1로 증가
+            phases.push_back(Phase(0, 15000, 0.01, 0.0, 0.000001));
             // Phase 2: Exploitation (15000-40000) - 학습률 증가
-            phases.push_back(Phase(15000, 40000, 0.2, 0.1, 0.0005));  // 0.005 -> 0.02로 증가
+            phases.push_back(Phase(15000, 40000, 0.0, 0.0, 0.0000001));
             // Phase 3: Fine-tuning (40000-50000) - 학습률 증가
-            phases.push_back(Phase(40000, 50000, 0.1, 0.01, 0.0001));  // 0.001 -> 0.005로 증가
+            phases.push_back(Phase(40000, 50000, 0.0, 0.0, 0.0000001));
         }
     };
     
@@ -218,7 +218,7 @@ private:
     /**
      * 랜덤 액션을 선택합니다 (Exploration).
      */
-    Action selectRandomAction(const Block& block);
+    Action selectRandomAction(const Board& board, const Block& block);
     
     Evaluator evaluator_;
     Config config_;

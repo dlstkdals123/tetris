@@ -79,53 +79,66 @@ void MCLearner::updateWeightsMonteCarlo(const FeatureExtractor::Features& state,
 {
     // Monte Carlo 업데이트: w ← w + α[G - V(s)]·∇V(s)
     
-    // 현재 상태의 가치 계산 (Bertsekas & Tsitsiklis: 26개 feature)
+    // Feature 정규화 상수 (모든 feature를 0~1 범위로 정규화)
+    constexpr double FEATURE_NORM = 20.0;
+    
+    // 현재 상태의 가치 계산 (정규화된 feature 사용)
     const auto& weights = evaluator_.getWeights();
     double currentValue = 0.0;
     
-    // 1. 각 열의 높이 (12개)
+    // 1. 각 열의 높이 (12개) - 정규화
     for (int i = 0; i < 12; i++) {
-        currentValue += weights.columnHeights[i] * state.columnHeights[i];
+        double normalizedHeight = state.columnHeights[i] / FEATURE_NORM;
+        currentValue += weights.columnHeights[i] * normalizedHeight;
     }
     
-    // 2. 인접한 열의 높이 차이 (11개)
+    // 2. 인접한 열의 높이 차이 (11개) - 정규화
     for (int i = 0; i < 11; i++) {
-        currentValue += weights.heightDiffs[i] * state.heightDiffs[i];
+        double normalizedDiff = state.heightDiffs[i] / FEATURE_NORM;
+        currentValue += weights.heightDiffs[i] * normalizedDiff;
     }
     
-    // 3. 최대 높이 (1개)
-    currentValue += weights.maxHeight * state.maxHeight;
+    // 3. 최대 높이 (1개) - 정규화
+    double normalizedMaxHeight = state.maxHeight / FEATURE_NORM;
+    currentValue += weights.maxHeight * normalizedMaxHeight;
     
-    // 4. 구멍의 개수 (1개)
-    currentValue += weights.holes * state.holes;
+    // 4. 구멍의 개수 (1개) - 정규화
+    double normalizedHoles = state.holes / FEATURE_NORM;
+    currentValue += weights.holes * normalizedHoles;
     
-    // 5. 우물 깊이 합 (1개)
-    currentValue += weights.wells * state.wells;
+    // 5. 우물 깊이 합 (1개) - 정규화
+    double normalizedWells = state.wells / FEATURE_NORM;
+    currentValue += weights.wells * normalizedWells;
     
     // Monte Carlo 에러 계산: G - V(s)
     double error = G - currentValue;
     
-    // 가중치 업데이트
+    // 가중치 업데이트 (정규화된 feature 사용)
     Evaluator::Weights newWeights = weights;
     
     // 1. 각 열의 높이 가중치 업데이트 (12개)
     for (int i = 0; i < 12; i++) {
-        newWeights.columnHeights[i] += config_.learningRate * error * state.columnHeights[i];
+        double normalizedHeight = state.columnHeights[i] / FEATURE_NORM;
+        newWeights.columnHeights[i] += config_.learningRate * error * normalizedHeight;
     }
     
     // 2. 인접한 열의 높이 차이 가중치 업데이트 (11개)
     for (int i = 0; i < 11; i++) {
-        newWeights.heightDiffs[i] += config_.learningRate * error * state.heightDiffs[i];
+        double normalizedDiff = state.heightDiffs[i] / FEATURE_NORM;
+        newWeights.heightDiffs[i] += config_.learningRate * error * normalizedDiff;
     }
     
     // 3. 최대 높이 가중치 업데이트 (1개)
-    newWeights.maxHeight += config_.learningRate * error * state.maxHeight;
+    double normalizedMaxHeight2 = state.maxHeight / FEATURE_NORM;
+    newWeights.maxHeight += config_.learningRate * error * normalizedMaxHeight2;
     
     // 4. 구멍의 개수 가중치 업데이트 (1개)
-    newWeights.holes += config_.learningRate * error * state.holes;
+    double normalizedHoles2 = state.holes / FEATURE_NORM;
+    newWeights.holes += config_.learningRate * error * normalizedHoles2;
     
     // 5. 우물 깊이 합 가중치 업데이트 (1개)
-    newWeights.wells += config_.learningRate * error * state.wells;
+    double normalizedWells2 = state.wells / FEATURE_NORM;
+    newWeights.wells += config_.learningRate * error * normalizedWells2;
     
     // L2 Regularization (Weight Decay)
     constexpr double L2_LAMBDA = 0.0001;
@@ -175,64 +188,47 @@ double MCLearner::calculateReward(const FeatureExtractor::Features& currentFeatu
     const FeatureExtractor::Features& newFeatures,
     int linesCleared, bool gameOver) const
 {
-    if (gameOver) return -50.0;
-    return (double) linesCleared * 1.0;
+    constexpr double SCALE = 0.1;
 
-    // // Bertsekas & Tsitsiklis 논문 스타일 보상 함수
-    // // 비율: 구멍(15배) > 높이 차이(3.5배) > 높이(1배)
-    
-    // constexpr double GAME_OVER_PENALTY = -100.0;
-    // constexpr double LINE_CLEAR_REWARD = 10.0;
-    // constexpr double LIVING_REWARD = 1.0;
-    
-    // // 기본 단위: 높이 패널티
-    // constexpr double HEIGHT_PENALTY = 1.0;           // 기본 단위 (가장 작음)
-    // constexpr double HEIGHT_DIFF_PENALTY = 3.5;     // 높이의 3.5배 (2~5배 중간값)
-    // constexpr double HOLES_PENALTY = 15.0;          // 높이의 15배 (10~20배 중간값)
-    
-    // // 상태 유지 패널티 (구멍이 있으면 계속 패널티)
-    // constexpr double HOLES_STATE_PENALTY = 1.5;     // 구멍 상태 자체에 대한 작은 패널티
-    
-    // if (gameOver) return GAME_OVER_PENALTY;
+    constexpr double GAME_OVER_PENALTY    = -10000.0 * SCALE;
+    constexpr double LINE_CLEAR_REWARD    = 100.0   * SCALE;
+    constexpr double LIVING_REWARD        = 1.0     * SCALE;
+    constexpr double HEIGHT_PENALTY       = 0.01     * SCALE;
+    constexpr double HEIGHT_DIFF_PENALTY  = 0.05     * SCALE;
+    constexpr double HOLES_PENALTY        = 200.0    * SCALE;
+    constexpr double HOLES_STATE_PENALTY  = 40.0     * SCALE;
 
-    // double reward = 0.0;
+    if (gameOver) return GAME_OVER_PENALTY;
 
-    // // 라인 클리어 보상
-    // if (linesCleared > 0) {
-    //     reward += linesCleared * LINE_CLEAR_REWARD;
-    // }
+    double reward = LIVING_REWARD;
 
-    // // 1. 높이 변화 패널티 (기본 단위)
-    // // 각 열의 높이 변화량 합계
-    // int totalHeightChange = 0;
-    // for (int i = 0; i < 12; i++) {
-    //     int heightDiff = newFeatures.columnHeights[i] - currentFeatures.columnHeights[i];
-    //     totalHeightChange += heightDiff;
-    // }
-    // reward -= totalHeightChange * HEIGHT_PENALTY;
-    
-    // // 최대 높이 변화 패널티
-    // int maxHeightDiff = newFeatures.maxHeight - currentFeatures.maxHeight;
-    // reward -= maxHeightDiff * HEIGHT_PENALTY;
+    if (linesCleared > 0) {
+        reward += linesCleared * LINE_CLEAR_REWARD;
+    }
 
-    // // 2. 인접한 열의 높이 차이 변화 패널티 (높이의 3.5배)
-    // // 울퉁불퉁해지면 큰 패널티
-    // int totalDiffChange = 0;
-    // for (int i = 0; i < 11; i++) {
-    //     int diffChange = newFeatures.heightDiffs[i] - currentFeatures.heightDiffs[i];
-    //     totalDiffChange += diffChange;
-    // }
-    // reward -= totalDiffChange * HEIGHT_DIFF_PENALTY;
+    int totalHeightChange = 0;
+    for (int i = 0; i < 12; i++) {
+        int heightDiff = newFeatures.columnHeights[i] - currentFeatures.columnHeights[i];
+        totalHeightChange += heightDiff;
+    }
+    reward -= totalHeightChange * HEIGHT_PENALTY;
 
-    // // 3. 구멍 변화 패널티 (높이의 15배 - 절대 악)
-    // // 구멍이 생기면 압도적으로 큰 패널티
-    // int holesDiff = newFeatures.holes - currentFeatures.holes;
-    // reward -= holesDiff * HOLES_PENALTY;
-    
-    // // 구멍 상태 자체에도 패널티 (구멍이 있으면 계속 패널티)
-    // reward -= newFeatures.holes * HOLES_STATE_PENALTY;
+    int maxHeightDiff = newFeatures.maxHeight - currentFeatures.maxHeight;
+    reward -= maxHeightDiff * HEIGHT_PENALTY;
 
-    // return reward;
+    int totalDiffChange = 0;
+    for (int i = 0; i < 11; i++) {
+        int diffChange = newFeatures.heightDiffs[i] - currentFeatures.heightDiffs[i];
+        totalDiffChange += diffChange;
+    }
+    reward -= totalDiffChange * HEIGHT_DIFF_PENALTY;
+
+    int holesDiff = newFeatures.holes - currentFeatures.holes;
+    reward -= holesDiff * HOLES_PENALTY;
+
+    reward -= newFeatures.holes * HOLES_STATE_PENALTY;
+
+    return reward;
 }
 
 MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
