@@ -24,7 +24,6 @@ AI_SRCS = $(SRC_DIR)/Evaluator.cpp \
           $(SRC_DIR)/FeatureExtractor.cpp
 
 # Main executables source files
-TETRIS_SRCS = $(SRC_DIR)/tetris.cpp $(COMMON_SRCS)
 TETRIS_AI_SRCS = $(SRC_DIR)/tetris_ai.cpp $(AI_SRCS) $(COMMON_SRCS)
 TRAIN_SRCS = $(SRC_DIR)/train_multistage.cpp \
              $(SRC_DIR)/MCLearner.cpp \
@@ -35,17 +34,11 @@ TRAIN_SRCS = $(SRC_DIR)/train_multistage.cpp \
              $(SRC_DIR)/rotation.cpp
 
 # Executables
-TETRIS_EXE = tetris.exe
 TETRIS_AI_EXE = tetris_ai.exe
 TRAIN_EXE = train_multistage.exe
 
 # Default target
-all: $(TETRIS_EXE) $(TETRIS_AI_EXE) $(TRAIN_EXE)
-
-# Build tetris game (player only)
-$(TETRIS_EXE): $(TETRIS_SRCS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Tetris game compiled successfully!"
+all: $(TETRIS_AI_EXE) $(TRAIN_EXE)
 
 # Build tetris with AI (player vs AI)
 $(TETRIS_AI_EXE): $(TETRIS_AI_SRCS)
@@ -58,16 +51,11 @@ $(TRAIN_EXE): $(TRAIN_SRCS)
 	@echo "Monte Carlo training compiled successfully!"
 
 # Individual build targets
-tetris: $(TETRIS_EXE)
-
 tetris-ai: $(TETRIS_AI_EXE)
 
 train: $(TRAIN_EXE)
 
 # Run targets
-run: $(TETRIS_EXE)
-	./$(TETRIS_EXE)
-
 run-tetris-ai: $(TETRIS_AI_EXE)
 	./$(TETRIS_AI_EXE)
 
@@ -76,7 +64,7 @@ run-train: $(TRAIN_EXE)
 
 # Clean build artifacts
 clean:
-	rm -f $(TETRIS_EXE) $(TETRIS_AI_EXE) $(TRAIN_EXE)
+	rm -f $(TETRIS_AI_EXE) $(TRAIN_EXE)
 	rm -f *.txt *.csv
 	@echo "Cleaned build artifacts"
 
@@ -86,15 +74,13 @@ help:
 	@echo "Tetris Monte Carlo Learning Project"
 	@echo "========================================="
 	@echo ""
-	@echo "Available targets:"
-	@echo "  all           - Build all executables (default)"
-	@echo "  tetris        - Build player-only tetris game"
-	@echo "  tetris-ai     - Build player vs AI tetris game"
-	@echo "  train         - Build Monte Carlo training program"
-	@echo ""
-	@echo "Run targets:"
-	@echo "  run           - Run player-only tetris game"
-	@echo "  run-tetris-ai - Run player vs AI game"
+    @echo "Available targets:"
+    @echo "  all           - Build all executables (default)"
+    @echo "  tetris-ai     - Build player vs AI tetris game"
+    @echo "  train         - Build Monte Carlo training program"
+    @echo ""
+    @echo "Run targets:"
+    @echo "  run-tetris-ai - Run player vs AI game"
 	@echo "  run-train     - Run Monte Carlo training (20K episodes)"
 	@echo ""
 	@echo "Other:"
@@ -102,5 +88,5 @@ help:
 	@echo "  help          - Show this help message"
 	@echo ""
 
-.PHONY: all tetris tetris-ai train run run-tetris-ai run-train clean help
+.PHONY: all tetris-ai train run-tetris-ai run-train clean help
 
