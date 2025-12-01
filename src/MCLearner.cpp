@@ -273,7 +273,6 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
         
         if (!result.isValid || result.gameOver)
         {
-            // 게임 오버
             // 게임 오버 시에는 현재 feature를 그대로 사용
             FeatureExtractor::Features dummyFeatures = currentFeatures;
             double reward = calculateReward(currentFeatures, dummyFeatures, 0, true);
@@ -316,12 +315,8 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
     double G = 0.0;  // 누적 할인 보상
     double totalReward = 0.0;
 
-    // 에피소드 길이 보너스 제거 - 매 스텝 생존 보상으로 대체
-    // (각 경험의 reward에 이미 LIVING_REWARD가 포함되어 있음)
-
     for (int t = static_cast<int>(episode.size()) - 1; t >= 0; t--)
     {
-        // 각 경험의 원래 reward 사용 (이미 calculateReward에서 생존 보상 포함)
         double adjustedReward = episode[t].reward;
         
         G = adjustedReward + config_.discountFactor * G;

@@ -2,11 +2,12 @@
 
 #include "Block.h"
 #include "Utils.h"
+#include "BoardConstants.h"
 #include <random>
 
 class Board {
   private:
-    char total_block[21][14];
+    char total_block[BoardConstants::BOARD_HEIGHT][BoardConstants::BOARD_WIDTH];
     bool isPlayer;
 
   public:
@@ -28,5 +29,4 @@ class Board {
     // Feature 추출을 위한 접근 함수들
     char getCell(int row, int col) const;
     const char* getRow(int row) const;
-    void copyBoard(char dest[21][14]) const;
 };
