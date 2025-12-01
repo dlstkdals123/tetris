@@ -21,8 +21,8 @@ Action MCLearner::selectAction(const Board& board, const Block& block, const Blo
     // ε-greedy 정책
     if (dist_(rng_) < config_.epsilon)
     {
-        // Exploration: 랜덤 액션 선택
-        return selectRandomAction(block);
+        // Exploration: 유효한 액션 중에서 랜덤 선택
+        return selectRandomAction(board, block);
     }
     else
     {
@@ -30,29 +30,47 @@ Action MCLearner::selectAction(const Board& board, const Block& block, const Blo
         if (nextBlock != nullptr)
         {
             auto [bestAction, score] = evaluator_.selectBestActionWithLookAhead(board, block, nextBlock, 1.0);
+            // 유효한 액션이 없을 경우를 대비해 유효성 검사
+            SimulationResult testResult = ActionSimulator::simulateAction(board, block, bestAction);
+            if (!testResult.isValid)
+            {
+                // 유효한 액션이 없으면 랜덤 액션으로 폴백
+                return selectRandomAction(board, block);
+            }
             return bestAction;
         }
         else
         {
             auto [bestAction, score] = evaluator_.selectBestAction(board, block);
+            // 유효한 액션이 없을 경우를 대비해 유효성 검사
+            SimulationResult testResult = ActionSimulator::simulateAction(board, block, bestAction);
+            if (!testResult.isValid)
+            {
+                // 유효한 액션이 없으면 랜덤 액션으로 폴백
+                return selectRandomAction(board, block);
+            }
             return bestAction;
         }
     }
 }
 
-Action MCLearner::selectRandomAction(const Block& block)
+Action MCLearner::selectRandomAction(const Board& board, const Block& block)
 {
     constexpr int DEFAULT_ROTATION = 0;
     constexpr int DEFAULT_COLUMN = 5;
     
-    vector<Action> actions = ActionSimulator::generatePossibleActions(block.getType());
-    if (actions.empty())
+    // 이론적으로 가능한 모든 액션을 시뮬레이션하여 유효한 액션만 필터링
+    vector<SimulationResult> validResults = ActionSimulator::simulateAllActions(board, block);
+    
+    if (validResults.empty())
     {
+        // 유효한 액션이 없으면 기본 액션 반환 (게임 오버 상황)
         return Action(DEFAULT_ROTATION, DEFAULT_COLUMN);
     }
     
-    uniform_int_distribution<size_t> actionDist(0, actions.size() - 1);
-    return actions[actionDist(rng_)];
+    // 유효한 액션 중에서 랜덤 선택
+    uniform_int_distribution<size_t> actionDist(0, validResults.size() - 1);
+    return validResults[actionDist(rng_)].action;
 }
 
 void MCLearner::updateWeightsMonteCarlo(const FeatureExtractor::Features& state,
@@ -157,8 +175,9 @@ double MCLearner::calculateReward(const FeatureExtractor::Features& currentFeatu
     const FeatureExtractor::Features& newFeatures,
     int linesCleared, bool gameOver) const
 {
-    if (gameOver) return -10;
-    return (double) linesCleared * 0.1;
+    if (gameOver) return -50.0;
+    return (double) linesCleared * 1.0;
+
     // // Bertsekas & Tsitsiklis 논문 스타일 보상 함수
     // // 비율: 구멍(15배) > 높이 차이(3.5배) > 높이(1배)
     
@@ -418,7 +437,7 @@ std::vector<MCLearner::Statistics> MCLearner::train(int numEpisodes)
         }
         
         // 주기적으로 진행 상황 출력
-        constexpr int PRINT_INTERVAL = 500;
+        constexpr int PRINT_INTERVAL = 200;
         
         if (config_.verbose && (episode + 1) % PRINT_INTERVAL == 0)
         {
