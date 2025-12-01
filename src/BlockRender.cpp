@@ -57,7 +57,7 @@ void BlockRender::show_cur_block(Block& block) {
 		}
 	}
 	Utils::setColor(COLOR::BLACK);
-	Utils::gotoxy(77,23);
+	Utils::gotoxy(77,23, isPlayer);
 }
 
 void BlockRender::erase_cur_block(Block& block) {

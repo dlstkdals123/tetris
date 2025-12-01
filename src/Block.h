@@ -22,6 +22,9 @@ public:
     const Position& getPos() const {
         return pos;
     }
+    void setPos(const Position& newPos) {
+        this->pos = newPos;
+    }
     void moveDown() {
         this->pos.moveDown();
     }

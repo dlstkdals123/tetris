@@ -2,6 +2,7 @@
 #include "Block.h"
 #include <Windows.h>
 #include <iostream>
+#include <random>
 
 using namespace std;
 
@@ -28,6 +29,18 @@ Board::Board(bool isPlayer) : isPlayer(isPlayer)
         total_block[20][j] = 1; // 바닥
     }
 }
+
+Board::Board(const Board& other) : isPlayer(other.isPlayer)
+{
+    for (int i = 0; i < 21; i++)
+    {
+        for (int j = 0; j < 14; j++)
+        {
+            total_block[i][j] = other.total_block[i][j];
+        }
+    }
+}
+
 Board::~Board()
 {
 }
@@ -56,6 +69,63 @@ int Board::init()
     }
 
     return 0;
+}
+
+void Board::initWithState(int stateType, std::mt19937& rng)
+{
+    // 먼저 기본 초기화
+    init();
+    
+    if (stateType == 0)
+    {
+        // 0줄: 완전히 비어있음 (이미 init()에서 처리됨)
+        return;
+    }
+    
+    if (stateType == 5)
+    {
+        // 5: 랜덤 상태 - 0~10줄 사이 랜덤하게 채움
+        std::uniform_int_distribution<int> rowDist(0, 19); // 행
+        std::uniform_int_distribution<int> colDist(1, 12); // 열 (벽 제외)
+        std::uniform_int_distribution<int> fillRowsDist(0, 10); // 채울 줄 수 (0~10)
+        
+        int numFilledRows = fillRowsDist(rng);
+        int filledCount = 0;
+        
+        // 랜덤하게 블록 배치
+        while (filledCount < numFilledRows * 12 && filledCount < 120) // 최대 120개 블록
+        {
+            int row = rowDist(rng);
+            int col = colDist(rng);
+            
+            if (total_block[row][col] == 0)
+            {
+                total_block[row][col] = 1;
+                filledCount++;
+            }
+        }
+        return;
+    }
+    
+    // 1~4줄: 각각 1줄, 2줄, 3줄, 4줄을 꽉 채우고 1자로 비어있게 함
+    std::uniform_int_distribution<int> colDist(1, 12); // 플레이 영역 열 (벽 제외)
+    
+    // 아래에서부터 stateType개의 줄을 채움
+    for (int row = 19; row >= 20 - stateType; row--)
+    {
+        // 한 줄을 모두 채움
+        for (int col = 1; col <= 12; col++)
+        {
+            total_block[row][col] = 1;
+        }
+    }
+    
+    // 각 줄에서 랜덤하게 1자씩 비움
+    for (int row = 19; row >= 20 - stateType; row--)
+    {
+        int emptyCol = colDist(rng);
+        total_block[row][emptyCol] = 0;
+    }
 }
 
 void Board::draw(const int &level) const
@@ -95,9 +165,8 @@ void Board::draw(const int &level) const
     Utils::gotoxy(77, 23);
 }
 
-int Board::isStrike(const Block &block)
+int Board::isStrike(const Block &block) const
 {
-	Position pos = block.getPos();
     int i, j;
     int x = block.getPos().getX();
     int y = block.getPos().getY();
@@ -172,22 +241,22 @@ int Board::deleteFullLine()
             deletedLines++;
             // show_total_block();
 
-            Utils::setColor(COLOR::BLUE);
-            Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
+            // Utils::setColor(COLOR::BLUE);
+            // Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
 
-            for (j = 1; j < 13; j++)
-            {
-                cout << "□";
-                cout.flush();
-                Sleep(10);
-            }
-            Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
-            for (j = 1; j < 13; j++)
-            {
-                cout << "  ";
-                cout.flush();
-                Sleep(10);
-            }
+            // for (j = 1; j < 13; j++)
+            // {
+            //     cout << "□";
+            //     cout.flush();
+            //     Sleep(10);
+            // }
+            // Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
+            // for (j = 1; j < 13; j++)
+            // {
+            //     cout << "  ";
+            //     cout.flush();
+            //     Sleep(10);
+            // }
 
             for (k = i; k > 0; k--)
             {
@@ -203,4 +272,34 @@ int Board::deleteFullLine()
         }
     }
     return deletedLines;
+}
+
+// Feature 추출을 위한 접근 함수들
+char Board::getCell(int row, int col) const
+{
+    if (row < 0 || row >= 21 || col < 0 || col >= 14)
+    {
+        return 0;
+    }
+    return total_block[row][col];
+}
+
+const char* Board::getRow(int row) const
+{
+    if (row < 0 || row >= 21)
+    {
+        return nullptr;
+    }
+    return total_block[row];
+}
+
+void Board::copyBoard(char dest[21][14]) const
+{
+    for (int i = 0; i < 21; i++)
+    {
+        for (int j = 0; j < 14; j++)
+        {
+            dest[i][j] = total_block[i][j];
+        }
+    }
 }

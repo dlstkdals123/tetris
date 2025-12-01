@@ -5,8 +5,8 @@
 ## Refactoring
 - [ ] show_gameState()을 gameState class에 포함시키기.
 - [ ] STAGE 내부에 배열을 가지고 있는 형식으로 수정.
-- [ ] input_data() 함수는 오로지 input만 받도록 하고, return값으로 int 값을 반환하여 main에서 설정.
 - [ ] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
+- [ ] 파일 디렉토리 구조화
 
 ## Improvement
 - [ ] "spacebar"을 통해 맨 아래로 내리기
@@ -17,19 +17,10 @@
 ## new Function
 - [ ] 일시정지
 - [ ] 게임종료
-- [ ] 고득점 저장
 - [ ] 떨어질 위치 미리보기
-- [ ] 여러 줄 삭제 시 추가점수
-- [ ] WaitForSingleObject 사용하기
-- [ ] AI 사용
-- [ ] main에서 두 명의 화면 띄우기
-
-## Development Pipeline
-1. for문 유지하고 두 개의 화면 띄우기
-2. thread_function 2개 생성 및 호출하는 방식으로 수정
-- `#include <thread>`
-- `thread t1(thread_function, true);`
-3. 나머지 기능 추가
+- [ ] .txt 파일 형태로 고득점 저장 및 불러오기 (싱글용)
+- [ ] Single: 점수판, Human vs AI, Human vs Human 3개의 기능 나누기
+- [ ] MultiPlay에서 상대방에게 공격하는 행위 (클리어 된 줄에서, 각 줄의 랜덤으로 1칸 빼기)
 
 ## 커밋 메시지 컨벤션
 

@@ -1,4 +1,5 @@
 ﻿#include "gameState.h"
+#include <cstdio>
 
 // 생성자
 gameState::gameState() : level(0), score(0), line(0) {

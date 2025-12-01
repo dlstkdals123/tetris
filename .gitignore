@@ -27,6 +27,3 @@ obj/
 
 # VS Code 파일
 .vscode/
-
-# Makefile
-Makefile
