@@ -18,13 +18,10 @@ std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType
     
     // 각 회전에 대해
     for (int rot = 0; rot < numRotations; rot++)
-    {
         // 각 열 위치에 대해
         for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
-        {
             actions.push_back(Action(rot, col));
-        }
-    }
+
     
     return actions;
 }
@@ -44,43 +41,15 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     Block simBlock(block.getType(), Rotation(0), 
                    Position(BoardConstants::BLOCK_START_X, BoardConstants::BLOCK_START_Y));
     
-    // 회전 시도 (Wall Kick 없이)
-    for (int i = 0; i < action.rotation; i++)
+    // 회전 시도 (보드 충돌 체크 포함)
+    if (!rotateBlock(simBoard, simBlock, action.rotation))
     {
-        Rotation next_rotation(simBlock.getRotation() + 1);
-        Block testBlock(simBlock.getType(), next_rotation, simBlock.getPos());
-        
-        // 회전 가능 여부 확인
-        if (simBoard.isStrike(testBlock) == 0)
-        {
-            simBlock.rotate();
-        }
-        else
-        {
-            // 회전 불가능하면 이 액션은 무효
-            return result; // isValid = false
-        }
+        // 회전 불가능하면 이 액션은 무효
+        return result; // isValid = false
     }
     
     // 목표 열로 이동
-    int currentX = simBlock.getPos().getX();
-    int targetX = action.column;
-    int diff = targetX - currentX;
-    
-    if (diff > 0)
-    {
-        for (int i = 0; i < diff; i++)
-        {
-            simBlock.moveRight();
-        }
-    }
-    else if (diff < 0)
-    {
-        for (int i = 0; i < -diff; i++)
-        {
-            simBlock.moveLeft();
-        }
-    }
+    moveBlockHorizontally(simBlock, action.column);
     
     // 블록이 유효한 위치인지 확인
     if (!isValidPosition(simBoard, simBlock))
@@ -130,32 +99,11 @@ std::vector<SimulationResult> ActionSimulator::simulateAllActions(const Board& b
 
 void ActionSimulator::moveBlockToPosition(Block& block, int rotation, int column)
 {
-    // 회전 설정
-    for (int i = 0; i < rotation; i++)
-    {
-        block.rotate();
-    }
+    // 회전 설정 (보드 충돌 체크 미포함)
+    rotateBlock(block, rotation);
     
     // 수평 위치 조정
-    const Position& pos = block.getPos();
-    int currentX = pos.getX();
-    int targetX = column;
-    
-    int diff = targetX - currentX;
-    if (diff > 0)
-    {
-        for (int i = 0; i < diff; i++)
-        {
-            block.moveRight();
-        }
-    }
-    else if (diff < 0)
-    {
-        for (int i = 0; i < -diff; i++)
-        {
-            block.moveLeft();
-        }
-    }
+    moveBlockHorizontally(block, column);
 }
 
 bool ActionSimulator::dropBlock(const Board& board, Block& block)
@@ -188,3 +136,55 @@ bool ActionSimulator::isValidPosition(const Board& board, const Block& block)
     return board.isStrike(block) == 0;
 }
 
+bool ActionSimulator::rotateBlock(const Board& board, Block& block, int targetRotation)
+{
+    // 목표 회전까지 회전 시도
+    for (int i = 0; i < targetRotation; i++)
+    {
+        Rotation next_rotation(block.getRotation() + 1);
+        Block testBlock(block.getType(), next_rotation, block.getPos());
+        
+        // 회전 가능 여부 확인
+        if (board.isStrike(testBlock) == 0)
+        {
+            block.rotate();
+        }
+        else
+        {
+            // 회전 불가능
+            return false;
+        }
+    }
+    return true;
+}
+
+void ActionSimulator::rotateBlock(Block& block, int targetRotation)
+{
+    // 보드 충돌 체크 없이 회전
+    for (int i = 0; i < targetRotation; i++)
+    {
+        block.rotate();
+    }
+}
+
+void ActionSimulator::moveBlockHorizontally(Block& block, int targetColumn)
+{
+    const Position& pos = block.getPos();
+    int currentX = pos.getX();
+    int diff = targetColumn - currentX;
+    
+    if (diff > 0)
+    {
+        for (int i = 0; i < diff; i++)
+        {
+            block.moveRight();
+        }
+    }
+    else if (diff < 0)
+    {
+        for (int i = 0; i < -diff; i++)
+        {
+            block.moveLeft();
+        }
+    }
+}

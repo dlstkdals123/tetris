@@ -84,5 +84,28 @@ private:
      * @return 유효 여부
      */
     static bool isValidPosition(const Board& board, const Block& block);
+    
+    /**
+     * 블록을 목표 회전으로 회전시킵니다 (보드 충돌 체크 포함).
+     * @param board 보드 상태
+     * @param block 회전시킬 블록 (참조)
+     * @param targetRotation 목표 회전 수
+     * @return 회전 성공 여부
+     */
+    static bool rotateBlock(const Board& board, Block& block, int targetRotation);
+    
+    /**
+     * 블록을 목표 회전으로 회전시킵니다 (보드 충돌 체크 미포함).
+     * @param block 회전시킬 블록 (참조)
+     * @param targetRotation 목표 회전 수
+     */
+    static void rotateBlock(Block& block, int targetRotation);
+    
+    /**
+     * 블록을 목표 열로 수평 이동시킵니다.
+     * @param block 이동시킬 블록 (참조)
+     * @param targetColumn 목표 열
+     */
+    static void moveBlockHorizontally(Block& block, int targetColumn);
 };
 
