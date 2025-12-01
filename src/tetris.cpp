@@ -22,6 +22,7 @@
 
 #include <thread>
 #include <atomic>
+#include <chrono>
 
 using namespace std;
 
@@ -34,7 +35,7 @@ using namespace std;
 #define KEY_RIGHT 0x4d
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
-#define AI_SLEEP  1500  // AI 동작 속도
+#define AI_SLEEP  500  // AI 동작 속도
 
 //*********************************
 // 전역 상수 : 스테이지 데이터
@@ -236,7 +237,7 @@ void show_gameover(int winner)
         Utils::gotoxy(15, 9);
         printf("┃**************************┃");
         Utils::gotoxy(15, 10);
-        printf("┃*     YOU WIN! (AI LOST) *┃");
+        printf("┃*      PLAYER1 WIN!      *┃");
         Utils::gotoxy(15, 11);
         printf("┃**************************┃");
         Utils::gotoxy(15, 12);
@@ -250,7 +251,7 @@ void show_gameover(int winner)
         Utils::gotoxy(15, 9);
         printf("┃**************************┃");
         Utils::gotoxy(15, 10);
-        printf("┃*    YOU LOSE! (AI WIN)  *┃");
+        printf("┃*      PLAYER2 WIN!      *┃");
         Utils::gotoxy(15, 11);
         printf("┃**************************┃");
         Utils::gotoxy(15, 12);
@@ -288,12 +289,6 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
         if (_kbhit())
         {
             char keytemp = _getch();
-            
-            // ESC 키로 AI 중단
-            if (keytemp == 27) {  // ESC
-                stopAI = true;
-                continue;
-            }
             
             if (keytemp == EXT_KEY) {
                 keytemp = _getch();
@@ -384,8 +379,12 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
         if (is_gameover == 1)
         {
-            winner.store(2);
-            return;
+            int expected = 0;
+            if (winner.compare_exchange_strong(expected, 2))  // 0일 때만 2로 설정 (플레이어 게임오버 → AI 승리)
+            {
+                return;
+            }
+            return;  // 이미 설정되어 있으면 그냥 리턴
         }
         
         Sleep(15);
@@ -423,8 +422,14 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     Action targetAction;
     int targetRotation = 0;
     int targetColumn = 0;
+    
+    // 타이머를 사용한 action 사이 갭 조절
+    auto lastActionTime = std::chrono::steady_clock::now();
+    const auto actionGap = std::chrono::milliseconds(AI_SLEEP);
 
     for (int i = 1;; i++) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastActionTime);
         // ESC로 AI 중단 시 수동 모드로 전환
         if (stopAI)
         {
@@ -464,63 +469,67 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
         }
         else
         {
-            // AI 자동 플레이
-            if (!actionInProgress)
+            // 시간이 아직 안 됐으면 이 블록을 건너뛰고 아래의 자동 낙하 로직으로 넘어갑니다.
+            if (elapsed >= actionGap) 
             {
-                // 새 블록에 대한 최적 액션 계산 (다음 블록까지 고려)
-                auto [bestAction, _] = evaluator.selectBestActionWithLookAhead(board, curBlock, &nextBlock, 1);
-                
-                targetAction = bestAction;
-                targetRotation = bestAction.rotation;
-                targetColumn = bestAction.column;
-                actionInProgress = true;
-            }
-            
-            // 목표 회전까지 회전
-            if (curBlock.getRotation() != targetRotation)
-            {
-                mover.rotateBlock(curBlock);
-                Sleep(AI_SLEEP);  // AI 동작 시각화
-            }
-            // 목표 열까지 이동
-            else if (curBlock.getPos().getX() != targetColumn)
-            {
-                if (curBlock.getPos().getX() < targetColumn)
+                // 1. 새로운 행동 결정 (아직 진행 중인 행동이 없다면)
+                if (!actionInProgress)
                 {
-                    mover.movedRight(curBlock);
+                    auto [bestAction, _] = evaluator.selectBestActionWithLookAhead(board, curBlock, &nextBlock, 1);
+                    targetAction = bestAction;
+                    targetRotation = bestAction.rotation;
+                    targetColumn = bestAction.column;
+                    actionInProgress = true;
+                }
+                
+                // 2. 행동 실행 (회전 -> 이동 -> 드롭 순서)
+                bool moved = false; // 이번 턴에 움직였는지 체크
+
+                if (curBlock.getRotation() != targetRotation)
+                {
+                    mover.rotateBlock(curBlock);
+                    moved = true;
+                }
+                else if (curBlock.getPos().getX() != targetColumn)
+                {
+                    if (curBlock.getPos().getX() < targetColumn) mover.movedRight(curBlock);
+                    else mover.movedLeft(curBlock);
+                    moved = true;
                 }
                 else
                 {
-                    mover.movedLeft(curBlock);
+                    // 위치와 회전이 맞으면 하드 드롭
+                    while (is_gameover == 0)
+                    {
+                        is_gameover = mover.move_block(curBlock, nextBlock);
+                        if (is_gameover != 0) break;
+                    }
+                    gamestate.show_gamestat(isPlayer);
+                    actionInProgress = false; // 행동 완료
+                    moved = true;
                 }
-                Sleep(AI_SLEEP);  // AI 동작 시각화
-            }
-            // 하드 드롭
-            else
-            {
-                while (is_gameover == 0)
-                {
-                    is_gameover = mover.move_block(curBlock, nextBlock);
-                    if (is_gameover != 0) break;
+
+                // 행동을 했다면 타이머 리셋
+                if (moved) {
+                    lastActionTime = std::chrono::steady_clock::now();
                 }
-                gamestate.show_gamestat(isPlayer);
-                actionInProgress = false;
-                Sleep(AI_SLEEP);  // 블록 배치 후 잠시 대기
             }
         }
         
-        // 자동 낙하 (AI도 플레이어처럼 시간이 지나면 자동으로 내려옴)
         if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
         {
-            // AI가 회전/이동 중이 아닐 때만 자동 낙하
-            if (!actionInProgress || (curBlock.getRotation() == targetRotation && curBlock.getPos().getX() == targetColumn))
+            int moveResult = mover.move_block(curBlock, nextBlock);
+            gamestate.show_gamestat(isPlayer);
+            
+            // 자동 낙하로 블록이 바닥에 닿았는지 체크
+            if (moveResult == 2)  // 바닥에 닿음
             {
-                is_gameover = mover.move_block(curBlock, nextBlock);
-                gamestate.show_gamestat(isPlayer);
+                actionInProgress = false;  // action 취소
+                lastActionTime = std::chrono::steady_clock::now();  // 타이머 리셋
             }
         }
 
-        // 스테이지 클리어
+        // 스테이지 클리어 체크
         if (stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())
         {
             gamestate.levelUp();
@@ -531,14 +540,20 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
 
         if (is_gameover == 1)
         {
-            winner.store(1);  // Player wins
-            return;
+            int expected = 0;
+            if (winner.compare_exchange_strong(expected, 1))  // 0일 때만 1로 설정 (AI 게임오버 → 플레이어 승리)
+            {
+                return;
+            }
+            return;  // 이미 설정되어 있으면 그냥 리턴
         }
 
         {
-            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
             Utils::gotoxy(77, 23, true);
         }
+        
+        Sleep(15);
     }
 }
 
