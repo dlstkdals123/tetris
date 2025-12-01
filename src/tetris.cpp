@@ -57,17 +57,19 @@ const STAGE stage_data[10] = {
 // 함수 선언
 //*********************************
 
-void show_gamestat(const gameState &gs, bool isPlayer = true, bool printed_text = false);
+// 시작 레벨 입력
 int input_data();
-void show_logo(BlockRender &renderer);
-void show_gameover(int winner);
+// 로고 화면 + 랜덤 블록 애니메이션
+void show_logo(BlockRender& renderer);
+// 게임 오버 화면 표시
+void show_gameover();
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
 void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner);
 
-int main(int argc, char* argv[])
+int main()
 {
     srand(static_cast<unsigned int>(time(nullptr)));
     
@@ -120,36 +122,6 @@ int main(int argc, char* argv[])
 // 보조 함수 구현부
 //*********************************
 
-void show_gamestat(const gameState &gs, bool isPlayer, bool printed_text)
-{
-    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
-    Utils::setColor(COLOR::GRAY);
-
-    if (printed_text)
-    {
-        Utils::gotoxy(35, 7, isPlayer);
-        printf("STAGE");
-
-        Utils::gotoxy(35, 9, isPlayer);
-        printf("SCORE");
-
-        Utils::gotoxy(35, 12, isPlayer);
-        printf("LINES");
-    }
-
-    Utils::gotoxy(41, 7, isPlayer);
-    printf("%d", gs.getLevel() + 1);
-
-    Utils::gotoxy(35, 10, isPlayer);
-    printf("%10d", gs.getScore());
-
-    Utils::gotoxy(35, 13, isPlayer);
-    int remain = stage_data[gs.getLevel()].getClearLine() - gs.getLines();
-    if (remain < 0)
-        remain = 0;
-    printf("%10d", remain);
-}
-
 int input_data() {
     int level = 0;
 
@@ -197,7 +169,7 @@ int input_data() {
     return level - 1;
 }
 
-void show_logo(BlockRender &renderer)
+void show_logo(BlockRender& renderer)
 {
     int i, j;
 
@@ -225,8 +197,8 @@ void show_logo(BlockRender &renderer)
     Utils::gotoxy(28, 20);
     printf("Please Press Any Key~!");
 
-    gameState tempGs;
-    BlockGenerator gen(stage_data, tempGs);
+    gameState tempGs;   // 임시 생성 (사용x)
+    BlockGenerator gen(tempGs);
 
     for (i = 0;; ++i)
     {
@@ -240,7 +212,7 @@ void show_logo(BlockRender &renderer)
 
             Block blocks[4];
             gen.make_logo_blocks(blocks);
-            
+
             for (int i = 0; i < 4; i++) {
                 renderer.show_cur_block(blocks[i]);
             }
@@ -356,7 +328,7 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     curBlock.block_start();
     renderer.show_cur_block(curBlock);
     renderer.show_next_block(nextBlock);
-    show_gamestat(gamestate, true, true);
+    gamestate.show_gamestat(isPlayer, true);
 
     for (int i = 1;; i++) {
         std::queue<char>& myQueue = Utils::playerInputQueue;
@@ -393,18 +365,18 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
         }
         
         // 자동 낙하
-        if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
+        if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
             is_gameover = mover.move_block(curBlock, nextBlock);
-            show_gamestat(gamestate, true);
+            gamestate.show_gamestat(isPlayer);
         }
 
         // 스테이지 클리어
-        if (stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())
+        if (STAGE::getStage(gamestate.getLevel()).getClearLine() <= gamestate.getLines())
         {
             gamestate.levelUp();
             board.draw(gamestate.getLevel());
-            show_gamestat(gamestate, true);
+            gamestate.show_gamestat(isPlayer);
             renderer.show_next_block(nextBlock);
         }
 
@@ -552,7 +524,11 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             winner.store(1);  // Player wins
             return;
         }
-        
+
+        {
+            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+            Utils::gotoxy(77, 23, true);
+        }
         Sleep(15);
     }
 }

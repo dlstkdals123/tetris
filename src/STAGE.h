@@ -10,6 +10,7 @@ private:
 	const int speed;		// 현재 속도
 	const int stick_rate;	// 'ㅣ' 막대기 개수
 	const int clear_line;	// 클리어해야 하는 라인 개수
+	static const STAGE stage_data[10];
 public:
 	// 생성자
 	STAGE(int sp, int sr, int cl);
@@ -18,5 +19,6 @@ public:
 	int getSpeed() const;
 	int getStickRate() const;
 	int getClearLine() const;
+	static STAGE getStage(int level);
 };
 
