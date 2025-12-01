@@ -1,5 +1,6 @@
 ﻿#include "Board.h"
 #include "Block.h"
+#include "BoardConstants.h"
 #include <Windows.h>
 #include <iostream>
 #include <random>
@@ -9,11 +10,11 @@ using namespace std;
 Board::Board(bool isPlayer) : isPlayer(isPlayer)
 {
     int i, j;
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < BoardConstants::PLAY_HEIGHT; i++)
     {
-        for (j = 0; j < 14; j++)
+        for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
         {
-            if ((j == 0) || (j == 13))
+            if ((j == BoardConstants::LEFT_WALL) || (j == BoardConstants::RIGHT_WALL))
             {
                 total_block[i][j] = 1; // 좌우 벽
             }
@@ -24,17 +25,17 @@ Board::Board(bool isPlayer) : isPlayer(isPlayer)
         }
     }
 
-    for (j = 0; j < 14; j++)
+    for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
     {                           // 화면의 제일 밑의 줄은 1로 채운다.
-        total_block[20][j] = 1; // 바닥
+        total_block[BoardConstants::FLOOR_ROW][j] = 1; // 바닥
     }
 }
 
 Board::Board(const Board& other) : isPlayer(other.isPlayer)
 {
-    for (int i = 0; i < 21; i++)
+    for (int i = 0; i < BoardConstants::BOARD_HEIGHT; i++)
     {
-        for (int j = 0; j < 14; j++)
+        for (int j = 0; j < BoardConstants::BOARD_WIDTH; j++)
         {
             total_block[i][j] = other.total_block[i][j];
         }
@@ -48,11 +49,11 @@ Board::~Board()
 int Board::init()
 {
     int i, j;
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < BoardConstants::PLAY_HEIGHT; i++)
     {
-        for (j = 0; j < 14; j++)
+        for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
         {
-            if ((j == 0) || (j == 13))
+            if ((j == BoardConstants::LEFT_WALL) || (j == BoardConstants::RIGHT_WALL))
             {
                 total_block[i][j] = 1; // 좌우 벽
             }
@@ -63,9 +64,9 @@ int Board::init()
         }
     }
 
-    for (j = 0; j < 14; j++)
+    for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
     {                           // 화면의 제일 밑의 줄은 1로 채운다.
-        total_block[20][j] = 1; // 바닥
+        total_block[BoardConstants::FLOOR_ROW][j] = 1; // 바닥
     }
 
     return 0;
@@ -85,15 +86,15 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     if (stateType == 5)
     {
         // 5: 랜덤 상태 - 0~10줄 사이 랜덤하게 채움
-        std::uniform_int_distribution<int> rowDist(0, 19); // 행
-        std::uniform_int_distribution<int> colDist(1, 12); // 열 (벽 제외)
+        std::uniform_int_distribution<int> rowDist(BoardConstants::MIN_ROW, BoardConstants::MAX_ROW); // 행
+        std::uniform_int_distribution<int> colDist(BoardConstants::MIN_COLUMN, BoardConstants::MAX_COLUMN); // 열 (벽 제외)
         std::uniform_int_distribution<int> fillRowsDist(0, 10); // 채울 줄 수 (0~10)
         
         int numFilledRows = fillRowsDist(rng);
         int filledCount = 0;
         
         // 랜덤하게 블록 배치
-        while (filledCount < numFilledRows * 12 && filledCount < 120) // 최대 120개 블록
+        while (filledCount < numFilledRows * BoardConstants::PLAY_WIDTH && filledCount < 120) // 최대 120개 블록
         {
             int row = rowDist(rng);
             int col = colDist(rng);
@@ -108,20 +109,20 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     }
     
     // 1~4줄: 각각 1줄, 2줄, 3줄, 4줄을 꽉 채우고 1자로 비어있게 함
-    std::uniform_int_distribution<int> colDist(1, 12); // 플레이 영역 열 (벽 제외)
+    std::uniform_int_distribution<int> colDist(BoardConstants::MIN_COLUMN, BoardConstants::MAX_COLUMN); // 플레이 영역 열 (벽 제외)
     
     // 아래에서부터 stateType개의 줄을 채움
-    for (int row = 19; row >= 20 - stateType; row--)
+    for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
     {
         // 한 줄을 모두 채움
-        for (int col = 1; col <= 12; col++)
+        for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
         {
             total_block[row][col] = 1;
         }
     }
     
     // 각 줄에서 랜덤하게 1자씩 비움
-    for (int row = 19; row >= 20 - stateType; row--)
+    for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
     {
         int emptyCol = colDist(rng);
         total_block[row][emptyCol] = 0;
@@ -135,11 +136,11 @@ void Board::draw(const int &level) const
     int i, j;
     Utils::setColor(COLOR::DARK_GRAY);
 
-    for (i = 0; i < 21; i++)
+    for (i = 0; i < BoardConstants::BOARD_HEIGHT; i++)
     {
-        for (j = 0; j < 14; j++)
+        for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
         {
-            if (j == 0 || j == 13 || i == 20)
+            if (j == BoardConstants::LEFT_WALL || j == BoardConstants::RIGHT_WALL || i == BoardConstants::FLOOR_ROW)
             { // 레벨에 따라 외벽 색이 변함
                 Utils::setColor((level % 6) + 1);
             }
@@ -180,7 +181,7 @@ int Board::isStrike(const Block &block) const
                 continue;
             }
 
-            if (((x + j) == 0) || ((x + j) == 13))
+            if (((x + j) == BoardConstants::LEFT_WALL) || ((x + j) == BoardConstants::RIGHT_WALL))
             { // 벽 충돌시
                 return 1;
             }
@@ -216,8 +217,6 @@ void Board::mergeBlock(const Block &block)
             }
         }
     }
-    // check_full_line();
-    // show_total_block();
 }
 // check_full_line
 int Board::deleteFullLine()
@@ -227,16 +226,16 @@ int Board::deleteFullLine()
     int i, j, k;
     int deletedLines = 0;
 
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < BoardConstants::PLAY_HEIGHT; i++)
     {
-        for (j = 1; j < 13; j++)
+        for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
         {
             if (total_block[i][j] == 0)
             {
                 break;
             }
         }
-        if (j == 13)
+        if (j == BoardConstants::RIGHT_WALL)
         { // 한줄이 다 채워졌을 떄
             deletedLines++;
             // show_total_block();
@@ -260,12 +259,12 @@ int Board::deleteFullLine()
 
             for (k = i; k > 0; k--)
             {
-                for (j = 1; j < 13; j++)
+                for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
                 {
                     total_block[k][j] = total_block[k - 1][j];
                 }
             }
-            for (j = 1; j < 13; j++)
+            for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
             {
                 total_block[0][j] = 0;
             }
@@ -277,7 +276,7 @@ int Board::deleteFullLine()
 // Feature 추출을 위한 접근 함수들
 char Board::getCell(int row, int col) const
 {
-    if (row < 0 || row >= 21 || col < 0 || col >= 14)
+    if (row < 0 || row >= BoardConstants::BOARD_HEIGHT || col < 0 || col >= BoardConstants::BOARD_WIDTH)
     {
         return 0;
     }
@@ -286,20 +285,9 @@ char Board::getCell(int row, int col) const
 
 const char* Board::getRow(int row) const
 {
-    if (row < 0 || row >= 21)
+    if (row < 0 || row >= BoardConstants::BOARD_HEIGHT)
     {
         return nullptr;
     }
     return total_block[row];
-}
-
-void Board::copyBoard(char dest[21][14]) const
-{
-    for (int i = 0; i < 21; i++)
-    {
-        for (int j = 0; j < 14; j++)
-        {
-            dest[i][j] = total_block[i][j];
-        }
-    }
 }

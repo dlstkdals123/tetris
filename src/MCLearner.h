@@ -99,7 +99,7 @@ public:
             maxEpisodes = 50000;
             
             phases.clear();
-            phases.push_back(Phase(0, 15000, 0.01, 0.0, 0.000001));
+            phases.push_back(Phase(0, 15000, 0.05, 0.0, 0.0000001));
             phases.push_back(Phase(15000, 40000, 0.0, 0.0, 0.0000001));
             phases.push_back(Phase(40000, 50000, 0.0, 0.0, 0.0000001));
         }
