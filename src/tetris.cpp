@@ -63,7 +63,7 @@ const STAGE stage_data[10] = {
 //*********************************
 
 // 플레이 타입 선택
-int select_playtype()
+int select_playtype();
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
@@ -110,10 +110,16 @@ int main()
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
+        if(playType == 1) {
+            scoreManager.printTopN(3, 70, 5, true);
+        } else {
+            scoreManager.printTopN(3, 40, 22, true);
+        }
+
         if (playType == 1) // single play 
         {
             thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(scoreManager), true);
 
             t1.join();
             tInput.join();
@@ -121,8 +127,8 @@ int main()
         }
         else if (playType == 2) { // multiplay
             thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
-            thread t2(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), false);
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(scoreManager), true);
+            thread t2(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(scoreManager), false);
 
             t1.join();
             t2.join();
@@ -133,7 +139,7 @@ int main()
         else { // ai play
             // 스레드 생성: 키 입력 감지, 플레이어, AI
             thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(scoreManager), true);
             Sleep(100);
             thread t2(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
 
