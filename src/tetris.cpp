@@ -35,23 +35,6 @@ using namespace std;
 #define AI_SLEEP  0  // AI 동작 속도
 
 //*********************************
-// 전역 상수 : 스테이지 데이터
-//*********************************
-
-const STAGE stage_data[10] = {
-    STAGE(40, 20, 20),       // Level 1
-    STAGE(38, 18, 20),       // Level 2
-    STAGE(35, 18, 20),       // Level 3
-    STAGE(30, 17, 20),       // Level 4
-    STAGE(25, 16, 20),       // Level 5
-    STAGE(20, 14, 20),       // Level 6
-    STAGE(15, 14, 20),       // Level 7
-    STAGE(10, 13, 20),       // Level 8
-    STAGE(6,  12, 20),       // Level 9
-    STAGE(4,  11, 99999)     // Level 10
-};
-
-//*********************************
 // 함수 선언
 //*********************************
 
@@ -513,7 +496,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             }
         }
         
-        if (i % stage_data[gamestate.getLevel()].getSpeed() == 0)
+        if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
             int moveResult = mover.move_block(curBlock, nextBlock);
             gamestate.show_gamestat(isPlayer);
@@ -527,7 +510,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
         }
 
         // 스테이지 클리어 체크
-        if (stage_data[gamestate.getLevel()].getClearLine() <= gamestate.getLines())
+        if (STAGE::getStage(gamestate.getLevel()).getClearLine() <= gamestate.getLines())
         {
             gamestate.levelUp();
             board.draw(gamestate.getLevel());
