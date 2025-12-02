@@ -6,6 +6,7 @@
 - [x] show_gameState()을 gameState class에 포함시키기.
 - [x] STAGE 내부에 배열을 가지고 있는 형식으로 수정.
 - [x] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
+- [ ] 블럭 나오는 순서가 항상 같음
 
 ## Improvement
 - [ ] "spacebar"을 통해 맨 아래로 내리기
