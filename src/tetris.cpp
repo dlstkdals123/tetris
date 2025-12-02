@@ -320,6 +320,7 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     Block nextBlock(blockGenerator.make_new_block());
 
     curBlock.block_start();
+    mover.updateGhost(curBlock);
     {
         std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
         renderer.show_cur_block(curBlock);
@@ -411,6 +412,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     Block nextBlock(blockGenerator.make_new_block());
 
     curBlock.block_start();
+    mover.updateGhost(curBlock);
     {
         std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
         renderer.show_cur_block(curBlock);

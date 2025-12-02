@@ -15,5 +15,6 @@ public:
     void show_cur_block(Block& block);
     void erase_cur_block(Block& block);
     void show_next_block(Block& block);
-
+    void show_ghost_block(const Block& block);
+    void erase_ghost_block(const Block& block);
 };
