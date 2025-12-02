@@ -93,15 +93,21 @@ int main()
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
+        if(mode == 0) {
+            scoreManager.printTopN(3, 70, 5, true);
+        } else {
+            scoreManager.printTopN(3, 40, 22, true);
+        }
+
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
-        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager));
         thread t2;
 
         if (mode == 1) { // vs ai
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
         } 
         else if (mode == 2) { // vs player
-            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager));
         }
 
         tInput.join();
