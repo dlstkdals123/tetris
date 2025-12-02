@@ -179,9 +179,6 @@ int input_data() {
     printf("┃ DELETE  : Go To Menu (Quit or Resume) ┃");
     Sleep(10);
     Utils::gotoxy(10, 14);
-    printf("┃ ESC  : Stop AI (Right Side)┃");
-    Sleep(10);
-    Utils::gotoxy(10, 15);
     printf("┗━━━━━━━━━━━━━━┛");
 
     while (level < 1 || level > 8)
@@ -206,6 +203,7 @@ void show_logo(BlockRender& renderer)
 {
     int i, j;
 
+    system("cls");
     Utils::setColor(COLOR::GRAY);
     Utils::gotoxy(13, 3);
     printf("┏━━━━━━━━━━━━━━━━━━━━━━━┓");
@@ -263,6 +261,9 @@ void show_logo(BlockRender& renderer)
 
 void show_gameover(int mode, int winner)
 {
+    if (winner == -1)
+        return;
+
     // mode = 0: 무조건 게임오버 메시지
     if (mode == 0) {
         Utils::setColor(COLOR::YELLOW);
@@ -503,7 +504,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                     {
                         if (pauseKey == MENU_QUIT)
                         {
-                            winner = 3;
+                            winner = -1;
                             is_gameover = 1;
                             isGamePaused = false;
                             return;
