@@ -90,13 +90,13 @@ void BlockRender::show_next_block(Block& block) {
     int i,j;
     
 	for (int i = 2; i <= 5; ++i) {
-        Utils::gotoxy(33, i, isPlayer);
-        for (int j = 1; j <= 4; ++j) {
+        Utils::gotoxy(35, i, isPlayer);
+        for (int j = 0; j < 4; ++j) {
             printf("  ");
         }
     }
     
-	Position next_pos(16, 2);
+	Position next_pos(16, 1);
 	Rotation next_rotation(0);
 	Block nextBlock(block.getType(), next_rotation, next_pos);
     show_cur_block(nextBlock);
@@ -154,11 +154,14 @@ void BlockRender::erase_ghost_block(const Block& block) {
     }
 }
 
-void BlockRender::draw_next_block_frame() {
+void BlockRender::draw_next_block_frame(bool isPlay) {
     std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
     int i, j;
     for (i = 1; i < 7; i++) {
-        Utils::gotoxy(33, i, isPlayer);
+        if(isPlay)
+            Utils::gotoxy(33, i, isPlayer);
+        else
+            Utils::gotoxy(33, i, !isPlayer);
         for (j = 0; j < 6; j++) {
             if (i == 1 || i == 6 || j == 0 || j == 5) {
                 printf("■");

@@ -112,8 +112,11 @@ int main()
 
         if(playType == 1) {
             scoreManager.printTopN(3, 70, 5, true);
+            renderer.draw_next_block_frame(true);
         } else {
             scoreManager.printTopN(3, 40, 22, true);
+            renderer.draw_next_block_frame(true);
+            renderer.draw_next_block_frame(false);
         }
 
         if (playType == 1) // single play 
@@ -438,7 +441,6 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
     board.init();
     board.draw(gamestate.getLevel());
-    renderer.draw_next_block_frame();
     Block curBlock(blockGenerator.make_new_block());
     Block nextBlock(blockGenerator.make_new_block());
 
