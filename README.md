@@ -12,8 +12,8 @@
 - [x] "spacebar"을 통해 맨 아래로 내리기 (hard_drop)
 
 ## new Function
-- [ ] 일시정지
-- [ ] 게임종료
+- [x] 일시정지
+- [x] 게임종료
 - [x] 떨어질 위치 미리보기
 - [x] .txt 파일 형태로 고득점 저장 및 불러오기 (싱글용)
 - [x] Single: 점수판, Human vs AI, Human vs Human 3개의 기능 나누기
