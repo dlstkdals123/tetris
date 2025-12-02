@@ -33,14 +33,34 @@ using namespace std;
 #define KEY_RIGHT 0x4d
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
-#define KEY_SPACE 0x20
-#define AI_SLEEP  50  // AI 동작 속도
+#define MENU 0x53   // menu
+#define AI_SLEEP  150  // AI 동작 속도
 
 #define SEC_LEFT 'a'
 #define SEC_RIGHT 'd'
 #define SEC_UP 'w'
 #define SEC_DOWN 's'
 #define SEC_DROP 'c'
+
+#define MENU_QUIT 'q'
+#define MENU_CONTINUE 'r'
+
+//*********************************
+// 전역 상수 : 스테이지 데이터
+//*********************************
+
+const STAGE stage_data[10] = {
+    STAGE(40, 20, 20),       // Level 1
+    STAGE(38, 18, 20),       // Level 2
+    STAGE(35, 18, 20),       // Level 3
+    STAGE(30, 17, 20),       // Level 4
+    STAGE(25, 16, 20),       // Level 5
+    STAGE(20, 14, 20),       // Level 6
+    STAGE(15, 14, 20),       // Level 7
+    STAGE(10, 13, 20),       // Level 8
+    STAGE(6,  12, 20),       // Level 9
+    STAGE(4,  11, 99999)     // Level 10
+};
 
 //*********************************
 // 함수 선언
@@ -156,21 +176,27 @@ int input_data() {
     printf("┏━━━━<GAME KEY>━━━━━┓");
     Sleep(10);
     Utils::gotoxy(10, 8);
-    printf("┃ UP   : Rotate Block        ┃");
+    printf("┃ UP   : Rotate Block                   ┃");
     Sleep(10);
     Utils::gotoxy(10, 9);
-    printf("┃ DOWN : Move One-Step Down  ┃");
+    printf("┃ DOWN : Move One-Step Down             ┃");
     Sleep(10);
     Utils::gotoxy(10, 10);
-    printf("┃ SPACE: Move Bottom Down    ┃");
+    printf("┃ SPACE: Move Bottom Down               ┃");
     Sleep(10);
     Utils::gotoxy(10, 11);
-    printf("┃ LEFT : Move Left           ┃");
+    printf("┃ LEFT : Move Left                      ┃");
     Sleep(10);
     Utils::gotoxy(10, 12);
-    printf("┃ RIGHT: Move Right          ┃");
+    printf("┃ RIGHT: Move Right                     ┃");
     Sleep(10);
     Utils::gotoxy(10, 13);
+    printf("┃ DELETE  : Go To Menu (Quit or Resume) ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 14);
+    printf("┃ ESC  : Stop AI (Right Side)┃");
+    Sleep(10);
+    Utils::gotoxy(10, 15);
     printf("┗━━━━━━━━━━━━━━┛");
 
     while (level < 1 || level > 8)
@@ -384,7 +410,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::leftPlayerInputQueue.push(keytemp);
             }
-            else if (keytemp == 32) {
+            else if (keytemp == 32 || keytemp == MENU_QUIT || keytemp == MENU_CONTINUE) {
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::leftPlayerInputQueue.push(keytemp);
             } else if (
@@ -428,39 +454,134 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
     gamestate.show_gamestat(isLeft, true);
 
     for (int i = 1;; i++) {
-        char inputChar = 0;
-        {
-            std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
-            if (!inputQueue.empty()) {
-                inputChar = inputQueue.front();
-                inputQueue.pop();
+
+        if (isGamePaused) {
+            if (!isPlayer1) {
+                Sleep(10);
+                continue;
             }
         }
-        if (inputChar != 0) {
-            switch (inputChar)
+
+        if (!isPlayer1 && needRedraw) {
+            board.draw(gamestate.getLevel());
+            gamestate.show_gamestat(isPlayer, true);
+            renderer.show_next_block(nextBlock);
+            renderer.show_cur_block(curBlock);
+
+            needRedraw = false;
+        }
+
+        if (is_gameover == 1) return;
+
+        std::queue<char>& myQueue = isPlayer ? Utils::playerInputQueue : Utils::secPlayerInputQueue;
+        char keytemp = 0;
+        bool hasInput = false;
+        
+        {
+            std::lock_guard<std::mutex> lock(Utils::inputMutex);
+            if (!myQueue.empty()) {
+                keytemp = myQueue.front();
+                myQueue.pop();
+                hasInput = true;
+            }
+        }
+
+        if(hasInput){
+            // MENU(Delete) 키를 눌렀을 때
+            if (isPlayer && keytemp == MENU)
             {
-            case KEY_UP:
-            case SEC_UP:
-                mover.rotateBlock(curBlock);
-                break;
-            case KEY_LEFT:
-            case SEC_LEFT:
-                mover.movedLeft(curBlock);
-                break;
-            case KEY_RIGHT:
-            case SEC_RIGHT:
-                mover.movedRight(curBlock);
-                break;
-            case KEY_DOWN:
-            case SEC_DOWN:
-                is_gameover = mover.move_block(curBlock, nextBlock);
-                if (is_gameover == 2) gamestate.show_gamestat(isLeft);
-                break;
-            case KEY_SPACE:
-            case SEC_DROP:
-                is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
-                if (is_gameover == 2) gamestate.show_gamestat(isLeft);
-                break;
+                isGamePaused = true;
+                std::unique_lock<std::recursive_mutex> pauseLock(Utils::gameMutex);
+
+                system("cls");
+                Utils::gotoxy(30, 10, true); printf("===== PAUSED =====");
+                Utils::gotoxy(25, 12, true); printf("Press [Q] to Main Menu");
+                Utils::gotoxy(25, 13, true); printf("Press [R] to Resume Game");
+
+                while (true)
+                {
+                    if (is_gameover == 1) break;
+
+                    char pauseKey = 0;
+                    bool hasPauseInput = false;
+
+                    {
+                        std::lock_guard<std::mutex> inputLock(Utils::inputMutex);
+                        if (!Utils::playerInputQueue.empty()) {
+                            pauseKey = Utils::playerInputQueue.front();
+                            Utils::playerInputQueue.pop();
+                            hasPauseInput = true;
+                        }
+                    }
+
+                    if (hasPauseInput)
+                    {
+                        if (pauseKey == MENU_QUIT)
+                        {
+                            winner = 3;
+                            is_gameover = 1;
+                            isGamePaused = false;
+                            return;
+                        }
+                        else if (pauseKey == MENU_CONTINUE)
+                        {
+                            isGamePaused = false;
+
+                            system("cls");
+                            board.draw(gamestate.getLevel());
+                            gamestate.show_gamestat(isPlayer, true);
+                            renderer.show_next_block(nextBlock);
+                            renderer.show_cur_block(curBlock);
+                            needRedraw = true;
+                            break; 
+                        }
+                    }
+                    Sleep(10);
+                }
+            }
+            else if (isPlayer) {
+                switch (keytemp)
+                {
+                case KEY_UP:
+                    mover.rotateBlock(curBlock);
+                    break;
+                case KEY_LEFT:
+                    mover.movedLeft(curBlock);
+                    break;
+                case KEY_RIGHT:
+                    mover.movedRight(curBlock);
+                    break;
+                case KEY_DOWN:
+                    is_gameover = mover.move_block(curBlock, nextBlock);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                case 32:
+                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                }
+            }
+            else {
+                switch (keytemp)
+                {
+                case SEC_UP:
+                    mover.rotateBlock(curBlock);
+                    break;
+                case SEC_LEFT:
+                    mover.movedLeft(curBlock);
+                    break;
+                case SEC_RIGHT:
+                    mover.movedRight(curBlock);
+                    break;
+                case SEC_DOWN:
+                    is_gameover = mover.move_block(curBlock, nextBlock);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                case SEC_DROP:
+                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                }
             }
         }
         
@@ -491,7 +612,8 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
     }
 }
 
-void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner) 
+void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner,
+                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     // AI Evaluator 초기화
@@ -529,6 +651,21 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     const auto actionGap = std::chrono::milliseconds(AI_SLEEP);
 
     for (int i = 1;; i++) {
+
+        if (isGamePaused) {
+            Sleep(10);
+            continue;
+        }
+
+        if (needRedraw) {
+            board.draw(gamestate.getLevel());
+            gamestate.show_gamestat(isPlayer, true);
+            renderer.show_next_block(nextBlock);
+            renderer.show_cur_block(curBlock);
+
+            needRedraw = false;
+        }
+
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastActionTime);
         // ESC로 AI 중단 시 수동 모드로 전환
