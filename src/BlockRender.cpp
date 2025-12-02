@@ -5,12 +5,12 @@
 #include <iostream>
 using namespace std;
 
-BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, bool isPlayer): gs(gs), boardOffset(boardOffset), isPlayer(isPlayer) {};
+BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, bool isLeft): gs(gs), boardOffset(boardOffset), isLeft(isLeft) {};
 
 void BlockRender::show_cur_block(Block& block) {
 	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 
-  int i,j;
+    int i,j;
 	Position pos = block.getPos();
 	Rotation rotation = block.getRotation();
 	int x = pos.getX();
@@ -51,13 +51,13 @@ void BlockRender::show_cur_block(Block& block) {
 
 			if(BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1)
 			{
-				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY(), isPlayer);
+				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
 				printf("■");
 			}
 		}
 	}
 	Utils::setColor(COLOR::BLACK);
-	Utils::gotoxy(77,23, isPlayer);
+	Utils::gotoxy(77,23, isLeft);
 }
 
 void BlockRender::erase_cur_block(Block& block) {
@@ -75,7 +75,7 @@ void BlockRender::erase_cur_block(Block& block) {
 		{
 			if(BlockShape::SHAPES[static_cast<int>(block.getType())][angle][j][i] == 1)
 			{
-				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY(), isPlayer);
+				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
 				printf("  ");
 				//break;
 				
@@ -91,7 +91,7 @@ void BlockRender::show_next_block(Block& block) {
     Utils::setColor(static_cast<COLOR>((gs.getLevel() + 1) % 6 + 1));
 	for(i=1;i<7;i++)
 	{
-		Utils::gotoxy(33, i, isPlayer);
+		Utils::gotoxy(33, i, isLeft);
 		for(j=0;j<6;j++)
 		{
 			if(i==1 || i==6 || j==0 || j==5)

@@ -4,14 +4,14 @@
 std::recursive_mutex Utils::gameMutex;
 
 std::mutex Utils::inputMutex;
-std::queue<char> Utils::playerInputQueue;
-std::queue<char> Utils::aiInputQueue;
+std::queue<char> Utils::leftPlayerInputQueue;
+std::queue<char> Utils::rightPlayerInputQueue;
 
-int Utils::gotoxy(int x, int y, bool isPlayer) {
+int Utils::gotoxy(int x, int y, bool isLeft) {
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); 
 	COORD pos; 
 	pos.Y=y;
-	isPlayer ? pos.X = x : pos.X = x + 60;
+	isLeft ? pos.X = x : pos.X = x + 60;
 	SetConsoleCursorPosition(hConsole, pos); 
 	return 0;
 }

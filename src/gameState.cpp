@@ -42,30 +42,30 @@ void gameState::resetLines() {
     line = 0;
 }
 
-void gameState::show_gamestat(bool isPlayer, bool printed_text)
+void gameState::show_gamestat(bool isLeft, bool printed_text)
 {
     std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
     Utils::setColor(COLOR::GRAY);
 
     if (printed_text)
     {
-        Utils::gotoxy(35, 7, isPlayer);
+        Utils::gotoxy(35, 7, isLeft);
         printf("STAGE");
 
-        Utils::gotoxy(35, 9, isPlayer);
+        Utils::gotoxy(35, 9, isLeft);
         printf("SCORE");
 
-        Utils::gotoxy(35, 12, isPlayer);
+        Utils::gotoxy(35, 12, isLeft);
         printf("LINES");
     }
 
-    Utils::gotoxy(41, 7, isPlayer);
+    Utils::gotoxy(41, 7, isLeft);
     printf("%d", this->getLevel() + 1);
 
-    Utils::gotoxy(35, 10, isPlayer);
+    Utils::gotoxy(35, 10, isLeft);
     printf("%10d", this->getScore());
 
-    Utils::gotoxy(35, 13, isPlayer);
+    Utils::gotoxy(35, 13, isLeft);
 
     int remain = STAGE::getStage(this->getLevel()).getClearLine() - this->getLines();
     if (remain < 0)

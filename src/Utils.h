@@ -8,12 +8,12 @@ namespace Utils {
 
   // 입력 처리용
 	extern std::mutex inputMutex;
-	extern std::queue<char> playerInputQueue;
-	extern std::queue<char> aiInputQueue;
+	extern std::queue<char> leftPlayerInputQueue;
+	extern std::queue<char> rightPlayerInputQueue;
 
   const int ab_x = 5;
   const int ab_y = 1;
-  int gotoxy(int x, int y, bool isPlayer = true);
+  int gotoxy(int x, int y, bool isLeft = true);
   void setColor(int color);
   void setColor(COLOR color);
 };
