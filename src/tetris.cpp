@@ -16,6 +16,7 @@
 #include "Utils.h"
 #include "Evaluator.h"
 #include "ActionSimulator.h"
+#include "ScoreManager.h"
 
 #include <thread>
 #include <atomic>
@@ -75,9 +76,11 @@ int main()
 
     gameState gamestate;
     Position boardOffset(5, 1);
-    BlockRender renderer(gamestate, boardOffset);
+    Board board(true);
+    BlockRender renderer(gamestate, board, boardOffset);
 
     show_logo(renderer);
+    ScoreManager scoreManager("scores.txt");
 
     while (1)
     {
@@ -307,7 +310,7 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     Board board(true);
     Position boardOffset(5, 1);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, boardOffset, true);
+    BlockRender renderer(gamestate, board, boardOffset, true);
     BlockMover mover(renderer, board, blockGenerator, gamestate);
 
     board.init();
@@ -398,7 +401,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     Board board(false);  // AI 보드
     Position boardOffset(5, 1);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, boardOffset, false);
+    BlockRender renderer(gamestate, board, boardOffset, false);
     BlockMover mover(renderer, board, blockGenerator, gamestate);
 
     board.init();
