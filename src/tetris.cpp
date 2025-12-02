@@ -34,7 +34,7 @@ using namespace std;
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
 #define KEY_SPACE 0x20
-#define AI_SLEEP  250  // AI 동작 속도
+#define AI_SLEEP  10  // AI 동작 속도
 
 #define SEC_LEFT 'a'
 #define SEC_RIGHT 'd'
@@ -63,11 +63,6 @@ void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bo
 int main()
 {
     srand(static_cast<unsigned int>(time(nullptr)));
-
-    HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
-    DWORD prev_mode;
-    GetConsoleMode(hInput, &prev_mode); 
-    SetConsoleMode(hInput, prev_mode & ~(ENABLE_QUICK_EDIT_MODE | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT));
     
     string weightsFile = "initial_weights.txt";
 
@@ -76,7 +71,6 @@ int main()
     Board board(true);
     BlockRender renderer(gamestate, boardOffset);
 
-    show_logo(renderer);
     ScoreManager scoreManager("scores.txt");
 
     while (1)
@@ -85,7 +79,6 @@ int main()
         std::atomic<int> is_gameover(0);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(0);  // 0: none, 1: player, 2: AI
-        bool keyState[256] = { false };
         Utils::leftPlayerInputQueue = queue<char>();
         Utils::rightPlayerInputQueue = queue<char>();
         gamestate.resetState();
@@ -101,7 +94,7 @@ int main()
         if (mode == 1) { // vs ai
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
         } 
-        else { // vs player
+        else if (mode == 2) { // vs player
             t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner));
         }
 
@@ -202,6 +195,7 @@ void show_logo(BlockRender& renderer)
 {
     int i, j;
 
+    Utils::setColor(COLOR::GRAY);
     Utils::gotoxy(13, 3);
     printf("┏━━━━━━━━━━━━━━━━━━━━━━━┓");
     Sleep(100);
@@ -392,7 +386,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
             }
             else if (keytemp == 32) {
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                Utils::rightPlayerInputQueue.push(keytemp);
+                Utils::leftPlayerInputQueue.push(keytemp);
             } else if (
                 keytemp == SEC_RIGHT || 
                 keytemp == SEC_LEFT || 
@@ -464,10 +458,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                 break;
             case KEY_SPACE:
             case SEC_DROP:
-                while (is_gameover == 0)
-                {
-                    is_gameover = mover.move_block(curBlock, nextBlock);
-                }
+                is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
                 if (is_gameover == 2) gamestate.show_gamestat(isLeft);
                 break;
             }
@@ -590,11 +581,11 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
         
         if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
-            int moveResult = mover.move_block(curBlock, nextBlock);
+            is_gameover = mover.move_block(curBlock, nextBlock);
             gamestate.show_gamestat(false);
             
             // 자동 낙하로 블록이 바닥에 닿았는지 체크
-            if (moveResult == 2)  // 바닥에 닿음
+            if (is_gameover == 2)  // 바닥에 닿음
             {
                 actionInProgress = false;  // action 취소
                 lastActionTime = std::chrono::steady_clock::now();  // 타이머 리셋

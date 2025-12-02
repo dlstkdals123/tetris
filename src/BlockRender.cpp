@@ -85,8 +85,9 @@ void BlockRender::erase_cur_block(Block& block) {
 }
 
 void BlockRender::show_next_block(Block& block) {
-		std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
-		
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+	Utils::setColor(COLOR::GRAY);
+	
     int i,j;
     
 	for(i=1;i<7;i++)
