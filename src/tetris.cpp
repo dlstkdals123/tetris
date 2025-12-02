@@ -75,7 +75,7 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, bool isPlayer1 = true);
+void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, ScoreManager& scoreManager, bool isPlayer1 = true);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner);
 
 int main()
@@ -94,6 +94,7 @@ int main()
 
     while (1)
     {
+        scoreManager.printTopN(3, 70, 5, true);
         std::atomic<int> is_gameover(0);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(0);  // 0: none, 1: player, 2: AI
@@ -419,7 +420,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, bool isPlayer1) 
+void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, ScoreManager& scoreManager, bool isPlayer1) 
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     bool isPlayer = isPlayer1;
@@ -516,6 +517,7 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
         if (is_gameover == 1)
         {
+            scoreManager.addScore(gamestate.getScore());
             int expected = 0;
             if (winner.compare_exchange_strong(expected, 2))  // 0일 때만 2로 설정 (플레이어 게임오버 → AI 승리)
             {
