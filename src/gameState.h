@@ -35,8 +35,7 @@ public:
     void levelUp();      // 레벨을 1 올리고 라인을 0으로 초기화
     void resetLines();   // 라인 수만 초기화]
 
-    void show_gamestat(bool isPlayer = true, bool printed_text = false);
-
+    void show_gamestat(bool isLeft = true, bool printed_text = false);
     void setScoreManager(ScoreManager* sm);
 };
 

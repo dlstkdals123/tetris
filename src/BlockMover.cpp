@@ -6,6 +6,7 @@ BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& bloc
 		: renderer(renderer), board(board), blockGenerator(blockGenerator), gamestate(gamestate){}
 
 int BlockMover::move_block(Block& block, Block& nextBlock) {
+	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 	renderer.erase_cur_block(block);
     block.moveDown();
 
@@ -58,6 +59,7 @@ void BlockMover::rotateBlock(Block& block) {
  void BlockMover::movedLeft(Block& block) {
 	if(block.getPos().getX() > BoardConstants::MIN_COLUMN)
 	{
+		std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 		renderer.erase_cur_block(block);
 		block.moveLeft();
 		if(board.isStrike(block) == 1)
@@ -71,6 +73,7 @@ void BlockMover::rotateBlock(Block& block) {
 void BlockMover::movedRight(Block& block) {
 	if(block.getPos().getX() < BoardConstants::RIGHT_WALL)
 	{
+		std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 		renderer.erase_cur_block(block);
 		block.moveRight();
 		if(board.isStrike(block) == 1)

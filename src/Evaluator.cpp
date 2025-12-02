@@ -292,11 +292,10 @@ bool Evaluator::saveWeights(const string& filename) const
     file << "wells " << weights_.wells << endl;
     
     file.close();
-    cout << "Weights saved to " << filename << endl;
     return true;
 }
 
-bool Evaluator::loadWeights(const string& filename)
+bool Evaluator::loadWeights(const string& filename, bool silent)
 {
     ifstream file(filename);
     if (!file.is_open())
@@ -341,7 +340,9 @@ bool Evaluator::loadWeights(const string& filename)
     }
     
     file.close();
-    cout << "Weights loaded from " << filename << endl;
+    if (!silent) {
+        cout << "Weights loaded from " << filename << endl;
+    }
     return true;
 }
 

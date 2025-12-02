@@ -16,7 +16,8 @@ COMMON_SRCS = $(SRC_DIR)/Board.cpp \
               $(SRC_DIR)/gameState.cpp \
               $(SRC_DIR)/BlockGenerator.cpp \
               $(SRC_DIR)/BlockRender.cpp \
-              $(SRC_DIR)/BlockMover.cpp
+              $(SRC_DIR)/BlockMover.cpp \
+			  $(SRC_DIR)/ScoreManager.cpp \
 
 # AI/Learning source files
 AI_SRCS = $(SRC_DIR)/Evaluator.cpp \
