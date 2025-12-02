@@ -24,7 +24,7 @@ int BlockMover::move_block(Block& block, Block& nextBlock) {
             }
         }
         board.draw(gamestate.getLevel());
-
+		hasGhost = false;
         block = nextBlock;
         block.block_start();
         nextBlock = Block(blockGenerator.make_new_block());

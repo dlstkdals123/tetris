@@ -13,7 +13,7 @@ private:
     Block ghostBlock;
     bool hasGhost = false;
 
-    void updateGhost(const Block& current);
+    
 public:
     BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate);
     ~BlockMover() = default;
@@ -23,4 +23,6 @@ public:
     void movedLeft(Block& block);
 
     void movedRight(Block& block);
+    
+    void updateGhost(const Block& current);
 };
