@@ -9,6 +9,7 @@ BlockRender::BlockRender(const gameState& gs, Board& board, const Position& boar
 
 void BlockRender::show_cur_block(Block& block) {
 	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+    board.draw(gs.getLevel());
     Position pos = block.getPos();
     Rotation rotation = block.getRotation();
     int x = pos.getX();
@@ -90,34 +91,7 @@ void BlockRender::show_cur_block(Block& block) {
 
 void BlockRender::erase_cur_block(Block& block) {
 	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
-    {
-        Block ghost = block;
-        for (int step = 0; step < BoardConstants::BOARD_HEIGHT; ++step) {
-            ghost.moveDown();
-            if (board.isStrike(ghost) == 1) {
-                ghost.moveUp();
-                break;
-            }
-        }
-		        Position gpos = ghost.getPos();
-        int gx = gpos.getX();
-        int gy = gpos.getY();
-        int angle = ghost.getRotation();
-        BlockType shape = ghost.getType();
-
-        Utils::setColor(COLOR::BLACK);
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                if ((j + gy) < 0) continue;
-                if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1) {
-                    Utils::gotoxy((i + gx) * 2 + boardOffset.getX(),
-                                  j + gy + boardOffset.getY(),
-                                  isPlayer);
-                    printf("  ");
-                }
-            }
-        }
-    }
+    
     Position pos = block.getPos();
     int x = pos.getX();
     int y = pos.getY();
@@ -145,7 +119,7 @@ void BlockRender::show_next_block(Block& block) {
 		std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 		
     int i,j;
-    Utils::setColor(static_cast<COLOR>((gs.getLevel() + 1) % 6 + 1));
+    
 	for(i=1;i<7;i++)
 	{
 		Utils::gotoxy(33, i, isPlayer);
@@ -163,5 +137,21 @@ void BlockRender::show_next_block(Block& block) {
 	Position next_pos(15, 1);
 	Rotation next_rotation(0);
 	Block nextBlock(block.getType(), next_rotation, next_pos);
-	show_cur_block(nextBlock);
+
+    Utils::setColor(static_cast<COLOR>((gs.getLevel() + 1) % 6 + 1));
+
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            if ((j + next_pos.getY()) < 0) continue;
+            if (BlockShape::SHAPES[static_cast<int>(nextBlock.getType())][nextBlock.getRotation()][j][i] == 1)
+            {
+                Utils::gotoxy((i + next_pos.getX()) * 2 + boardOffset.getX(),
+                              j + next_pos.getY() + boardOffset.getY(),
+                              isPlayer);
+                printf("■");
+            }
+        }
+    }
 }
