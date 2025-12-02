@@ -95,8 +95,11 @@ int main()
 
         if(mode == 0) {
             scoreManager.printTopN(3, 70, 5, true);
+            renderer.draw_next_block_frame(true);
         } else {
             scoreManager.printTopN(3, 40, 22, true);
+            renderer.draw_next_block_frame(true);
+            renderer.draw_next_block_frame(false);
         }
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
@@ -434,7 +437,6 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
     board.init();
     board.draw(gamestate.getLevel());
-    renderer.draw_next_block_frame();
     Block curBlock(blockGenerator.make_new_block());
     Block nextBlock(blockGenerator.make_new_block());
 
