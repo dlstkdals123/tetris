@@ -128,7 +128,7 @@ void BlockRender::show_ghost_block(const Block& block) {
             if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1) {
                 Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
                               j + y + boardOffset.getY(),
-                              isPlayer);
+                              isLeft);
                 printf("□");       // 빈 사각형으로
             }
         }
@@ -154,7 +154,7 @@ void BlockRender::erase_ghost_block(const Block& block) {
             if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1) {
                 Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
                               j + y + boardOffset.getY(),
-                              isPlayer);
+                              isLeft);
                 printf("  ");
             }
         }
