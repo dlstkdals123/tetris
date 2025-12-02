@@ -9,7 +9,6 @@ BlockRender::BlockRender(const gameState& gs, Board& board, const Position& boar
 
 void BlockRender::show_cur_block(Block& block) {
 	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
-    board.draw(gs.getLevel());
     Position pos = block.getPos();
     Rotation rotation = block.getRotation();
     int x = pos.getX();
@@ -33,11 +32,20 @@ void BlockRender::show_cur_block(Block& block) {
         Utils::setColor(COLOR::GRAY);
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if ((j + gy) < 0) continue;
                 if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1) {
-                    Utils::gotoxy((i + gx) * 2 + boardOffset.getX(),
-                                  j + gy + boardOffset.getY(),
-                                  isPlayer);
+                    int boardCol = gx + i;
+                    int boardRow = gy + j;
+
+                    if (boardRow < 0 || boardRow >= BoardConstants::BOARD_HEIGHT ||
+                        boardCol < 0 || boardCol >= BoardConstants::BOARD_WIDTH) {
+                        continue;
+                    }
+
+                    if (board.getCell(boardRow, boardCol) != 0) {
+                        continue;
+                    }
+
+                    Utils::gotoxy((i + gx) * 2 + boardOffset.getX(), j + gy + boardOffset.getY(), isPlayer);
                     printf("□");
                 }
             }
@@ -90,7 +98,51 @@ void BlockRender::show_cur_block(Block& block) {
 }
 
 void BlockRender::erase_cur_block(Block& block) {
-	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+	    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+
+    // 1) 이전 고스트 지우기 (보드가 비어 있는 칸에서만)
+    {
+        Block ghost = block;
+        for (int step = 0; step < BoardConstants::BOARD_HEIGHT; ++step) {
+            ghost.moveDown();
+            if (board.isStrike(ghost) == 1) {
+                ghost.moveUp();
+                break;
+            }
+        }
+
+        Position gpos = ghost.getPos();
+        int gx = gpos.getX();
+        int gy = gpos.getY();
+        Rotation grot = ghost.getRotation();
+        int gangle = grot.getAngle();
+        BlockType gshape = ghost.getType();
+
+        Utils::setColor(COLOR::BLACK);
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                int boardCol = gx + i;
+                int boardRow = gy + j;
+
+                if (boardRow < 0 || boardRow >= BoardConstants::BOARD_HEIGHT ||
+                    boardCol < 0 || boardCol >= BoardConstants::BOARD_WIDTH) {
+                    continue;
+                }
+
+                if (BlockShape::SHAPES[static_cast<int>(gshape)][gangle][j][i] == 1) {
+                    // 보드에 실제 쌓인 블록이 없는 칸(0)일 때만 지운다
+                    if (board.getCell(boardRow, boardCol) == 0) {
+                        Utils::gotoxy((i + gx) * 2 + boardOffset.getX(),
+                                      j + gy + boardOffset.getY(),
+                                      isPlayer);
+                        printf("  ");
+                    }
+                }
+            }
+        }
+    }
+
+    // 2) 현재 블록 지우기
     
     Position pos = block.getPos();
     int x = pos.getX();
@@ -106,9 +158,7 @@ void BlockRender::erase_cur_block(Block& block) {
             if ((j + y) < 0) continue;
             if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1)
             {
-                Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
-                              j + y + boardOffset.getY(),
-                              isPlayer);
+                Utils::gotoxy((i + x) * 2 + boardOffset.getX(), j + y + boardOffset.getY(), isPlayer);
                 printf("  ");
             }
         }

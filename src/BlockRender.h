@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "gameState.h"
 #include "Block.h"
+#include "Board.h"
 
 class BlockRender {
 private:
@@ -14,5 +15,5 @@ public:
     void show_cur_block(Block& block);
     void erase_cur_block(Block& block);
     void show_next_block(Block& block);
-    void show_ghost_block(const Block& block);
+
 };
