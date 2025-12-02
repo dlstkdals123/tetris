@@ -33,6 +33,7 @@ using namespace std;
 #define KEY_RIGHT 0x4d
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
+#define MENU 0x53   // menu
 #define AI_SLEEP  0  // AI 동작 속도
 
 #define SEC_LEFT 'a'
@@ -40,6 +41,9 @@ using namespace std;
 #define SEC_UP 'w'
 #define SEC_DOWN 's'
 #define SEC_DROP 'c'
+
+#define MENU_QUIT 'q'
+#define MENU_CONTINUE 'r'
 
 //*********************************
 // 전역 상수 : 스테이지 데이터
@@ -63,7 +67,7 @@ const STAGE stage_data[10] = {
 //*********************************
 
 // 플레이 타입 선택
-int select_playtype()
+int select_playtype();
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
@@ -75,8 +79,8 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, bool isPlayer1 = true);
-void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner);
+void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, bool isPlayer1 = true);
+void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
 
 int main()
 {
@@ -97,6 +101,8 @@ int main()
         std::atomic<int> is_gameover(0);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(0);  // 0: none, 1: player, 2: AI
+        std::atomic<bool> isGamePaused(false); // 메인메뉴상태
+        std::atomic<bool> needRedraw(false);    // resume 할 때 화면 다시 그려주기
         
         {
             std::lock_guard<std::mutex> lock(Utils::inputMutex);
@@ -112,7 +118,7 @@ int main()
         if (playType == 1) // single play 
         {
             thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), true);
 
             t1.join();
             tInput.join();
@@ -120,8 +126,8 @@ int main()
         }
         else if (playType == 2) { // multiplay
             thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
-            thread t2(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), false);
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), true);
+            thread t2(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), false);
 
             t1.join();
             t2.join();
@@ -132,9 +138,9 @@ int main()
         else { // ai play
             // 스레드 생성: 키 입력 감지, 플레이어, AI
             thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), true);
             Sleep(100);
-            thread t2(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
+            thread t2(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
 
             t1.join();
             t2.join();
@@ -198,24 +204,27 @@ int input_data() {
     printf("┏━━━━<GAME KEY>━━━━━┓");
     Sleep(10);
     Utils::gotoxy(10, 8);
-    printf("┃ UP   : Rotate Block        ┃");
+    printf("┃ UP   : Rotate Block                   ┃");
     Sleep(10);
     Utils::gotoxy(10, 9);
-    printf("┃ DOWN : Move One-Step Down  ┃");
+    printf("┃ DOWN : Move One-Step Down             ┃");
     Sleep(10);
     Utils::gotoxy(10, 10);
-    printf("┃ SPACE: Move Bottom Down    ┃");
+    printf("┃ SPACE: Move Bottom Down               ┃");
     Sleep(10);
     Utils::gotoxy(10, 11);
-    printf("┃ LEFT : Move Left           ┃");
+    printf("┃ LEFT : Move Left                      ┃");
     Sleep(10);
     Utils::gotoxy(10, 12);
-    printf("┃ RIGHT: Move Right          ┃");
+    printf("┃ RIGHT: Move Right                     ┃");
     Sleep(10);
     Utils::gotoxy(10, 13);
-    printf("┃ ESC  : Stop AI (Right Side)┃");
+    printf("┃ ESC  : Stop AI (Right Side)           ┃");
     Sleep(10);
     Utils::gotoxy(10, 14);
+    printf("┃ DELETE  : Go To Menu (Quit or Resume) ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 15);
     printf("┗━━━━━━━━━━━━━━┛");
 
     while (level < 1 || level > 8)
@@ -401,7 +410,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::playerInputQueue.push(keytemp);
             }
-            else if (keytemp == 32) {
+            else if (keytemp == 32 || keytemp == MENU_QUIT || keytemp == MENU_CONTINUE) {
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::playerInputQueue.push(keytemp);
             } else if (
@@ -419,7 +428,8 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, bool isPlayer1) 
+void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
+                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, bool isPlayer1)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     bool isPlayer = isPlayer1;
@@ -445,14 +455,92 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     gamestate.show_gamestat(isPlayer, true);
 
     for (int i = 1;; i++) {
+
+        if (isGamePaused) {
+            if (!isPlayer1) {
+                Sleep(10);
+                continue;
+            }
+        }
+
+        if (!isPlayer1 && needRedraw) {
+            board.draw(gamestate.getLevel());
+            gamestate.show_gamestat(isPlayer, true);
+            renderer.show_next_block(nextBlock);
+            renderer.show_cur_block(curBlock);
+
+            needRedraw = false;
+        }
+
+        if (is_gameover == 1) return;
+
         std::queue<char>& myQueue = isPlayer ? Utils::playerInputQueue : Utils::secPlayerInputQueue;
         char keytemp = 0;
+        bool hasInput = false;
         
-        if (!myQueue.empty())
         {
-            keytemp = myQueue.front();
-            myQueue.pop();
-            if (isPlayer) {
+            std::lock_guard<std::mutex> lock(Utils::inputMutex);
+            if (!myQueue.empty()) {
+                keytemp = myQueue.front();
+                myQueue.pop();
+                hasInput = true;
+            }
+        }
+
+        if(hasInput){
+            // MENU(Delete) 키를 눌렀을 때
+            if (isPlayer && keytemp == MENU)
+            {
+                isGamePaused = true;
+                std::unique_lock<std::recursive_mutex> pauseLock(Utils::gameMutex);
+
+                system("cls");
+                Utils::gotoxy(30, 10, true); printf("===== PAUSED =====");
+                Utils::gotoxy(25, 12, true); printf("Press [Q] to Main Menu");
+                Utils::gotoxy(25, 13, true); printf("Press [R] to Resume Game");
+
+                while (true)
+                {
+                    if (is_gameover == 1) break;
+
+                    char pauseKey = 0;
+                    bool hasPauseInput = false;
+
+                    {
+                        std::lock_guard<std::mutex> inputLock(Utils::inputMutex);
+                        if (!Utils::playerInputQueue.empty()) {
+                            pauseKey = Utils::playerInputQueue.front();
+                            Utils::playerInputQueue.pop();
+                            hasPauseInput = true;
+                        }
+                    }
+
+                    if (hasPauseInput)
+                    {
+                        if (pauseKey == MENU_QUIT)
+                        {
+                            winner = 3;
+                            is_gameover = 1;
+                            isGamePaused = false;
+                            return;
+                        }
+                        else if (pauseKey == MENU_CONTINUE)
+                        {
+                            isGamePaused = false;
+
+                            system("cls");
+                            board.draw(gamestate.getLevel());
+                            gamestate.show_gamestat(isPlayer, true);
+                            renderer.show_next_block(nextBlock);
+                            renderer.show_cur_block(curBlock);
+                            needRedraw = true;
+                            break; 
+                        }
+                    }
+                    Sleep(10);
+                }
+            }
+            else if (isPlayer) {
                 switch (keytemp)
                 {
                 case KEY_UP:
@@ -528,7 +616,8 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     }
 }
 
-void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner) 
+void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner,
+                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     bool isPlayer = false;
@@ -567,6 +656,21 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     const auto actionGap = std::chrono::milliseconds(AI_SLEEP);
 
     for (int i = 1;; i++) {
+
+        if (isGamePaused) {
+            Sleep(10);
+            continue;
+        }
+
+        if (needRedraw) {
+            board.draw(gamestate.getLevel());
+            gamestate.show_gamestat(isPlayer, true);
+            renderer.show_next_block(nextBlock);
+            renderer.show_cur_block(curBlock);
+
+            needRedraw = false;
+        }
+
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastActionTime);
         // ESC로 AI 중단 시 수동 모드로 전환
