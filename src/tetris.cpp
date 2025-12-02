@@ -46,23 +46,6 @@ using namespace std;
 #define MENU_CONTINUE 'r'
 
 //*********************************
-// 전역 상수 : 스테이지 데이터
-//*********************************
-
-const STAGE stage_data[10] = {
-    STAGE(40, 20, 20),       // Level 1
-    STAGE(38, 18, 20),       // Level 2
-    STAGE(35, 18, 20),       // Level 3
-    STAGE(30, 17, 20),       // Level 4
-    STAGE(25, 16, 20),       // Level 5
-    STAGE(20, 14, 20),       // Level 6
-    STAGE(15, 14, 20),       // Level 7
-    STAGE(10, 13, 20),       // Level 8
-    STAGE(6,  12, 20),       // Level 9
-    STAGE(4,  11, 99999)     // Level 10
-};
-
-//*********************************
 // 함수 선언
 //*********************************
 
@@ -77,8 +60,8 @@ void show_gameover(int mode, int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner);
-void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner);
+void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
+void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
 
 int main()
 {
@@ -99,6 +82,8 @@ int main()
         std::atomic<int> is_gameover(0);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(0);  // 0: none, 1: player, 2: AI
+        std::atomic<bool> isGamePaused(false);
+        std::atomic<bool> needRedraw(false);
         Utils::leftPlayerInputQueue = queue<char>();
         Utils::rightPlayerInputQueue = queue<char>();
         gamestate.resetState();
@@ -108,14 +93,14 @@ int main()
         gamestate.setLevel(startLevel);
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
-        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner));
+        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
         thread t2;
 
         if (mode == 1) { // vs ai
-            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
+            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
         } 
         else if (mode == 2) { // vs player
-            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner));
+            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
         }
 
         tInput.join();
@@ -405,7 +390,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
         {
             char keytemp = _getch();
             
-            if (keytemp == EXT_KEY) {
+            if (keytemp == static_cast<char>(EXT_KEY)) {
                 keytemp = _getch();
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::leftPlayerInputQueue.push(keytemp);
@@ -428,7 +413,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner) 
+void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw) 
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
@@ -456,15 +441,15 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
     for (int i = 1;; i++) {
 
         if (isGamePaused) {
-            if (!isPlayer1) {
+            if (!isLeft) {
                 Sleep(10);
                 continue;
             }
         }
 
-        if (!isPlayer1 && needRedraw) {
+        if (!isLeft && needRedraw) {
             board.draw(gamestate.getLevel());
-            gamestate.show_gamestat(isPlayer, true);
+            gamestate.show_gamestat(isLeft, true);
             renderer.show_next_block(nextBlock);
             renderer.show_cur_block(curBlock);
 
@@ -473,27 +458,27 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
         if (is_gameover == 1) return;
 
-        std::queue<char>& myQueue = isPlayer ? Utils::playerInputQueue : Utils::secPlayerInputQueue;
         char keytemp = 0;
         bool hasInput = false;
         
         {
             std::lock_guard<std::mutex> lock(Utils::inputMutex);
-            if (!myQueue.empty()) {
-                keytemp = myQueue.front();
-                myQueue.pop();
+            if (!inputQueue.empty()) {
+                keytemp = inputQueue.front();
+                inputQueue.pop();
                 hasInput = true;
             }
         }
 
         if(hasInput){
             // MENU(Delete) 키를 눌렀을 때
-            if (isPlayer && keytemp == MENU)
+            if (keytemp == MENU)
             {
                 isGamePaused = true;
                 std::unique_lock<std::recursive_mutex> pauseLock(Utils::gameMutex);
 
                 system("cls");
+                Utils::setColor(COLOR::GRAY);
                 Utils::gotoxy(30, 10, true); printf("===== PAUSED =====");
                 Utils::gotoxy(25, 12, true); printf("Press [Q] to Main Menu");
                 Utils::gotoxy(25, 13, true); printf("Press [R] to Resume Game");
@@ -507,9 +492,9 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
                     {
                         std::lock_guard<std::mutex> inputLock(Utils::inputMutex);
-                        if (!Utils::playerInputQueue.empty()) {
-                            pauseKey = Utils::playerInputQueue.front();
-                            Utils::playerInputQueue.pop();
+                        if (!Utils::leftPlayerInputQueue.empty()) {
+                            pauseKey = Utils::leftPlayerInputQueue.front();
+                            Utils::leftPlayerInputQueue.pop();
                             hasPauseInput = true;
                         }
                     }
@@ -529,7 +514,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
                             system("cls");
                             board.draw(gamestate.getLevel());
-                            gamestate.show_gamestat(isPlayer, true);
+                            gamestate.show_gamestat(isLeft, true);
                             renderer.show_next_block(nextBlock);
                             renderer.show_cur_block(curBlock);
                             needRedraw = true;
@@ -539,49 +524,31 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                     Sleep(10);
                 }
             }
-            else if (isPlayer) {
-                switch (keytemp)
-                {
-                case KEY_UP:
-                    mover.rotateBlock(curBlock);
-                    break;
-                case KEY_LEFT:
-                    mover.movedLeft(curBlock);
-                    break;
-                case KEY_RIGHT:
-                    mover.movedRight(curBlock);
-                    break;
-                case KEY_DOWN:
-                    is_gameover = mover.move_block(curBlock, nextBlock);
-                    gamestate.show_gamestat(isPlayer);
-                    break;
-                case 32:
-                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
-                    gamestate.show_gamestat(isPlayer);
-                    break;
-                }
-            }
-            else {
-                switch (keytemp)
-                {
-                case SEC_UP:
-                    mover.rotateBlock(curBlock);
-                    break;
-                case SEC_LEFT:
-                    mover.movedLeft(curBlock);
-                    break;
-                case SEC_RIGHT:
-                    mover.movedRight(curBlock);
-                    break;
-                case SEC_DOWN:
-                    is_gameover = mover.move_block(curBlock, nextBlock);
-                    gamestate.show_gamestat(isPlayer);
-                    break;
-                case SEC_DROP:
-                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
-                    gamestate.show_gamestat(isPlayer);
-                    break;
-                }
+            
+            switch (keytemp)
+            {
+            case KEY_UP:
+            case SEC_UP:
+                mover.rotateBlock(curBlock);
+                break;
+            case KEY_LEFT:
+            case SEC_LEFT:
+                mover.movedLeft(curBlock);
+                break;
+            case KEY_RIGHT:
+            case SEC_RIGHT:
+                mover.movedRight(curBlock);
+                break;
+            case KEY_DOWN:
+            case SEC_DOWN:
+                is_gameover = mover.move_block(curBlock, nextBlock);
+                gamestate.show_gamestat(isLeft);
+                break;
+            case 32:
+            case SEC_DROP:
+                is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
+                gamestate.show_gamestat(isLeft);
+                break;
             }
         }
         
@@ -659,7 +626,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
 
         if (needRedraw) {
             board.draw(gamestate.getLevel());
-            gamestate.show_gamestat(isPlayer, true);
+            gamestate.show_gamestat(false, true);
             renderer.show_next_block(nextBlock);
             renderer.show_cur_block(curBlock);
 
