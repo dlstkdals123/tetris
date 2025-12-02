@@ -34,7 +34,7 @@ using namespace std;
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
 #define KEY_SPACE 0x20
-#define AI_SLEEP  10  // AI 동작 속도
+#define AI_SLEEP  50  // AI 동작 속도
 
 #define SEC_LEFT 'a'
 #define SEC_RIGHT 'd'
