@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Utils.h"
 #include "STAGE.h"
+#include "ScoreManager.h"
 /**
 * gamestate 클래스
 * 현재 게임의 상태를 나타내는 클래스
@@ -11,6 +12,8 @@ private:
 	int level;  // 현재 플레이하는 게임 레벨
 	int score;  // 현재 획득한 점수
 	int line;   // 현재 클리어한 라인 수
+
+    ScoreManager* scoreManager = nullptr;
 public:
     // 생성자
     gameState();
@@ -33,5 +36,6 @@ public:
     void resetLines();   // 라인 수만 초기화]
 
     void show_gamestat(bool isLeft = true, bool printed_text = false);
+    void setScoreManager(ScoreManager* sm);
 };
 

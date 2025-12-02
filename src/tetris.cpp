@@ -16,6 +16,7 @@
 #include "Utils.h"
 #include "Evaluator.h"
 #include "ActionSimulator.h"
+#include "ScoreManager.h"
 
 #include <thread>
 #include <atomic>
@@ -33,13 +34,13 @@ using namespace std;
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
 #define KEY_SPACE 0x20
-#define KEY_W 0x77
-#define KEY_A 0x61
-#define KEY_D 0x64
-#define KEY_S 0x73
-#define KEY_C 0x63
+#define AI_SLEEP  250  // AI 동작 속도
 
-#define AI_SLEEP 350  // AI 동작 속도
+#define SEC_LEFT 'a'
+#define SEC_RIGHT 'd'
+#define SEC_UP 'w'
+#define SEC_DOWN 's'
+#define SEC_DROP 'c'
 
 //*********************************
 // 함수 선언
@@ -55,6 +56,7 @@ void show_logo(BlockRender& renderer);
 void show_gameover(int mode, int winner);
 
 // 스레드 함수
+void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
 void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner);
 
@@ -71,8 +73,11 @@ int main()
 
     gameState gamestate;
     Position boardOffset(5, 1);
+    Board board(true);
     BlockRender renderer(gamestate, boardOffset);
 
+    show_logo(renderer);
+    ScoreManager scoreManager("scores.txt");
 
     while (1)
     {
@@ -89,150 +94,26 @@ int main()
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
-        std::thread t1, t2;
+        thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
+        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner));
+        thread t2;
 
-        if (mode == 0) {
-            t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner));
-        }
-        else if (mode == 1) {
-            t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner));
+        if (mode == 1) { // vs ai
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
-        }
-        else if (mode == 2) {
-            t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner));
+        } 
+        else { // vs player
             t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner));
         }
 
-        while (!(is_gameover == 1)) {
-            // 1. 50ms만 기다림 (CPU 0% 대기). 
-            // 타임아웃(50ms)이 지나면 아래 코드를 건너뛰고 루프를 다시 돌아 is_gameover를 체크함.
-            DWORD result = WaitForSingleObject(hInput, 50);
-
-            if (result == WAIT_OBJECT_0) {
-                // 이벤트가 발생했음! (키보드, 마우스 등)
-                DWORD numRead;
-                INPUT_RECORD inputRecord;
-        
-                // 이벤트를 하나 꺼내서 확인 (여기서 큐에서 제거됨)
-                ReadConsoleInput(hInput, &inputRecord, 1, &numRead);
-        
-                // "키보드 이벤트" 이면서 "누른 상태(Pressed)" 인지 확인
-                if (inputRecord.EventType == KEY_EVENT) {
-                    
-                    // 가상 키 코드 (Virtual Key Code) 사용
-                    WORD vk = inputRecord.Event.KeyEvent.wVirtualKeyCode;
-                    bool isDown = inputRecord.Event.KeyEvent.bKeyDown;
-        
-                    // ------------------------------------------------
-                    // Player 1 (방향키 & 스페이스)
-                    // INPUT_RECORD를 쓰면 0xE0(EXT_KEY) 처리가 필요 없고 바로 VK값으로 확인 가능
-                    // ------------------------------------------------
-                    if (vk == VK_UP) {
-                        if (isDown && !keyState[vk]) {
-                            std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                            Utils::leftPlayerInputQueue.push(KEY_UP);
-                            keyState[vk] = true;
-                        }
-                        else if (!isDown)
-                            keyState[vk] = false;
-                    }
-                    else if (vk == VK_DOWN) {
-                        std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                        Utils::leftPlayerInputQueue.push(KEY_DOWN);
-                    }
-                    else if (vk == VK_LEFT) {
-                        if (isDown && !keyState[vk]) {
-                        std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                            Utils::leftPlayerInputQueue.push(KEY_LEFT);
-                            keyState[vk] = true;
-                        }
-                        else if (!isDown)
-                            keyState[vk] = false;
-                    }
-                    else if (vk == VK_RIGHT) {
-                        if (isDown && !keyState[vk]) {
-                            std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                            Utils::leftPlayerInputQueue.push(KEY_RIGHT);
-                            keyState[vk] = true;
-                        }
-                        else if (!isDown)
-                            keyState[vk] = false;
-                    }
-                    else if (vk == VK_SPACE) {
-                        if (isDown && !keyState[vk]) {
-                            std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                            Utils::leftPlayerInputQueue.push(KEY_SPACE);
-                            keyState[vk] = true;
-                        }
-                        else if (!isDown)
-                            keyState[vk] = false;
-                    }
-
-                    // ------------------------------------------------
-                    // Player 2 (WASD + C) - 아스키 문자나 VK로 확인
-                    // ------------------------------------------------
-                    else if (mode == 2) {
-                        // 대소문자 모두 처리하거나 가상키 코드 사용
-                        if (vk == 'W') {
-                            if (isDown && !keyState[vk]) {
-                                std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                                Utils::rightPlayerInputQueue.push(KEY_W);
-                                keyState[vk] = true;
-                            }
-                            else if (!isDown)
-                                keyState[vk] = false;
-                            keyState[vk] = true;
-                        }
-                        else if (vk == 'A') {
-                            if (isDown && !keyState[vk]) {
-                                std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                                Utils::rightPlayerInputQueue.push(KEY_A);
-                                keyState[vk] = true;
-                            }
-                            else if (!isDown)
-                                keyState[vk] = false;
-                        }
-                        else if (vk == 'S') {
-                            std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                            Utils::rightPlayerInputQueue.push(KEY_S);
-                        }
-                        else if (vk == 'D') {
-                            if (isDown && !keyState[vk]) {
-                                std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                                Utils::rightPlayerInputQueue.push(KEY_D);
-                                keyState[vk] = true;
-                            }
-                            else if (!isDown)
-                                keyState[vk] = false;
-                        }
-                        else if (vk == 'C') {
-                            if (isDown && !keyState[vk]) {
-                                std::lock_guard<std::mutex> lock(Utils::inputMutex);
-                                Utils::rightPlayerInputQueue.push(KEY_C);
-                                keyState[vk] = true;
-                            }
-                            else if (!isDown)
-                                keyState[vk] = false;
-                        }
-                    }
-                }
-            }
-
-        }
-    
-        if (t1.joinable()) t1.join();
+        tInput.join();
+        t1.join();
         if (t2.joinable()) t2.join();
+
         show_gameover(mode, winner);
-        Utils::setColor(COLOR::GRAY);
     }
 
     return 0;
 }
-
-//*********************************
-// 보조 함수 구현부
-//*********************************
-
 int input_mode() {
     int mode = -1;
 
@@ -457,13 +338,80 @@ void show_gameover(int mode, int winner)
     system("cls");
 }
 
+int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &blockGenerator, BlockMover &mover, BlockRender &renderer, gameState &gamestate) {
+    renderer.erase_cur_block(block);
+
+    while (true) {
+        block.moveDown();  
+        if (board.isStrike(block)) {
+            block.moveUp();
+            break;
+        }
+    }
+    
+    board.mergeBlock(block);
+    if (block.getPos().getY() <= 0) { 
+        board.draw(gamestate.getLevel());
+        return 1;
+    }
+    
+    int deletedLines = board.deleteFullLine();
+    if (deletedLines > 0) {
+        gamestate.addLines(deletedLines);
+        for (int i = 0; i < deletedLines; i++) {
+            int score = 100 + gamestate.getLevel() * 10 + (rand() % 10);
+            gamestate.addScore(score);
+        }
+    }
+    block = nextBlock;
+    block.block_start();
+    nextBlock = Block(blockGenerator.make_new_block());
+    renderer.show_next_block(nextBlock);
+    mover.updateGhost(block);
+    renderer.show_cur_block(block);   
+    board.draw(gamestate.getLevel()); 
+    
+    return 2;
+}
+
 //*********************************
 // 스레드 함수 구현부
 //*********************************
 
+void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI) 
+{
+    while (!(is_gameover == 1)) {
+        if (_kbhit())
+        {
+            char keytemp = _getch();
+            
+            if (keytemp == EXT_KEY) {
+                keytemp = _getch();
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::leftPlayerInputQueue.push(keytemp);
+            }
+            else if (keytemp == 32) {
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::rightPlayerInputQueue.push(keytemp);
+            } else if (
+                keytemp == SEC_RIGHT || 
+                keytemp == SEC_LEFT || 
+                keytemp == SEC_DOWN || 
+                keytemp == SEC_UP || 
+                keytemp == SEC_DROP
+            ) {
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::rightPlayerInputQueue.push(keytemp);
+            }
+        }
+        Sleep(1);
+    }
+}
+
 void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner) 
 {
-    Board board(true);
+    srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+    Board board(isLeft);
     Position boardOffset(5, 1);
     BlockGenerator blockGenerator(gamestate);
     BlockRender renderer(gamestate, boardOffset, isLeft);
@@ -477,6 +425,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
     Block nextBlock(blockGenerator.make_new_block());
 
     curBlock.block_start();
+    mover.updateGhost(curBlock);
     {
         std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
         renderer.show_cur_block(curBlock);
@@ -497,24 +446,24 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
             switch (inputChar)
             {
             case KEY_UP:
-            case KEY_W:
+            case SEC_UP:
                 mover.rotateBlock(curBlock);
                 break;
             case KEY_LEFT:
-            case KEY_A:
+            case SEC_LEFT:
                 mover.movedLeft(curBlock);
                 break;
             case KEY_RIGHT:
-            case KEY_D:
+            case SEC_RIGHT:
                 mover.movedRight(curBlock);
                 break;
             case KEY_DOWN:
-            case KEY_S:
+            case SEC_DOWN:
                 is_gameover = mover.move_block(curBlock, nextBlock);
                 if (is_gameover == 2) gamestate.show_gamestat(isLeft);
                 break;
             case KEY_SPACE:
-            case KEY_C:
+            case SEC_DROP:
                 while (is_gameover == 0)
                 {
                     is_gameover = mover.move_block(curBlock, nextBlock);
@@ -553,6 +502,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
 void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner) 
 {
+    srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     // AI Evaluator 초기화
     Evaluator evaluator;
     evaluator.loadWeights(weightsFile, true);
@@ -570,6 +520,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     Block nextBlock(blockGenerator.make_new_block());
 
     curBlock.block_start();
+    mover.updateGhost(curBlock);
     {
         std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
         renderer.show_cur_block(curBlock);

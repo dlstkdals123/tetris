@@ -72,3 +72,7 @@ void gameState::show_gamestat(bool isLeft, bool printed_text)
         remain = 0;
     printf("%10d", remain);
 }
+
+void gameState::setScoreManager(ScoreManager* sm) {
+    scoreManager = sm;
+}

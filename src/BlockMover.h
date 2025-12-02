@@ -9,6 +9,11 @@ private:
     Board& board;
     BlockGenerator& blockGenerator;
     gameState& gamestate;
+
+    Block ghostBlock;
+    bool hasGhost = false;
+
+    
 public:
     BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate);
     ~BlockMover() = default;
@@ -18,4 +23,6 @@ public:
     void movedLeft(Block& block);
 
     void movedRight(Block& block);
+    
+    void updateGhost(const Block& current);
 };
