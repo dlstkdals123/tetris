@@ -60,7 +60,7 @@ void show_gameover(int mode, int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
+void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
 
 int main()
@@ -79,6 +79,7 @@ int main()
     while (1)
     {
         show_logo(renderer);
+        scoreManager.printTopN(3,70,5,true);
         std::atomic<int> is_gameover(0);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(0);  // 0: none, 1: player, 2: AI
@@ -414,7 +415,8 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw) 
+void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
+                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
@@ -571,6 +573,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
         if (is_gameover == 1)
         {
+            scoreManager.addScore(gamestate.getScore());
             int expected = 0;
             winner.compare_exchange_strong(expected, 2); // 0일 때만 2로 설정 (플레이어 게임오버 → AI 승리)
             return;
