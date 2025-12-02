@@ -25,5 +25,5 @@ public:
         return static_cast<BlockType> (shape);
     }
 
-    void make_logo_blocks(Block* block);
+    static void make_logo_blocks(Block* block);
 };

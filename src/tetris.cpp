@@ -174,9 +174,6 @@ void show_logo(BlockRender& renderer)
     Utils::gotoxy(28, 20);
     printf("Please Press Any Key~!");
 
-    gameState tempGs;   // 임시 생성 (사용x)
-    BlockGenerator gen(tempGs);
-
     for (i = 0;; ++i)
     {
         if (i % 40 == 0)
@@ -188,7 +185,7 @@ void show_logo(BlockRender& renderer)
             }
 
             Block blocks[4];
-            gen.make_logo_blocks(blocks);
+            BlockGenerator::make_logo_blocks(blocks);
 
             {
                 for (int i = 0; i < 4; i++) {
