@@ -62,6 +62,8 @@ const STAGE stage_data[10] = {
 // 함수 선언
 //*********************************
 
+// 플레이 타입 선택
+int select_playtype()
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
