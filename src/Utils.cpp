@@ -5,6 +5,7 @@ std::recursive_mutex Utils::gameMutex;
 
 std::mutex Utils::inputMutex;
 std::queue<char> Utils::playerInputQueue;
+std::queue<char> Utils::secPlayerInputQueue;
 std::queue<char> Utils::aiInputQueue;
 
 int Utils::gotoxy(int x, int y, bool isPlayer) {

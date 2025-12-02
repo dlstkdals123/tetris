@@ -9,6 +9,7 @@ namespace Utils {
   // 입력 처리용
 	extern std::mutex inputMutex;
 	extern std::queue<char> playerInputQueue;
+  extern std::queue<char> secPlayerInputQueue;
 	extern std::queue<char> aiInputQueue;
 
   const int ab_x = 5;

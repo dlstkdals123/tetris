@@ -35,6 +35,12 @@ using namespace std;
 #define KEY_DOWN  0x50
 #define AI_SLEEP  0  // AI 동작 속도
 
+#define SEC_LEFT 'a'
+#define SEC_RIGHT 'd'
+#define SEC_UP 'w'
+#define SEC_DOWN 's'
+#define SEC_DROP 'c'
+
 //*********************************
 // 전역 상수 : 스테이지 데이터
 //*********************************
@@ -62,10 +68,12 @@ int input_data();
 void show_logo(BlockRender& renderer);
 // 게임 오버 화면 표시
 void show_gameover(int winner);
+// 하드드랍
+int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &blockGenerator, BlockMover &mover, BlockRender &renderer, gameState &gamestate);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner);
+void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, bool isPlayer1 = true);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner);
 
 int main()
@@ -95,20 +103,43 @@ int main()
         }
         gamestate.resetState();
 
+        int playType = select_playtype();
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
-        // 스레드 생성: 키 입력 감지, 플레이어, AI
-        thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
-        thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner));
-        Sleep(100);
-        thread t2(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
-        
-        t1.join();
-        t2.join();
-        tInput.join();
-        
-        show_gameover(winner);
+        if (playType == 1) // single play 
+        {
+            thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+
+            t1.join();
+            tInput.join();
+            show_gameover(0); 
+        }
+        else if (playType == 2) { // multiplay
+            thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+            thread t2(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), false);
+
+            t1.join();
+            t2.join();
+            tInput.join();
+
+            show_gameover(winner);
+        } 
+        else { // ai play
+            // 스레드 생성: 키 입력 감지, 플레이어, AI
+            thread tInput(inputThread, std::ref(is_gameover), std::ref(stopAI));
+            thread t1(playerThread, gamestate, std::ref(is_gameover), std::ref(winner), true);
+            Sleep(100);
+            thread t2(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner));
+
+            t1.join();
+            t2.join();
+            tInput.join();
+
+            show_gameover(winner);
+        }
         Utils::setColor(COLOR::GRAY);
     }
 
@@ -118,6 +149,43 @@ int main()
 //*********************************
 // 보조 함수 구현부
 //*********************************
+int select_playtype() {
+    int playType = 0;
+
+    Utils::setColor(COLOR::GRAY);
+
+    Utils::gotoxy(10, 7);
+    printf("┏━━━━<GAME KEY>━━━━━┓");
+    Sleep(10);
+    Utils::gotoxy(10, 8);
+    printf("┃ press 1  :  Single Play     ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 9);
+    printf("┃ press 2  :  Multy Play      ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 10);
+    printf("┃ press 3  : Play with Alphago┃");
+    Sleep(10);
+    Utils::gotoxy(10, 11);
+    printf("┗━━━━━━━━━━━━━━┛");
+
+    while (playType < 1 || playType > 3)
+    {
+        Utils::gotoxy(10, 3);
+        printf("Select Play Type[1-3]:       \b\b\b\b\b\b\b");
+
+        cin >> playType;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(1024, '\n');
+            continue;
+        }
+    }
+    system("cls");
+
+    return playType;
+}
 
 int input_data() {
     int level = 0;
@@ -279,6 +347,42 @@ void show_gameover(int winner)
     system("cls");
 }
 
+int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &blockGenerator, BlockMover &mover, BlockRender &renderer, gameState &gamestate) {
+    renderer.erase_cur_block(block);
+
+    while (true) {
+        block.moveDown();  
+        if (board.isStrike(block)) {
+            block.moveUp();
+            break;
+        }
+    }
+    
+    board.mergeBlock(block);
+    if (block.getPos().getY() <= 0) { 
+        board.draw(gamestate.getLevel());
+        return 1;
+    }
+    
+    int deletedLines = board.deleteFullLine();
+    if (deletedLines > 0) {
+        gamestate.addLines(deletedLines);
+        for (int i = 0; i < deletedLines; i++) {
+            int score = 100 + gamestate.getLevel() * 10 + (rand() % 10);
+            gamestate.addScore(score);
+        }
+    }
+    block = nextBlock;
+    block.block_start();
+    nextBlock = Block(blockGenerator.make_new_block());
+    renderer.show_next_block(nextBlock);
+    mover.updateGhost(block);
+    renderer.show_cur_block(block);   
+    board.draw(gamestate.getLevel()); 
+    
+    return 2;
+}
+
 //*********************************
 // 스레드 함수 구현부
 //*********************************
@@ -298,19 +402,29 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
             else if (keytemp == 32) {
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::playerInputQueue.push(keytemp);
+            } else if (
+                keytemp == SEC_RIGHT || 
+                keytemp == SEC_LEFT || 
+                keytemp == SEC_DOWN || 
+                keytemp == SEC_UP || 
+                keytemp == SEC_DROP
+            ) {
+                std::lock_guard<std::mutex> lock(Utils::inputMutex);
+                Utils::secPlayerInputQueue.push(keytemp);
             }
         }
         Sleep(1);
     }
 }
 
-void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner) 
+void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, bool isPlayer1) 
 {
-    bool isPlayer = true;
-    Board board(true);
+    srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+    bool isPlayer = isPlayer1;
+    Board board(isPlayer);
     Position boardOffset(5, 1);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, board, boardOffset, true);
+    BlockRender renderer(gamestate, board, boardOffset, isPlayer);
     BlockMover mover(renderer, board, blockGenerator, gamestate);
 
     board.init();
@@ -329,36 +443,56 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
     gamestate.show_gamestat(isPlayer, true);
 
     for (int i = 1;; i++) {
-        std::queue<char>& myQueue = Utils::playerInputQueue;
+        std::queue<char>& myQueue = isPlayer ? Utils::playerInputQueue : Utils::secPlayerInputQueue;
         char keytemp = 0;
         
         if (!myQueue.empty())
         {
             keytemp = myQueue.front();
             myQueue.pop();
-            
-            switch (keytemp)
-            {
-            case KEY_UP:
-                mover.rotateBlock(curBlock);
-                break;
-            case KEY_LEFT:
-                mover.movedLeft(curBlock);
-                break;
-            case KEY_RIGHT:
-                mover.movedRight(curBlock);
-                break;
-            case KEY_DOWN:
-                is_gameover = mover.move_block(curBlock, nextBlock);
-                gamestate.show_gamestat(isPlayer);
-                break;
-            case 32:  // SPACE
-                while (is_gameover == 0)
+            if (isPlayer) {
+                switch (keytemp)
                 {
+                case KEY_UP:
+                    mover.rotateBlock(curBlock);
+                    break;
+                case KEY_LEFT:
+                    mover.movedLeft(curBlock);
+                    break;
+                case KEY_RIGHT:
+                    mover.movedRight(curBlock);
+                    break;
+                case KEY_DOWN:
                     is_gameover = mover.move_block(curBlock, nextBlock);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                case 32:
+                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
                 }
-                gamestate.show_gamestat(isPlayer);
-                break;
+            }
+            else {
+                switch (keytemp)
+                {
+                case SEC_UP:
+                    mover.rotateBlock(curBlock);
+                    break;
+                case SEC_LEFT:
+                    mover.movedLeft(curBlock);
+                    break;
+                case SEC_RIGHT:
+                    mover.movedRight(curBlock);
+                    break;
+                case SEC_DOWN:
+                    is_gameover = mover.move_block(curBlock, nextBlock);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                case SEC_DROP:
+                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
+                    gamestate.show_gamestat(isPlayer);
+                    break;
+                }
             }
         }
         
@@ -394,6 +528,7 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
 void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner) 
 {
+    srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     bool isPlayer = false;
     // AI Evaluator 초기화
     Evaluator evaluator;
@@ -460,9 +595,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
                     break;
                 case 'c':  // 하드 드롭
                     while (is_gameover == 0)
-                    {
-                        is_gameover = mover.move_block(curBlock, nextBlock);
-                    }
+                    is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
                     gamestate.show_gamestat(isPlayer);
                     actionInProgress = false;
                     break;
