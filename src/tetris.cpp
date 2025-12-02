@@ -438,7 +438,7 @@ void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomi
 
     board.init();
     board.draw(gamestate.getLevel());
-
+    renderer.draw_next_block_frame();
     Block curBlock(blockGenerator.make_new_block());
     Block nextBlock(blockGenerator.make_new_block());
 

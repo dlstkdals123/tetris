@@ -17,4 +17,5 @@ public:
     void show_next_block(Block& block);
     void show_ghost_block(const Block& block);
     void erase_ghost_block(const Block& block);
+    void draw_next_block_frame();
 };

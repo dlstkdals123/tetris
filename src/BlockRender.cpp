@@ -89,21 +89,14 @@ void BlockRender::show_next_block(Block& block) {
 		
     int i,j;
     
-	for(i=1;i<7;i++)
-	{
-		Utils::gotoxy(33, i, isPlayer);
-		for(j=0;j<6;j++)
-		{
-			if(i==1 || i==6 || j==0 || j==5)
-			{
-				printf("■");				
-			}else{
-				printf("  ");
-			}
-
-		}
-	}
-	Position next_pos(15, 1);
+	for (int i = 2; i <= 5; ++i) {
+        Utils::gotoxy(33, i, isPlayer);
+        for (int j = 1; j <= 4; ++j) {
+            printf("  ");
+        }
+    }
+    
+	Position next_pos(16, 2);
 	Rotation next_rotation(0);
 	Block nextBlock(block.getType(), next_rotation, next_pos);
     show_cur_block(nextBlock);
@@ -155,6 +148,21 @@ void BlockRender::erase_ghost_block(const Block& block) {
                 Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isPlayer);
+                printf("  ");
+            }
+        }
+    }
+}
+
+void BlockRender::draw_next_block_frame() {
+    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
+    int i, j;
+    for (i = 1; i < 7; i++) {
+        Utils::gotoxy(33, i, isPlayer);
+        for (j = 0; j < 6; j++) {
+            if (i == 1 || i == 6 || j == 0 || j == 5) {
+                printf("■");
+            } else {
                 printf("  ");
             }
         }
