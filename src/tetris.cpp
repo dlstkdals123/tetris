@@ -61,6 +61,8 @@ int input_data();
 void show_logo(BlockRender& renderer, ScoreManager& scoreManager);
 // 게임 오버 화면 표시
 void show_gameover(int mode, int winner);
+// 하드 드롭
+int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &blockGenerator, BlockMover &mover, BlockRender &renderer, gameState &gamestate);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
@@ -407,7 +409,7 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
             block.moveUp();
             
             // 게임오버 체크 (블록이 화면 밖으로 나갔는지)
-            if (block.getPos().getY() <= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) {
+            if (block.getPos().getY() < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) {
                 board.draw(gamestate.getLevel());
                 return GameConstants::GameState::GAME_OVER;
             }

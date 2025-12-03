@@ -19,7 +19,7 @@ int BlockMover::move_block(Block& block, Block& nextBlock) {
             block.moveUp();
             
             // 게임오버 체크 (블록이 화면 밖으로 나갔는지)
-            if (block.getPos().getY() <= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) {
+            if (block.getPos().getY() < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) {
                 return GameConstants::GameState::GAME_OVER;
             }
         }
