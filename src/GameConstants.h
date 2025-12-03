@@ -276,13 +276,6 @@ namespace GameConstants {
         constexpr int WELL_FORMULA_DIVISOR = 2;
     }
     
-    // 점수 관리
-    namespace ScoreManager {
-        constexpr int MAX_SCORES = 100;
-        constexpr int RANK_OFFSET = 1;
-        constexpr int TOP_SCORE_OFFSET = 1;
-    }
-    
     // 게임 상태 초기값
     namespace GameStateInitial {
         constexpr int INITIAL_LEVEL = 0;
@@ -302,8 +295,24 @@ namespace GameConstants {
         constexpr int SCORE_VALUE_Y = 10;
         constexpr int LINES_TEXT_Y = 12;
         constexpr int LINES_VALUE_Y = 13;
+        constexpr int TOP_SCORE_Y = 15;
         constexpr int SCORE_FORMAT_WIDTH = 10;
         inline constexpr const char* SCORE_FORMAT = "%10d";
+    }
+    
+    // 점수 관리
+    namespace ScoreManager {
+        constexpr int MAX_SCORES = 100;
+        constexpr int RANK_OFFSET = 1;
+        constexpr int TOP_SCORE_OFFSET = 1;
+        constexpr int TOP_N_COUNT = 3;
+        constexpr int LOGO_TOP_SCORE_X = GameStatUI::STAT_LEFT_X;
+        constexpr int LOGO_TOP_SCORE_Y = 10;
+        constexpr int SINGLE_PLAYER_TOP_SCORE_X = GameStatUI::STAT_LEFT_X;
+        constexpr int SINGLE_PLAYER_TOP_SCORE_Y = GameStatUI::TOP_SCORE_Y;
+        constexpr int VS_MODE_TOP_SCORE_X = GameStatUI::STAT_LEFT_X;
+        constexpr int VS_MODE_TOP_SCORE_Y = GameStatUI::TOP_SCORE_Y;
+        inline constexpr const char* SCORES_FILE_NAME = "scores.txt";
     }
     
     // 입력 초기값

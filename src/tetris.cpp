@@ -58,7 +58,7 @@ int input_ai_difficulty();
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
-void show_logo(BlockRender& renderer);
+void show_logo(BlockRender& renderer, ScoreManager& scoreManager);
 // 게임 오버 화면 표시
 void show_gameover(int mode, int winner);
 
@@ -78,12 +78,11 @@ int main()
     Board board(true);
     BlockRender renderer(gamestate, boardOffset, board);
 
-    ScoreManager scoreManager("scores.txt");
+    ScoreManager scoreManager(GameConstants::ScoreManager::SCORES_FILE_NAME);
 
     while (1)
     {
-        show_logo(renderer);
-        scoreManager.printTopN(3,70,5,true);
+        show_logo(renderer, scoreManager);
         std::atomic<int> is_gameover(GameConstants::GameState::CONTINUE);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(GameConstants::Winner::NONE);
@@ -102,9 +101,9 @@ int main()
         gamestate.setLevel(startLevel);
 
         if(mode == 0) {
-            scoreManager.printTopN(3, 70, 5, true);
+            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_X, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_Y, true);
         } else {
-            scoreManager.printTopN(3, 40, 22, true);
+            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::VS_MODE_TOP_SCORE_X, GameConstants::ScoreManager::VS_MODE_TOP_SCORE_Y, true);
         }
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
@@ -115,7 +114,7 @@ int main()
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode, aiDifficulty);
         } 
         else if (mode == 2) { // vs player
-            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager), mode);
         }
 
         tInput.join();
@@ -254,7 +253,7 @@ int input_data() {
     return level - GameConstants::Level::MIN;
 }
 
-void show_logo(BlockRender& renderer)
+void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
 {
     int i, j;
 
@@ -283,6 +282,8 @@ void show_logo(BlockRender& renderer)
 
     Utils::gotoxy(GameConstants::UI::LOGO_TEXT_X, GameConstants::UI::LOGO_TEXT_Y);
     printf("Please Press Any Key~!");
+
+    scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::LOGO_TOP_SCORE_X + 30, GameConstants::UI::LOGO_TOP_Y, true);
 
     for (i = 0;; ++i)
     {
@@ -484,7 +485,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
 }
 
 void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
-                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, ScoreManager& scoreManager)
+                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager, int mode)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
