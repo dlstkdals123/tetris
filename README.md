@@ -3,25 +3,29 @@
 25년 2학기 객체지향프로그래밍 프로젝트
 
 ## Refactoring
+
 - [x] show_gameState()을 gameState class에 포함시키기.
 - [x] STAGE 내부에 배열을 가지고 있는 형식으로 수정.
 - [x] show_logo() 에서 block을 랜덤하게 생성하는 로직을 BlockGenerator에게 위임
 - [x] 블럭 나오는 순서가 항상 같음
 
 ## Improvement
+
 - [x] "spacebar"을 통해 맨 아래로 내리기 (hard_drop)
 
 ## new Function
-- [ ] 일시정지
-- [ ] 게임종료
+
+- [x] 일시정지
+- [x] 게임종료
 - [x] 떨어질 위치 미리보기
 - [x] .txt 파일 형태로 고득점 저장 및 불러오기 (싱글용)
 - [x] Single: 점수판, Human vs AI, Human vs Human 3개의 기능 나누기
-- [ ] MultiPlay에서 상대방에게 공격하는 행위 (클리어 된 줄에서, 각 줄의 랜덤으로 1칸 빼기)
+- [x] MultiPlay에서 상대방에게 공격하는 행위 (클리어 된 줄에서, 각 줄의 랜덤으로 1칸 빼기)
 
 ## Bug
-- [ ] 점수판이 아직 안나옴
-- [ ] scores.txt가 덮어씌어지면서 저장역할을 하지 못함
+
+- [x] 점수판이 아직 안나옴
+- [x] scores.txt가 덮어씌어지면서 저장역할을 하지 못함
 - [x] 맨 위에서 블럭을 사라지게 하는 버그가 존재 (원인불명) (아마 해결)
 
 ## 커밋 메시지 컨벤션

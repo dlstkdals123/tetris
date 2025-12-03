@@ -1,5 +1,6 @@
 ﻿#include "Evaluator.h"
 #include "BoardConstants.h"
+#include "GameConstants.h"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -7,37 +8,34 @@
 
 using namespace std;
 
-// 죽음/불가능한 상태에 대한 페널티
-constexpr double DEATH_PENALTY = -100000.0;
-
 // Bertsekas & Tsitsiklis 논문 스타일: 26개 feature 초기 가중치
 // 모든 가중치는 학습을 통해 최적값을 찾습니다.
 Evaluator::Weights::Weights()
-    : maxHeight(-1.0)      // 최대 높이는 낮을수록 좋음
-    , holes(-40.0)         // 구멍은 치명적
-    , wells(-4.0)          // 우물은 낮을수록 좋음
+    : maxHeight(GameConstants::Evaluator::InitialWeight::MAX_HEIGHT)      // 최대 높이는 낮을수록 좋음
+    , holes(GameConstants::Evaluator::InitialWeight::HOLES)         // 구멍은 치명적
+    , wells(GameConstants::Evaluator::InitialWeight::WELLS)          // 우물은 낮을수록 좋음
 { 
     // 각 열의 높이 가중치 초기화 (높이는 낮을수록 좋음)
-    for (int i = 0; i < 12; i++) {
-        columnHeights[i] = -0.5;
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
+        columnHeights[i] = GameConstants::Evaluator::InitialWeight::COLUMN_HEIGHT;
     }
     
     // 인접한 열의 높이 차이 가중치 초기화 (차이는 적을수록 좋음)
-    for (int i = 0; i < 11; i++) {
-        heightDiffs[i] = -8.0;
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
+        heightDiffs[i] = GameConstants::Evaluator::InitialWeight::HEIGHT_DIFF;
     }
 }
 
-Evaluator::Weights::Weights(const double heights[12], const double diffs[11],
+Evaluator::Weights::Weights(const double heights[GameConstants::Feature::COLUMN_COUNT], const double diffs[GameConstants::Feature::HEIGHT_DIFF_COUNT],
                             double maxH, double holes, double wells)
     : maxHeight(maxH)
     , holes(holes)
     , wells(wells)
 {
-    for (int i = 0; i < 12; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
         columnHeights[i] = heights[i];
     }
-    for (int i = 0; i < 11; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
         heightDiffs[i] = diffs[i];
     }
 }
@@ -49,33 +47,30 @@ Evaluator::Evaluator(const Weights& weights)
 
 double Evaluator::evaluate(const FeatureExtractor::Features& features) const
 {
-    // 모든 feature를 20으로 정규화
-    constexpr double FEATURE_NORM = 20.0;
-
-    double score = 0.0;
+    double score = GameConstants::Simulation::INITIAL_LINES_CLEARED;
 
     // 1. 각 열의 높이 (12개)
-    for (int i = 0; i < 12; i++) {
-        double normalizedHeight = features.columnHeights[i] / FEATURE_NORM;
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
+        double normalizedHeight = features.columnHeights[i] / GameConstants::Feature::NORMALIZATION_VALUE;
         score += weights_.columnHeights[i] * normalizedHeight;
     }
 
     // 2. 인접한 열의 높이 차이 (11개)
-    for (int i = 0; i < 11; i++) {
-        double normalizedDiff = features.heightDiffs[i] / FEATURE_NORM;
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
+        double normalizedDiff = features.heightDiffs[i] / GameConstants::Feature::NORMALIZATION_VALUE;
         score += weights_.heightDiffs[i] * normalizedDiff;
     }
 
     // 3. 최대 높이 (1개)
-    double normalizedMaxHeight = features.maxHeight / FEATURE_NORM;
+    double normalizedMaxHeight = features.maxHeight / GameConstants::Feature::NORMALIZATION_VALUE;
     score += weights_.maxHeight * normalizedMaxHeight;
 
     // 4. 구멍의 개수 (1개)
-    double normalizedHoles = features.holes / FEATURE_NORM;
+    double normalizedHoles = features.holes / GameConstants::Feature::NORMALIZATION_VALUE;
     score += weights_.holes * normalizedHoles;
 
     // 5. 우물 깊이 합 (1개)
-    double normalizedWells = features.wells / FEATURE_NORM;
+    double normalizedWells = features.wells / GameConstants::Feature::NORMALIZATION_VALUE;
     score += weights_.wells * normalizedWells;
 
     return score;
@@ -92,7 +87,7 @@ double Evaluator::evaluateResult(const SimulationResult& result) const
     // 유효하지 않거나 게임 오버인 경우 최악의 점수
     if (!result.isValid || result.gameOver)
     {
-        return DEATH_PENALTY;
+        return GameConstants::Evaluator::DEATH_PENALTY;
     }
     
     return evaluate(result.features);
@@ -106,7 +101,7 @@ std::pair<Action, double> Evaluator::selectBestAction(const Board& board, const 
     if (results.empty())
     {
         // 가능한 액션이 없으면 기본 액션 반환
-        return {Action(0, 5), DEATH_PENALTY};
+        return {Action(GameConstants::DefaultAction::ROTATION, GameConstants::DefaultAction::COLUMN), GameConstants::Evaluator::DEATH_PENALTY};
     }
     
     // 유효한 액션이 있는지 확인
@@ -123,12 +118,12 @@ std::pair<Action, double> Evaluator::selectBestAction(const Board& board, const 
     if (!hasValidAction)
     {
         // 유효한 액션이 없으면 기본 액션 반환
-        return {Action(0, 5), DEATH_PENALTY};
+        return {Action(GameConstants::DefaultAction::ROTATION, GameConstants::DefaultAction::COLUMN), GameConstants::Evaluator::DEATH_PENALTY};
     }
     
     // 최고 점수 찾기 (유효한 액션 중에서)
-    Action bestAction = results[0].action;
-    double bestScore = DEATH_PENALTY;
+    Action bestAction = results[GameConstants::Simulation::GAME_OVER_Y_THRESHOLD].action;
+    double bestScore = GameConstants::Evaluator::DEATH_PENALTY;
     
     // 첫 번째 유효한 액션을 찾아서 초기값으로 설정
     for (const auto& result : results)
@@ -170,7 +165,7 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
     if (currentResults.empty())
     {
         // 가능한 액션이 없으면 기본 액션 반환
-        return {Action(0, 5), DEATH_PENALTY};
+        return {Action(GameConstants::DefaultAction::ROTATION, GameConstants::DefaultAction::COLUMN), GameConstants::Evaluator::DEATH_PENALTY};
     }
     
     // 유효한 액션이 있는지 확인
@@ -187,11 +182,11 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
     if (!hasValidAction)
     {
         // 유효한 액션이 없으면 기본 액션 반환
-        return {Action(0, 5), DEATH_PENALTY};
+        return {Action(GameConstants::DefaultAction::ROTATION, GameConstants::DefaultAction::COLUMN), GameConstants::Evaluator::DEATH_PENALTY};
     }
     
-    Action bestAction = currentResults[0].action;
-    double bestScore = DEATH_PENALTY;
+    Action bestAction = currentResults[GameConstants::Simulation::GAME_OVER_Y_THRESHOLD].action;
+    double bestScore = GameConstants::Evaluator::DEATH_PENALTY;
     
     // 각 현재 블록 액션에 대해 평가
     for (const auto& currentResult : currentResults)
@@ -208,7 +203,7 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
         ActionSimulator::moveBlockToPosition(simBlock, currentResult.action.rotation, currentResult.action.column);
         ActionSimulator::dropBlock(simBoard, simBlock);
         simBoard.mergeBlock(simBlock);
-        simBoard.deleteFullLine();  // 라인 삭제
+        simBoard.deleteFullLine();  // 라인 삭제 (반환값 무시)
         
         // 현재 블록 점수
         double currentScore = evaluateResult(currentResult);
@@ -222,7 +217,7 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
             if (!nextResults.empty())
             {
                 // 다음 블록의 최고 점수 찾기
-                double bestNextScore = DEATH_PENALTY;
+                double bestNextScore = GameConstants::Evaluator::DEATH_PENALTY;
                 for (const auto& nextResult : nextResults)
                 {
                     if (nextResult.isValid && !nextResult.gameOver)
@@ -281,10 +276,10 @@ bool Evaluator::saveWeights(const string& filename) const
     }
     
     file << "# Tetris Evaluator Weights (Bertsekas & Tsitsiklis Style - 26 features)" << endl;
-    for (int i = 0; i < 12; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
         file << "columnHeight" << i << " " << weights_.columnHeights[i] << endl;
     }
-    for (int i = 0; i < 11; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
         file << "heightDiff" << i << " " << weights_.heightDiffs[i] << endl;
     }
     file << "maxHeight " << weights_.maxHeight << endl;
@@ -306,11 +301,11 @@ bool Evaluator::loadWeights(const string& filename, bool silent)
     
     // 가중치 포인터 맵 (Bertsekas & Tsitsiklis: 26개 feature)
     unordered_map<string, double*> weightMap;
-    for (int i = 0; i < 12; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
         string key = "columnHeight" + to_string(i);
         weightMap[key] = &weights_.columnHeights[i];
     }
-    for (int i = 0; i < 11; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
         string key = "heightDiff" + to_string(i);
         weightMap[key] = &weights_.heightDiffs[i];
     }
@@ -350,12 +345,12 @@ void Evaluator::printWeights() const
 {
     cout << "=== Evaluator Weights (Bertsekas & Tsitsiklis - 26 features) ===" << endl;
     cout << "Column Heights: ";
-    for (int i = 0; i < 12; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
         cout << weights_.columnHeights[i] << " ";
     }
     cout << endl;
     cout << "Height Diffs: ";
-    for (int i = 0; i < 11; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
         cout << weights_.heightDiffs[i] << " ";
     }
     cout << endl;

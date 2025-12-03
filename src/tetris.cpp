@@ -17,10 +17,13 @@
 #include "Evaluator.h"
 #include "ActionSimulator.h"
 #include "ScoreManager.h"
+#include "GameConstants.h"
 
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <random>
+#include <vector>
 
 using namespace std;
 
@@ -34,7 +37,6 @@ using namespace std;
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
 #define MENU 0x53   // menu
-#define AI_SLEEP  150  // AI 동작 속도
 
 #define SEC_LEFT 'a'
 #define SEC_RIGHT 'd'
@@ -51,17 +53,19 @@ using namespace std;
 
 // 게임 모드 입력
 int input_mode();
+// AI 난이도 입력
+int input_ai_difficulty();
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
-void show_logo(BlockRender& renderer);
+void show_logo(BlockRender& renderer, ScoreManager& scoreManager);
 // 게임 오버 화면 표시
 void show_gameover(int mode, int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(bool isLeft ,gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager);
-void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
+void playerThread(bool isLeft ,gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager, int mode);
+void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, int aiDifficulty);
 
 int main()
 {
@@ -70,44 +74,47 @@ int main()
     string weightsFile = "initial_weights.txt";
 
     gameState gamestate;
-    Position boardOffset(5, 1);
+    Position boardOffset(GameConstants::BoardOffset::X, GameConstants::BoardOffset::Y);
     Board board(true);
-    BlockRender renderer(gamestate, boardOffset);
+    BlockRender renderer(gamestate, boardOffset, board);
 
-    ScoreManager scoreManager("scores.txt");
+    ScoreManager scoreManager(GameConstants::ScoreManager::SCORES_FILE_NAME);
 
     while (1)
     {
-        show_logo(renderer);
-        scoreManager.printTopN(3,70,5,true);
-        std::atomic<int> is_gameover(0);
+        show_logo(renderer, scoreManager);
+        std::atomic<int> is_gameover(GameConstants::GameState::CONTINUE);
         std::atomic<bool> stopAI(false);
-        std::atomic<int> winner(0);  // 0: none, 1: player, 2: AI
+        std::atomic<int> winner(GameConstants::Winner::NONE);
         std::atomic<bool> isGamePaused(false);
         std::atomic<bool> needRedraw(false);
         Utils::leftPlayerInputQueue = queue<char>();
         Utils::rightPlayerInputQueue = queue<char>();
         gamestate.resetState();
 
-        int mode = input_mode(); // 0: single, 1: vs ai, 2: vs player
+        int mode = input_mode();
+        int aiDifficulty = GameConstants::AIDifficulty::DEFAULT;
+        if (mode == GameConstants::GameMode::VS_AI) {
+            aiDifficulty = input_ai_difficulty();
+        }
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
         if(mode == 0) {
-            scoreManager.printTopN(3, 70, 5, true);
+            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_X, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_Y, true);
         } else {
-            scoreManager.printTopN(3, 40, 22, true);
+            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::VS_MODE_TOP_SCORE_X, GameConstants::ScoreManager::VS_MODE_TOP_SCORE_Y, true);
         }
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
-        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager));
+        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager), mode);
         thread t2;
 
-        if (mode == 1) { // vs ai
-            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+        if (mode == GameConstants::GameMode::VS_AI) {
+            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode, aiDifficulty);
         } 
         else if (mode == 2) { // vs player
-            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager));
+            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager), mode);
         }
 
         tInput.join();
@@ -120,34 +127,34 @@ int main()
     return 0;
 }
 int input_mode() {
-    int mode = -1;
+    int mode = GameConstants::InputInitial::MODE_DEFAULT;
 
     Utils::setColor(COLOR::GRAY);
 
-    Utils::gotoxy(10, 3);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y);
     printf("┏━━━━<GAME MODE>━━━━┓");
-    Sleep(10);
-    Utils::gotoxy(10, 4);
-    printf("┃ 0: Single Player       ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 5);
-    printf("┃ 1: VS AI               ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 6);
-    printf("┃ 2: VS Player           ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 7);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET);
+    printf("┃ 1: Single Player       ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
+    printf("┃ 2: VS AI               ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
+    printf("┃ 3: VS Player           ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
     printf("┗━━━━━━━━━━━━━━━━━━┛");
-    Sleep(10);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
 
-    while (mode < 0 || mode > 2) {
-        Utils::gotoxy(10, 9);
-        printf("Select Mode[0-2]:       \b\b\b\b\b\b\b");
+    while (mode < GameConstants::GameMode::MIN || mode > GameConstants::GameMode::MAX) {
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
+        printf("Select Mode[1-3]:       \b\b\b\b\b\b\b");
         cin >> mode;
         if (cin.fail())
         {
             cin.clear();
-            cin.ignore(1024, '\n');
+            cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
             continue;
         }
     }
@@ -156,101 +163,143 @@ int input_mode() {
     return mode;
 }
 
-int input_data() {
-    int level = 0;
+int input_ai_difficulty() {
+    int difficulty = GameConstants::InputInitial::DIFFICULTY_DEFAULT;
     
     // 이전 입력 버퍼에 남아있는 개행 문자 제거
-    cin.ignore(1024, '\n');
+    cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
+    
+    Utils::setColor(COLOR::GRAY);
+    
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y);
+    printf("┏━━━━<AI DIFFICULTY>━━━━┓");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET);
+    printf("┃ 1: Easy                ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
+    printf("┃ 2: Normal              ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
+    printf("┃ 3: Hard                ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
+    printf("┗━━━━━━━━━━━━━━━━━━━━┛");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    
+    while (difficulty < GameConstants::AIDifficulty::MIN || difficulty > GameConstants::AIDifficulty::MAX) {
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
+        printf("Select AI Difficulty[1-3]:       \b\b\b\b\b\b\b");
+        cin >> difficulty;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
+            continue;
+        }
+    }
+    system("cls");
+    
+    return difficulty;
+}
+
+int input_data() {
+    int level = GameConstants::InputInitial::LEVEL_DEFAULT;
+    
+    // 이전 입력 버퍼에 남아있는 개행 문자 제거
+    cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
 
     Utils::setColor(COLOR::GRAY);
 
-    Utils::gotoxy(10, 7);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y);
     printf("┏━━━━<GAME KEY>━━━━━┓");
-    Sleep(10);
-    Utils::gotoxy(10, 8);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET);
     printf("┃ UP   : Rotate Block                   ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 9);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
     printf("┃ DOWN : Move One-Step Down             ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 10);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
     printf("┃ SPACE: Move Bottom Down               ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 11);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
     printf("┃ LEFT : Move Left                      ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 12);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
     printf("┃ RIGHT: Move Right                     ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 13);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 6);
     printf("┃ DELETE  : Go To Menu (Quit or Resume) ┃");
-    Sleep(10);
-    Utils::gotoxy(10, 14);
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 7);
     printf("┗━━━━━━━━━━━━━━┛");
 
-    while (level < 1 || level > 8)
+    while (level < GameConstants::Level::MIN || level > GameConstants::Level::MAX)
     {
-        Utils::gotoxy(10, 3);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::LEVEL_INPUT_Y);
         printf("Select Start level[1-8]:       \b\b\b\b\b\b\b");
 
         cin >> level;
         if (cin.fail())
         {
             cin.clear();
-            cin.ignore(1024, '\n');
+            cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
             continue;
         }
     }
     system("cls");
 
-    return level - 1;
+    return level - GameConstants::Level::MIN;
 }
 
-void show_logo(BlockRender& renderer)
+void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
 {
     int i, j;
 
     system("cls");
     Utils::setColor(COLOR::GRAY);
-    Utils::gotoxy(13, 3);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y);
     printf("┏━━━━━━━━━━━━━━━━━━━━━━━┓");
-    Sleep(100);
-    Utils::gotoxy(13, 4);
+    Sleep(GameConstants::Delay::LOGO_SLEEP);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET);
     printf("┃◆◆◆  ◆◆◆  ◆◆◆   ◆◆     ◆   ◆◆◆ ┃");
-    Sleep(100);
-    Utils::gotoxy(13, 5);
+    Sleep(GameConstants::Delay::LOGO_SLEEP);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
     printf("┃  ◆    ◆        ◆     ◆ ◆    ◆   ◆     ┃");
-    Sleep(100);
-    Utils::gotoxy(13, 6);
+    Sleep(GameConstants::Delay::LOGO_SLEEP);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
     printf("┃  ◆    ◆◆◆    ◆     ◆◆     ◆     ◆   ┃");
-    Sleep(100);
-    Utils::gotoxy(13, 7);
+    Sleep(GameConstants::Delay::LOGO_SLEEP);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
     printf("┃  ◆    ◆        ◆     ◆ ◆    ◆       ◆ ┃");
-    Sleep(100);
-    Utils::gotoxy(13, 8);
+    Sleep(GameConstants::Delay::LOGO_SLEEP);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
     printf("┃  ◆    ◆◆◆    ◆     ◆  ◆   ◆   ◆◆◆ ┃");
-    Sleep(100);
-    Utils::gotoxy(13, 9);
+    Sleep(GameConstants::Delay::LOGO_SLEEP);
+    Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 6);
     printf("┗━━━━━━━━━━━━━━━━━━━━━━━┛");
 
-    Utils::gotoxy(28, 20);
+    Utils::gotoxy(GameConstants::UI::LOGO_TEXT_X, GameConstants::UI::LOGO_TEXT_Y);
     printf("Please Press Any Key~!");
+
+    scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::LOGO_TOP_SCORE_X + 30, GameConstants::UI::LOGO_TOP_Y, true);
 
     for (i = 0;; ++i)
     {
-        if (i % 40 == 0)
+        if (i % GameConstants::LogoAnimation::ANIMATION_INTERVAL == 0)
         {
-            for (j = 0; j < 5; ++j)
+            for (j = 0; j < GameConstants::LogoAnimation::CLEAR_LINES; ++j)
             {
-                Utils::gotoxy(17, 14 + j);
+                Utils::gotoxy(GameConstants::UI::LOGO_BLOCK_X, GameConstants::LogoAnimation::START_ROW + j);
                 printf("                                                          ");
             }
 
-            Block blocks[4];
+            Block blocks[GameConstants::LogoAnimation::BLOCK_COUNT];
             BlockGenerator::make_logo_blocks(blocks);
 
             {
-                for (int i = 0; i < 4; i++) {
+                for (int i = 0; i < GameConstants::LogoAnimation::BLOCK_COUNT; i++) {
                     renderer.show_cur_block(blocks[i]);
                 }
             }
@@ -259,7 +308,7 @@ void show_logo(BlockRender& renderer)
         if (_kbhit())
             break;
 
-        Sleep(30);
+        Sleep(GameConstants::Delay::LOGO_ANIMATION);
     }
 
     _getche();
@@ -268,84 +317,84 @@ void show_logo(BlockRender& renderer)
 
 void show_gameover(int mode, int winner)
 {
-    if (winner == -1)
+    if (winner == GameConstants::Winner::CANCELLED)
         return;
 
-    // mode = 0: 무조건 게임오버 메시지
-    if (mode == 0) {
+    // Single Player 모드: 무조건 게임오버 메시지
+    if (mode == GameConstants::GameMode::SINGLE_PLAYER) {
         Utils::setColor(COLOR::YELLOW);
-        Utils::gotoxy(15, 8);
+        Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
         printf("┏━━━━━━━━━━━━━┓");
-        Utils::gotoxy(15, 9);
+        Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
         printf("┃**************************┃");
-        Utils::gotoxy(15, 10);
+        Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
         printf("┃*        GAME OVER       *┃");
-        Utils::gotoxy(15, 11);
+        Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
         printf("┃**************************┃");
-        Utils::gotoxy(15, 12);
+        Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
         printf("┗━━━━━━━━━━━━━┛");
     }
-    // mode = 1: 1이면 player 승, 2이면 ai 승
-    else if (mode == 1) {
-        if (winner == 1) {
+    // VS AI 모드: Player 또는 AI 승리
+    else if (mode == GameConstants::GameMode::VS_AI) {
+        if (winner == GameConstants::Winner::PLAYER) {
             Utils::setColor(COLOR::GREEN);
-            Utils::gotoxy(15, 8);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
             printf("┏━━━━━━━━━━━━━┓");
-            Utils::gotoxy(15, 9);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 10);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
             printf("┃*      PLAYER WIN!       *┃");
-            Utils::gotoxy(15, 11);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 12);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
             printf("┗━━━━━━━━━━━━━┛");
         }
-        else if (winner == 2) {
+        else if (winner == GameConstants::Winner::AI) {
             Utils::setColor(COLOR::RED);
-            Utils::gotoxy(15, 8);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
             printf("┏━━━━━━━━━━━━━┓");
-            Utils::gotoxy(15, 9);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 10);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
             printf("┃*       AI WIN!          *┃");
-            Utils::gotoxy(15, 11);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 12);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
             printf("┗━━━━━━━━━━━━━┛");
         }
     }
-    // mode = 2: 1이면 player1 승, 2이면 player2 승
-    else if (mode == 2) {
-        if (winner == 1) {
+    // VS Player 모드: Player1 또는 Player2 승리
+    else if (mode == GameConstants::GameMode::VS_PLAYER) {
+        if (winner == GameConstants::Winner::PLAYER1) {
             Utils::setColor(COLOR::GREEN);
-            Utils::gotoxy(15, 8);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
             printf("┏━━━━━━━━━━━━━┓");
-            Utils::gotoxy(15, 9);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 10);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
             printf("┃*     PLAYER1 WIN!       *┃");
-            Utils::gotoxy(15, 11);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 12);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
             printf("┗━━━━━━━━━━━━━┛");
         }
-        else if (winner == 2) {
+        else if (winner == GameConstants::Winner::PLAYER2) {
             Utils::setColor(COLOR::RED);
-            Utils::gotoxy(15, 8);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
             printf("┏━━━━━━━━━━━━━┓");
-            Utils::gotoxy(15, 9);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 10);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
             printf("┃*     PLAYER2 WIN!       *┃");
-            Utils::gotoxy(15, 11);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
             printf("┃**************************┃");
-            Utils::gotoxy(15, 12);
+            Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
             printf("┗━━━━━━━━━━━━━┛");
         }
     }
 
-    fflush(stdin);
-    Sleep(1000);
+    cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
+    Sleep(GameConstants::Delay::GAME_OVER_WAIT);
 
     _getche();
     system("cls");
@@ -363,28 +412,42 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
     }
     
     board.mergeBlock(block);
-    if (block.getPos().getY() <= 0) { 
+    if (block.getPos().getY() <= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) { 
         board.draw(gamestate.getLevel());
-        return 1;
+        return GameConstants::GameState::GAME_OVER;
     }
     
-    int deletedLines = board.deleteFullLine();
+    auto lineResult = board.deleteFullLine();
+    int deletedLines = lineResult.first; // 총 삭제된 줄 수
+    int attackableLines = lineResult.second; // attack 가능한 줄 수
+    
     if (deletedLines > 0) {
         gamestate.addLines(deletedLines);
         for (int i = 0; i < deletedLines; i++) {
-            int score = 100 + gamestate.getLevel() * 10 + (rand() % 10);
+            int score = GameConstants::Score::BASE_SCORE + gamestate.getLevel() * GameConstants::Score::LEVEL_MULTIPLIER + (rand() % GameConstants::Score::RANDOM_BONUS_MAX);
             gamestate.addScore(score);
         }
+        
+        // Attack 라인 추가 (VS AI 또는 VS Player 모드일 때만)
+        // attack 가능한 줄 수만큼만 attack
+        int gameMode = mover.getGameMode();
+        bool isLeftPlayer = mover.getIsLeftPlayer();
+        if ((gameMode == GameConstants::GameMode::VS_AI || gameMode == GameConstants::GameMode::VS_PLAYER) && attackableLines > 0) {
+            Board* opponentBoard = isLeftPlayer ? Utils::rightPlayerBoard : Utils::leftPlayerBoard;
+            opponentBoard->addAttackLines(attackableLines);
+            opponentBoard->draw(gamestate.getLevel());
+        }
     }
+    
     block = nextBlock;
     block.block_start();
     nextBlock = Block(blockGenerator.make_new_block());
     renderer.show_next_block(nextBlock);
     mover.updateGhost(block);
+    board.draw(gamestate.getLevel());
     renderer.show_cur_block(block);   
-    board.draw(gamestate.getLevel()); 
     
-    return 2;
+    return GameConstants::GameState::BLOCK_LANDED;
 }
 
 //*********************************
@@ -393,7 +456,7 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
 
 void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI) 
 {
-    while (!(is_gameover == 1)) {
+    while (!(is_gameover == GameConstants::GameState::GAME_OVER)) {
         if (_kbhit())
         {
             char keytemp = _getch();
@@ -403,7 +466,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::leftPlayerInputQueue.push(keytemp);
             }
-            else if (keytemp == 32 || keytemp == MENU_QUIT || keytemp == MENU_CONTINUE) {
+            else if (keytemp == GameConstants::Input::SPACE || keytemp == MENU_QUIT || keytemp == MENU_CONTINUE) {
                 std::lock_guard<std::mutex> lock(Utils::inputMutex);
                 Utils::leftPlayerInputQueue.push(keytemp);
             } else if (
@@ -417,19 +480,27 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
                 Utils::rightPlayerInputQueue.push(keytemp);
             }
         }
-        Sleep(1);
+        Sleep(GameConstants::Delay::INPUT_THREAD);
     }
 }
 
 void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
-                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager)
+                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager, int mode)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
-    Position boardOffset(5, 1);
+    
+    // Board 포인터 등록
+    if (isLeft) {
+        Utils::leftPlayerBoard = &board;
+    } else {
+        Utils::rightPlayerBoard = &board;
+    }
+    
+    Position boardOffset(GameConstants::BoardOffset::X, GameConstants::BoardOffset::Y);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, boardOffset, isLeft);
-    BlockMover mover(renderer, board, blockGenerator, gamestate);
+    BlockRender renderer(gamestate, boardOffset, board, isLeft);
+    BlockMover mover(renderer, board, blockGenerator, gamestate, mode, isLeft);
     std::queue<char>& inputQueue = isLeft ? Utils::leftPlayerInputQueue : Utils::rightPlayerInputQueue;
 
     board.init();
@@ -446,11 +517,11 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
     }
     gamestate.show_gamestat(isLeft, true);
 
-    for (int i = 1;; i++) {
+    for (int i = GameConstants::Loop::GAME_LOOP_START;; i++) {
 
         if (isGamePaused) {
             if (!isLeft) {
-                Sleep(10);
+                Sleep(GameConstants::Delay::PAUSE_SLEEP);
                 continue;
             }
         }
@@ -460,13 +531,14 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
             gamestate.show_gamestat(isLeft, true);
             renderer.show_next_block(nextBlock);
             renderer.show_cur_block(curBlock);
+            mover.updateGhost(curBlock);
 
             needRedraw = false;
         }
 
-        if (is_gameover == 1) return;
+        if (is_gameover == GameConstants::GameState::GAME_OVER) return;
 
-        char keytemp = 0;
+        char keytemp = GameConstants::InputInitial::KEY_DEFAULT;
         bool hasInput = false;
         
         {
@@ -487,15 +559,15 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
                 system("cls");
                 Utils::setColor(COLOR::GRAY);
-                Utils::gotoxy(30, 10, true); printf("===== PAUSED =====");
-                Utils::gotoxy(25, 12, true); printf("Press [Q] to Main Menu");
-                Utils::gotoxy(25, 13, true); printf("Press [R] to Resume Game");
+                Utils::gotoxy(GameConstants::UI::PAUSE_MENU_X, GameConstants::UI::PAUSE_MENU_Y, true); printf("===== PAUSED =====");
+                Utils::gotoxy(GameConstants::UI::PAUSE_TEXT_X, GameConstants::UI::PAUSE_TEXT_START_Y, true); printf("Press [Q] to Main Menu");
+                Utils::gotoxy(GameConstants::UI::PAUSE_TEXT_X, GameConstants::UI::PAUSE_TEXT_START_Y + GameConstants::UI::PAUSE_TEXT_OFFSET, true); printf("Press [R] to Resume Game");
 
                 while (true)
                 {
-                    if (is_gameover == 1) break;
+                    if (is_gameover == GameConstants::GameState::GAME_OVER) break;
 
-                    char pauseKey = 0;
+                    char pauseKey = GameConstants::InputInitial::PAUSE_KEY_DEFAULT;
                     bool hasPauseInput = false;
 
                     {
@@ -511,8 +583,8 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                     {
                         if (pauseKey == MENU_QUIT)
                         {
-                            winner = -1;
-                            is_gameover = 1;
+                        winner = GameConstants::Winner::CANCELLED;
+                        is_gameover = GameConstants::GameState::GAME_OVER;
                             isGamePaused = false;
                             return;
                         }
@@ -525,11 +597,12 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                             gamestate.show_gamestat(isLeft, true);
                             renderer.show_next_block(nextBlock);
                             renderer.show_cur_block(curBlock);
+                            mover.updateGhost(curBlock);
                             needRedraw = true;
                             break; 
                         }
                     }
-                    Sleep(10);
+                    Sleep(GameConstants::Delay::PAUSE_SLEEP);
                 }
             }
             
@@ -552,7 +625,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                 is_gameover = mover.move_block(curBlock, nextBlock);
                 gamestate.show_gamestat(isLeft);
                 break;
-            case 32:
+            case GameConstants::Input::SPACE:
             case SEC_DROP:
                 is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
                 gamestate.show_gamestat(isLeft);
@@ -564,7 +637,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
         if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
             is_gameover = mover.move_block(curBlock, nextBlock);
-            if (is_gameover == 2) gamestate.show_gamestat(isLeft);
+            if (is_gameover == GameConstants::GameState::BLOCK_LANDED) gamestate.show_gamestat(isLeft);
         }
 
         // 스테이지 클리어
@@ -572,35 +645,53 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
         {
             gamestate.levelUp();
             board.draw(gamestate.getLevel());
-            if (is_gameover == 2) gamestate.show_gamestat(isLeft);
+            if (is_gameover == GameConstants::GameState::BLOCK_LANDED) gamestate.show_gamestat(isLeft);
             renderer.show_next_block(nextBlock);
         }
 
-        if (is_gameover == 1)
+        if (is_gameover == GameConstants::GameState::GAME_OVER)
         {
             scoreManager.addScore(gamestate.getScore());
-            int expected = 0;
-            winner.compare_exchange_strong(expected, 2); // 0일 때만 2로 설정 (플레이어 게임오버 → AI 승리)
+            int expected = GameConstants::Winner::NONE;
+            winner.compare_exchange_strong(expected, GameConstants::Winner::AI); // 플레이어 게임오버 → AI 승리
             return;
         }
         
-        Sleep(15);
+        Sleep(GameConstants::Delay::GAME_LOOP);
     }
 }
 
 void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner,
-                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw)
+                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, int aiDifficulty)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     // AI Evaluator 초기화
     Evaluator evaluator;
     evaluator.loadWeights(weightsFile, true);
     
+    // 난이도별 설정
+    double epsilon;
+    int delayMs;
+    switch(aiDifficulty) {
+        case GameConstants::AIDifficulty::EASY: epsilon = GameConstants::AIDifficulty::EASY_EPSILON; delayMs = GameConstants::AIDifficulty::EASY_DELAY; break;
+        case GameConstants::AIDifficulty::NORMAL: epsilon = GameConstants::AIDifficulty::NORMAL_EPSILON; delayMs = GameConstants::AIDifficulty::NORMAL_DELAY; break;
+        case GameConstants::AIDifficulty::HARD: epsilon = GameConstants::AIDifficulty::HARD_EPSILON; delayMs = GameConstants::AIDifficulty::HARD_DELAY; break;
+        default: epsilon = GameConstants::AIDifficulty::DEFAULT_EPSILON; delayMs = GameConstants::AIDifficulty::DEFAULT_DELAY; break; // 기본값: Normal
+    }
+    
+    // 랜덤 수 생성기 (epsilon 기반 랜덤 액션 선택용)
+    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+    std::uniform_real_distribution<double> dist(GameConstants::ProbabilityDistribution::MIN, GameConstants::ProbabilityDistribution::MAX);
+    
     Board board(false);  // AI 보드
-    Position boardOffset(5, 1);
+    
+    // Board 포인터 등록
+    Utils::rightPlayerBoard = &board;
+    
+    Position boardOffset(GameConstants::BoardOffset::X, GameConstants::BoardOffset::Y);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, boardOffset, false);
-    BlockMover mover(renderer, board, blockGenerator, gamestate);
+    BlockRender renderer(gamestate, boardOffset, board, false);
+    BlockMover mover(renderer, board, blockGenerator, gamestate, mode, false);
 
     board.init();
     board.draw(gamestate.getLevel());
@@ -619,17 +710,17 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
 
     bool actionInProgress = false;
     Action targetAction;
-    int targetRotation = 0;
-    int targetColumn = 0;
+    int targetRotation = GameConstants::BlockRotation::INITIAL_ROTATION;
+    int targetColumn = GameConstants::DefaultAction::COLUMN;
     
-    // 타이머를 사용한 action 사이 갭 조절
+    // 타이머를 사용한 action 사이 갭 조절 (난이도별 동적 delay)
     auto lastActionTime = std::chrono::steady_clock::now();
-    const auto actionGap = std::chrono::milliseconds(AI_SLEEP);
+    const auto actionGap = std::chrono::milliseconds(delayMs);
 
-    for (int i = 1;; i++) {
+    for (int i = GameConstants::Loop::GAME_LOOP_START;; i++) {
 
         if (isGamePaused) {
-            Sleep(10);
+            Sleep(GameConstants::Delay::PAUSE_LOOP);
             continue;
         }
 
@@ -638,6 +729,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             gamestate.show_gamestat(false, true);
             renderer.show_next_block(nextBlock);
             renderer.show_cur_block(curBlock);
+            mover.updateGhost(curBlock);
 
             needRedraw = false;
         }
@@ -652,10 +744,31 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             // 1. 새로운 행동 결정 (아직 진행 중인 행동이 없다면)
             if (!actionInProgress)
             {
-                auto [bestAction, _] = evaluator.selectBestActionWithLookAhead(board, curBlock, &nextBlock, 1);
-                targetAction = bestAction;
-                targetRotation = bestAction.rotation;
-                targetColumn = bestAction.column;
+                // Epsilon-greedy 정책: epsilon 확률로 랜덤 액션 선택
+                if (dist(rng) < epsilon)
+                {
+                    // Exploration: 유효한 액션 중에서 랜덤 선택
+                    vector<SimulationResult> validActions = ActionSimulator::simulateAllActions(board, curBlock);
+                    if (!validActions.empty())
+                    {
+                        std::uniform_int_distribution<size_t> actionDist(0, validActions.size() - 1);
+                        targetAction = validActions[actionDist(rng)].action;
+                    }
+                    else
+                    {
+                        // 유효한 액션이 없으면 기본 액션 (게임 오버 상황)
+                        targetAction = Action(GameConstants::DefaultAction::ROTATION, GameConstants::DefaultAction::COLUMN);
+                    }
+                }
+                else
+                {
+                    // Exploitation: 최선의 액션 선택
+                    auto [bestAction, _] = evaluator.selectBestActionWithLookAhead(board, curBlock, &nextBlock, GameConstants::LookAhead::DEFAULT_DISCOUNT);
+                    targetAction = bestAction;
+                }
+                
+                targetRotation = targetAction.rotation;
+                targetColumn = targetAction.column;
                 actionInProgress = true;
             }
             
@@ -676,10 +789,10 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             else
             {
                 // 위치와 회전이 맞으면 하드 드롭
-                while (is_gameover == 0)
+                while (is_gameover == GameConstants::GameState::CONTINUE)
                 {
                     is_gameover = mover.move_block(curBlock, nextBlock);
-                    if (is_gameover != 0) break;
+                    if (is_gameover != GameConstants::GameState::CONTINUE) break;
                 }
                 gamestate.show_gamestat(false);
                 actionInProgress = false; // 행동 완료
@@ -698,7 +811,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             gamestate.show_gamestat(false);
             
             // 자동 낙하로 블록이 바닥에 닿았는지 체크
-            if (is_gameover == 2)  // 바닥에 닿음
+            if (is_gameover == GameConstants::GameState::BLOCK_LANDED)  // 바닥에 닿음
             {
                 actionInProgress = false;  // action 취소
                 lastActionTime = std::chrono::steady_clock::now();  // 타이머 리셋
@@ -714,10 +827,10 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             renderer.show_next_block(nextBlock);
         }
 
-        if (is_gameover == 1)
+        if (is_gameover == GameConstants::GameState::GAME_OVER)
         {
-            int expected = 0;
-            if (winner.compare_exchange_strong(expected, 1))  // 0일 때만 1로 설정 (AI 게임오버 → 플레이어 승리)
+            int expected = GameConstants::Winner::NONE;
+            if (winner.compare_exchange_strong(expected, GameConstants::Winner::PLAYER))  // AI 게임오버 → 플레이어 승리
             {
                 return;
             }
@@ -726,10 +839,10 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
 
         {
             std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
-            Utils::gotoxy(77, 23, true);
+            Utils::gotoxy(GameConstants::UI::AI_CURSOR_X, GameConstants::UI::AI_CURSOR_Y, true);
         }
         
-        Sleep(15);
+        Sleep(GameConstants::Delay::GAME_LOOP);
     }
 }
 

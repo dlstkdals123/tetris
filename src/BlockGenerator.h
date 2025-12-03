@@ -7,6 +7,7 @@
 #include "STAGE.h"
 #include "gameState.h"
 #include "Block.h"
+#include "GameConstants.h"
 class BlockGenerator{
 private:
     const gameState& gs;
@@ -16,12 +17,12 @@ public:
     
     BlockType make_new_block()
     {
-        int i = rand()%100;
+        int i = rand() % GameConstants::Probability::MAX_PERCENT;
         STAGE stage_data = STAGE::getStage(gs.getLevel());
         if(i <= stage_data.getStickRate())		
             return BlockType::I;
 
-        int shape = (rand()%6)+1;
+        int shape = (rand() % GameConstants::BlockType::RANDOM_RANGE) + GameConstants::BlockType::RANDOM_OFFSET;
         return static_cast<BlockType> (shape);
     }
 

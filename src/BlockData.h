@@ -6,9 +6,18 @@ enum class BlockType {
     I= 0, O, T, L, J, Z, S
 };
 
+// 블록 모양 배열 크기 상수
+namespace BlockShapeConstants {
+    constexpr int BLOCK_TYPE_COUNT = 7;
+    constexpr int ROTATION_COUNT = 4;
+    constexpr int SHAPE_SIZE = 4;
+    constexpr bool CELL_FILLED = true;
+    constexpr bool CELL_EMPTY = false;
+}
+
 class BlockShape {
 public:
-    inline static const bool SHAPES[7][4][4][4] = {
+    inline static const bool SHAPES[BlockShapeConstants::BLOCK_TYPE_COUNT][BlockShapeConstants::ROTATION_COUNT][BlockShapeConstants::SHAPE_SIZE][BlockShapeConstants::SHAPE_SIZE] = {
         //막대모양
         1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,	1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,	1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,	1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
 

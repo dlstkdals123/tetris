@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Board.h"
+#include "GameConstants.h"
 
 /**
  * FeatureExtractor 클래스
@@ -11,10 +12,10 @@ public:
     struct Features {
         // Bertsekas & Tsitsiklis 논문 스타일 26개 feature (12열 기준)
         // 1. 각 열의 높이 (12개)
-        int columnHeights[12];  // h1, h2, ..., h12
+        int columnHeights[GameConstants::Feature::COLUMN_COUNT];  // h1, h2, ..., h12
         
         // 2. 인접한 열의 높이 차이 (11개)
-        int heightDiffs[11];    // |h1-h2|, |h2-h3|, ..., |h11-h12|
+        int heightDiffs[GameConstants::Feature::HEIGHT_DIFF_COUNT];    // |h1-h2|, |h2-h3|, ..., |h11-h12|
         
         // 3. 최대 높이 (1개)
         int maxHeight;
@@ -26,15 +27,15 @@ public:
         int wells;
         
         Features() {
-            for (int i = 0; i < 12; i++) {
-                columnHeights[i] = 0;
+            for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
+                columnHeights[i] = GameConstants::Feature::INITIAL_VALUE;
             }
-            for (int i = 0; i < 11; i++) {
-                heightDiffs[i] = 0;
+            for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
+                heightDiffs[i] = GameConstants::Feature::INITIAL_VALUE;
             }
-            maxHeight = 0;
-            holes = 0;
-            wells = 0;
+            maxHeight = GameConstants::Feature::INITIAL_VALUE;
+            holes = GameConstants::Feature::INITIAL_VALUE;
+            wells = GameConstants::Feature::INITIAL_VALUE;
         }
     };
 

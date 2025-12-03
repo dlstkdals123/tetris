@@ -1,5 +1,6 @@
 ﻿#include "FeatureExtractor.h"
 #include "BoardConstants.h"
+#include "GameConstants.h"
 #include <iostream>
 #include <cmath>
 
@@ -23,10 +24,10 @@ FeatureExtractor::Features FeatureExtractor::extractFeatures(const Board& board)
     features.maxHeight = maxH;
     
     // 2. 인접한 열의 높이 차이 계산 (11개)
-    for (int i = 0; i < 11; i++)
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++)
     {
         int h1 = features.columnHeights[i];
-        int h2 = features.columnHeights[i + 1];
+        int h2 = features.columnHeights[i + GameConstants::BlockRotation::ROTATION_INCREMENT];
         features.heightDiffs[i] = abs(h1 - h2);
     }
     
@@ -47,7 +48,7 @@ int FeatureExtractor::getColumnHeight(const Board& board, int col)
     // 위에서부터 아래로 스캔하여 첫 번째 블록을 찾음
     for (int row = BoardConstants::MIN_ROW; row < BoardConstants::PLAY_HEIGHT; row++)
     {
-        if (board.getCell(row, col) == 1)
+        if (board.getCell(row, col) == BoardConstants::CELL_FILLED)
         {
             // 높이는 바닥에서부터의 거리
             return BoardConstants::PLAY_HEIGHT - row;
@@ -70,11 +71,11 @@ int FeatureExtractor::countHoles(const Board& board)
         // 위에서 아래로 스캔
         for (int row = BoardConstants::MIN_ROW; row < BoardConstants::PLAY_HEIGHT; row++)
         {
-            if (board.getCell(row, col) == 1)
+            if (board.getCell(row, col) == BoardConstants::CELL_FILLED)
             {
                 blockFound = true;
             }
-            else if (blockFound && board.getCell(row, col) == 0)
+            else if (blockFound && board.getCell(row, col) == BoardConstants::CELL_EMPTY)
             {
                 // 블록을 발견한 후 빈 공간이 나오면 구멍
                 holes++;
@@ -94,7 +95,7 @@ int FeatureExtractor::countRowTransitions(const Board& board)
     for (int row = BoardConstants::MIN_ROW; row < BoardConstants::PLAY_HEIGHT; row++)
     {
         // 벽(0)과 첫 번째 칸 비교
-        int prevCell = 1; // 왼쪽 벽은 채워진 것으로 간주
+        int prevCell = BoardConstants::CELL_FILLED; // 왼쪽 벽은 채워진 것으로 간주
         for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
         {
             int currentCell = board.getCell(row, col);
@@ -105,7 +106,7 @@ int FeatureExtractor::countRowTransitions(const Board& board)
             prevCell = currentCell;
         }
         // 마지막 칸과 오른쪽 벽(13) 비교
-        if (prevCell != 1) // 오른쪽 벽은 채워진 것으로 간주
+        if (prevCell != BoardConstants::CELL_FILLED) // 오른쪽 벽은 채워진 것으로 간주
         {
             transitions++;
         }
@@ -122,7 +123,7 @@ int FeatureExtractor::countColumnTransitions(const Board& board)
     for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
     {
         // 바닥(20)과 첫 번째 칸 비교
-        int prevCell = 1; // 바닥은 채워진 것으로 간주
+        int prevCell = BoardConstants::CELL_FILLED; // 바닥은 채워진 것으로 간주
         for (int row = BoardConstants::MIN_ROW; row < BoardConstants::PLAY_HEIGHT; row++)
         {
             int currentCell = board.getCell(row, col);
@@ -154,11 +155,11 @@ int FeatureExtractor::calculateWells(const Board& board)
             
             // 양옆이 막혀있는지 확인
             bool leftBlocked = (col == BoardConstants::MIN_COLUMN) || 
-                              (board.getCell(row, col - 1) == 1);
+                              (board.getCell(row, col - GameConstants::BlockRotation::ROTATION_INCREMENT) == BoardConstants::CELL_FILLED);
             bool rightBlocked = (col == BoardConstants::MAX_COLUMN) || 
-                               (board.getCell(row, col + 1) == 1);
+                               (board.getCell(row, col + GameConstants::BlockRotation::ROTATION_INCREMENT) == BoardConstants::CELL_FILLED);
             
-            if (currentCell == 0 && leftBlocked && rightBlocked)
+            if (currentCell == BoardConstants::CELL_EMPTY && leftBlocked && rightBlocked)
             {
                 // 우물 안에 있음
                 if (!inWell)
@@ -168,13 +169,13 @@ int FeatureExtractor::calculateWells(const Board& board)
                 }
                 wellDepth++;
             }
-            else if (currentCell == 1)
+            else if (currentCell == BoardConstants::CELL_FILLED)
             {
                 // 블록을 만남 - 우물 종료
                 if (inWell)
                 {
                     // 우물 깊이의 제곱 합 (Dellacherie 스타일)
-                    totalWellDepth += wellDepth * (wellDepth + 1) / 2;
+                    totalWellDepth += wellDepth * (wellDepth + GameConstants::BlockRotation::ROTATION_INCREMENT) / GameConstants::WellCalculation::WELL_FORMULA_DIVISOR;
                     inWell = false;
                     wellDepth = 0;
                 }
@@ -185,7 +186,7 @@ int FeatureExtractor::calculateWells(const Board& board)
                 if (inWell)
                 {
                     // 현재까지의 우물을 종료하고 합산
-                    totalWellDepth += wellDepth * (wellDepth + 1) / 2;
+                    totalWellDepth += wellDepth * (wellDepth + GameConstants::BlockRotation::ROTATION_INCREMENT) / GameConstants::WellCalculation::WELL_FORMULA_DIVISOR;
                     inWell = false;
                     wellDepth = 0;
                 }
@@ -208,17 +209,17 @@ void FeatureExtractor::printFeatures(const Features& features)
     
     // 1. 각 열의 높이 (12개)
     cout << "Column Heights: ";
-    for (int i = 0; i < 12; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::COLUMN_COUNT; i++) {
         cout << features.columnHeights[i];
-        if (i < 11) cout << " ";
+        if (i < GameConstants::Feature::HEIGHT_DIFF_COUNT) cout << " ";
     }
     cout << endl;
     
     // 2. 인접한 열의 높이 차이 (11개)
     cout << "Height Diffs:   ";
-    for (int i = 0; i < 11; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < GameConstants::Feature::HEIGHT_DIFF_COUNT; i++) {
         cout << features.heightDiffs[i];
-        if (i < 10) cout << " ";
+        if (i < GameConstants::Feature::HEIGHT_DIFF_COUNT - GameConstants::BlockRotation::ROTATION_INCREMENT) cout << " ";
     }
     cout << endl;
     
