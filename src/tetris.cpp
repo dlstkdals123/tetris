@@ -450,8 +450,11 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
         bool isLeftPlayer = mover.getIsLeftPlayer();
         if ((gameMode == GameConstants::GameMode::VS_AI || gameMode == GameConstants::GameMode::VS_PLAYER) && attackableLines > 0) {
             Board* opponentBoard = isLeftPlayer ? Utils::rightPlayerBoard : Utils::leftPlayerBoard;
-            opponentBoard->addAttackLines(attackableLines);
-            opponentBoard->draw(gamestate.getLevel());
+
+            if (opponentBoard != nullptr) {
+                opponentBoard->addAttackLines(attackableLines);
+                opponentBoard->draw(gamestate.getLevel());
+            }
         }
     }
     
@@ -505,6 +508,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
+    int localGameOver = GameConstants::GameState::CONTINUE;
     
     // Board 포인터 등록
     if (isLeft) {
@@ -599,8 +603,8 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                     {
                         if (pauseKey == MENU_QUIT)
                         {
-                        winner = GameConstants::Winner::CANCELLED;
-                        is_gameover = GameConstants::GameState::GAME_OVER;
+                            winner = GameConstants::Winner::CANCELLED;
+                            is_gameover = GameConstants::GameState::GAME_OVER;
                             isGamePaused = false;
                             return;
                         }
@@ -638,12 +642,12 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                 break;
             case KEY_DOWN:
             case SEC_DOWN:
-                is_gameover = mover.move_block(curBlock, nextBlock);
+                localGameOver = mover.move_block(curBlock, nextBlock);
                 gamestate.show_gamestat(isLeft);
                 break;
             case GameConstants::Input::SPACE:
             case SEC_DROP:
-                is_gameover = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
+                localGameOver = hard_drop(board, curBlock, nextBlock, blockGenerator, mover, renderer, gamestate);
                 gamestate.show_gamestat(isLeft);
                 break;
             }
@@ -652,8 +656,8 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
         // 자동 낙하
         if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
-            is_gameover = mover.move_block(curBlock, nextBlock);
-            if (is_gameover == GameConstants::GameState::BLOCK_LANDED) gamestate.show_gamestat(isLeft);
+            localGameOver = mover.move_block(curBlock, nextBlock);
+            if (localGameOver == GameConstants::GameState::BLOCK_LANDED) gamestate.show_gamestat(isLeft);
         }
 
         // 스테이지 클리어
@@ -661,15 +665,25 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
         {
             gamestate.levelUp();
             board.draw(gamestate.getLevel());
-            if (is_gameover == GameConstants::GameState::BLOCK_LANDED) gamestate.show_gamestat(isLeft);
+            if (localGameOver == GameConstants::GameState::BLOCK_LANDED) gamestate.show_gamestat(isLeft);
             renderer.show_next_block(nextBlock);
         }
 
-        if (is_gameover == GameConstants::GameState::GAME_OVER)
+        if (localGameOver == GameConstants::GameState::GAME_OVER)
         {
             scoreManager.addScore(gamestate.getScore());
-            int expected = GameConstants::Winner::NONE;
-            winner.compare_exchange_strong(expected, GameConstants::Winner::AI); // 플레이어 게임오버 → AI 승리
+            is_gameover = GameConstants::GameState::GAME_OVER;
+            if (isLeft) {
+                Utils::rightPlayerBoard = nullptr;
+                winner = GameConstants::Winner::AI;
+            } else {
+                Utils::leftPlayerBoard = nullptr;
+                winner = GameConstants::Winner::PLAYER;
+            }
+            return;
+        }
+
+        if (is_gameover == GameConstants::GameState::GAME_OVER) {
             return;
         }
         
@@ -700,6 +714,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     std::uniform_real_distribution<double> dist(GameConstants::ProbabilityDistribution::MIN, GameConstants::ProbabilityDistribution::MAX);
     
     Board board(false);  // AI 보드
+    int localGameOver = GameConstants::GameState::CONTINUE;
     
     // Board 포인터 등록
     Utils::rightPlayerBoard = &board;
@@ -805,10 +820,10 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             else
             {
                 // 위치와 회전이 맞으면 하드 드롭
-                while (is_gameover == GameConstants::GameState::CONTINUE)
+                while (localGameOver == GameConstants::GameState::CONTINUE)
                 {
-                    is_gameover = mover.move_block(curBlock, nextBlock);
-                    if (is_gameover != GameConstants::GameState::CONTINUE) break;
+                    localGameOver = mover.move_block(curBlock, nextBlock);
+                    if (localGameOver != GameConstants::GameState::CONTINUE) break;
                 }
                 gamestate.show_gamestat(false);
                 actionInProgress = false; // 행동 완료
@@ -823,11 +838,11 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
         
         if (i % STAGE::getStage(gamestate.getLevel()).getSpeed() == 0)
         {
-            is_gameover = mover.move_block(curBlock, nextBlock);
+            localGameOver = mover.move_block(curBlock, nextBlock);
             gamestate.show_gamestat(false);
             
             // 자동 낙하로 블록이 바닥에 닿았는지 체크
-            if (is_gameover == GameConstants::GameState::BLOCK_LANDED)  // 바닥에 닿음
+            if (localGameOver == GameConstants::GameState::BLOCK_LANDED)  // 바닥에 닿음
             {
                 actionInProgress = false;  // action 취소
                 lastActionTime = std::chrono::steady_clock::now();  // 타이머 리셋
@@ -843,19 +858,21 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             renderer.show_next_block(nextBlock);
         }
 
-        if (is_gameover == GameConstants::GameState::GAME_OVER)
+        if (localGameOver == GameConstants::GameState::GAME_OVER)
         {
-            int expected = GameConstants::Winner::NONE;
-            if (winner.compare_exchange_strong(expected, GameConstants::Winner::PLAYER))  // AI 게임오버 → 플레이어 승리
-            {
-                return;
-            }
-            return;  // 이미 설정되어 있으면 그냥 리턴
+            winner = GameConstants::Winner::PLAYER;
+            is_gameover = GameConstants::GameState::GAME_OVER;
+            Utils::rightPlayerBoard = nullptr;
+            return;
         }
 
         {
             std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
             Utils::gotoxy(GameConstants::UI::AI_CURSOR_X, GameConstants::UI::AI_CURSOR_Y, true);
+        }
+
+        if (is_gameover == GameConstants::GameState::GAME_OVER) {
+            return;
         }
         
         Sleep(GameConstants::Delay::GAME_LOOP);
