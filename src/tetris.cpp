@@ -1,6 +1,6 @@
 ﻿#include <stdio.h>
-#include <conio.h>
-#include <Windows.h>
+// #include <conio.h>
+// #include <Windows.h>
 #include <time.h>
 #include <iostream>
 
@@ -60,7 +60,7 @@ void show_gameover(int mode, int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager);
+void playerThread(bool isLeft ,gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
 
 int main()
@@ -95,11 +95,8 @@ int main()
 
         if(mode == 0) {
             scoreManager.printTopN(3, 70, 5, true);
-            renderer.draw_next_block_frame(true);
         } else {
             scoreManager.printTopN(3, 40, 22, true);
-            renderer.draw_next_block_frame(true);
-            renderer.draw_next_block_frame(false);
         }
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
@@ -424,7 +421,7 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
+void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
                     std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
