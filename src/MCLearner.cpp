@@ -290,7 +290,8 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
         board.mergeBlock(simBlock);
         
         // 라인 삭제
-        int linesCleared = board.deleteFullLine();
+        auto lineResult = board.deleteFullLine();
+        int linesCleared = lineResult.first; // 총 삭제된 줄 수
         
         // Feature 추출 (Bertsekas & Tsitsiklis 스타일: 26개 feature)
         FeatureExtractor::Features newFeatures = FeatureExtractor::extractFeatures(board);

@@ -153,6 +153,13 @@ void Board::draw(const int &level) const
             {
                 cout << "■";
             }
+            else if (total_block[i][j] == 2)
+            {
+                // Attack 라인은 다른 색상으로 표시 (RED)
+                Utils::setColor(COLOR::RED);
+                cout << "■";
+                Utils::setColor(COLOR::DARK_GRAY);
+            }
             else
             {
                 cout << "  ";
@@ -188,8 +195,8 @@ int Board::isStrike(const Block &block) const
 
             if (y + i >= 0)
             {
-                if (total_block[y + i][x + j] == 1)
-                { // 바닥 or 다른 블록에 닿았는지 검사
+                if (total_block[y + i][x + j] == 1 || total_block[y + i][x + j] == 2)
+                { // 바닥 or 다른 블록(일반 블록 또는 attack 라인)에 닿았는지 검사
                     return 1;
                 }
             }
@@ -219,58 +226,122 @@ void Board::mergeBlock(const Block &block)
     }
 }
 // check_full_line
-int Board::deleteFullLine()
+std::pair<int, int> Board::deleteFullLine()
 {
     std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 
     int i, j, k;
     int deletedLines = 0;
+    int attackableLines = 0; // attack 가능한 줄 수 (1로만 이루어진 줄)
 
     for (i = 0; i < BoardConstants::PLAY_HEIGHT; i++)
     {
+        // 줄이 꽉 찼는지 확인
+        bool isFull = true;
+        bool hasAttackLine = false; // 2가 포함되어 있는지
+        bool hasOnlyOnes = true; // 1로만 이루어져 있는지
+        
         for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
         {
             if (total_block[i][j] == 0)
             {
+                isFull = false;
+                break;
+            }
+            if (total_block[i][j] == 2)
+            {
+                hasAttackLine = true;
+                hasOnlyOnes = false;
+            }
+            else if (total_block[i][j] != 1)
+            {
+                hasOnlyOnes = false;
+            }
+        }
+        
+        if (!isFull) {
+            continue; // 줄이 꽉 차지 않았으면 건너뜀
+        }
+        
+        // 줄이 꽉 찼으면 삭제
+        deletedLines++;
+        
+        // 1로만 이루어진 줄(2가 없음)이면 attack 가능한 줄로 카운트
+        if (hasOnlyOnes && !hasAttackLine) {
+            attackableLines++;
+        }
+        
+        // 2가 포함된 줄도 삭제는 가능 (attack 불가능하지만 삭제는 가능)
+        
+        // 줄 삭제: 위의 줄들을 아래로 이동
+        for (k = i; k > 0; k--)
+        {
+            for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
+            {
+                total_block[k][j] = total_block[k - 1][j];
+            }
+        }
+        for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
+        {
+            total_block[0][j] = 0;
+        }
+        
+        // 삭제 후 인덱스 조정 (한 줄이 삭제되었으므로 i를 다시 확인해야 함)
+        i--; // 다음 반복에서 같은 인덱스를 다시 확인
+    }
+    
+    return std::make_pair(deletedLines, attackableLines);
+}
+
+// Attack 라인 추가 (상대방에게 공격)
+int Board::addAttackLines(int numLines)
+{
+    std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
+    
+    if (numLines <= 0) return 0;
+    
+    // 기존 블록을 위로 밀어냄
+    // 맨 위 블록이 화면 밖으로 나가면 게임오버
+    for (int i = 0; i < numLines; i++) {
+        // 맨 위 줄(row 0)에 블록이 있는지 확인
+        bool hasBlockAtTop = false;
+        for (int j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++) {
+            if (total_block[0][j] != 0) {
+                hasBlockAtTop = true;
                 break;
             }
         }
-        if (j == BoardConstants::RIGHT_WALL)
-        { // 한줄이 다 채워졌을 떄
-            deletedLines++;
-            // show_total_block();
-
-            // Utils::setColor(COLOR::BLUE);
-            // Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
-
-            // for (j = 1; j < 13; j++)
-            // {
-            //     cout << "□";
-            //     cout.flush();
-            //     Sleep(10);
-            // }
-            // Utils::gotoxy(1 * 2 + Utils::ab_x, i + Utils::ab_y, isPlayer);
-            // for (j = 1; j < 13; j++)
-            // {
-            //     cout << "  ";
-            //     cout.flush();
-            //     Sleep(10);
-            // }
-
-            for (k = i; k > 0; k--)
-            {
-                for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
-                {
-                    total_block[k][j] = total_block[k - 1][j];
-                }
-            }
-            for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
-            {
-                total_block[0][j] = 0;
+        
+        if (hasBlockAtTop) {
+            // 게임오버: 맨 위 블록이 화면 밖으로 나감
+            return -1;
+        }
+        
+        // 모든 줄을 위로 한 칸씩 이동
+        for (int row = 0; row < BoardConstants::MAX_ROW; row++) {
+            for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++) {
+                total_block[row][col] = total_block[row + 1][col];
             }
         }
+        
+        // 맨 아래에 attack 라인 추가 (랜덤하게 1칸씩 비워서)
+        // 랜덤하게 한 칸을 선택해서 비움
+        int emptyCol = BoardConstants::MIN_COLUMN + (rand() % BoardConstants::PLAY_WIDTH);
+        
+        for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++) {
+            if (col == emptyCol) {
+                total_block[BoardConstants::MAX_ROW][col] = 0; // 빈 칸
+            } else {
+                total_block[BoardConstants::MAX_ROW][col] = 2; // Attack 라인 (값 2)
+            }
+        }
+        
+        // 벽은 그대로 유지
+        total_block[BoardConstants::MAX_ROW][BoardConstants::LEFT_WALL] = 1;
+        total_block[BoardConstants::MAX_ROW][BoardConstants::RIGHT_WALL] = 1;
     }
-    return deletedLines;
+    
+    return numLines;
 }
 
 // Feature 추출을 위한 접근 함수들

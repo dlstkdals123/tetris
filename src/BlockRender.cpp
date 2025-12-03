@@ -5,7 +5,7 @@
 #include <iostream>
 using namespace std;
 
-BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, bool isLeft): gs(gs), boardOffset(boardOffset), isLeft(isLeft) {};
+BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, Board& board, bool isLeft): gs(gs), boardOffset(boardOffset), board(board), isLeft(isLeft) {};
 
 void BlockRender::show_cur_block(Block& block) {
 	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
@@ -152,7 +152,7 @@ void BlockRender::erase_ghost_block(const Block& block) {
         for (int j = 0; j < 4; ++j) {
             if (j + y < 0) continue;
 
-            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1) {
+            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1 && board.getCell(j + y, i + x) == 0) {
                 Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);

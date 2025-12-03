@@ -34,7 +34,7 @@ using namespace std;
 #define KEY_UP    0x48
 #define KEY_DOWN  0x50
 #define MENU 0x53   // menu
-#define AI_SLEEP  150  // AI 동작 속도
+#define AI_SLEEP  250  // AI 동작 속도
 
 #define SEC_LEFT 'a'
 #define SEC_RIGHT 'd'
@@ -60,8 +60,8 @@ void show_gameover(int mode, int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
-void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw);
+void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode);
+void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode);
 
 int main()
 {
@@ -72,7 +72,7 @@ int main()
     gameState gamestate;
     Position boardOffset(5, 1);
     Board board(true);
-    BlockRender renderer(gamestate, boardOffset);
+    BlockRender renderer(gamestate, boardOffset, board);
 
     ScoreManager scoreManager("scores.txt");
 
@@ -93,14 +93,14 @@ int main()
         gamestate.setLevel(startLevel);
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
-        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
         thread t2;
 
         if (mode == 1) { // vs ai
-            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
         } 
         else if (mode == 2) { // vs player
-            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
+            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
         }
 
         tInput.join();
@@ -337,7 +337,7 @@ void show_gameover(int mode, int winner)
         }
     }
 
-    fflush(stdin);
+    cin.ignore(1024, '\n');
     Sleep(1000);
 
     _getche();
@@ -361,21 +361,35 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
         return 1;
     }
     
-    int deletedLines = board.deleteFullLine();
+    auto lineResult = board.deleteFullLine();
+    int deletedLines = lineResult.first; // 총 삭제된 줄 수
+    int attackableLines = lineResult.second; // attack 가능한 줄 수
+    
     if (deletedLines > 0) {
         gamestate.addLines(deletedLines);
         for (int i = 0; i < deletedLines; i++) {
             int score = 100 + gamestate.getLevel() * 10 + (rand() % 10);
             gamestate.addScore(score);
         }
+        
+        // Attack 라인 추가 (mode=1 또는 mode=2일 때만)
+        // attack 가능한 줄 수만큼만 attack
+        int gameMode = mover.getGameMode();
+        bool isLeftPlayer = mover.getIsLeftPlayer();
+        if ((gameMode == 1 || gameMode == 2) && attackableLines > 0) {
+            Board* opponentBoard = isLeftPlayer ? Utils::rightPlayerBoard : Utils::leftPlayerBoard;
+            opponentBoard->addAttackLines(attackableLines);
+            opponentBoard->draw(gamestate.getLevel());
+        }
     }
+    
     block = nextBlock;
     block.block_start();
     nextBlock = Block(blockGenerator.make_new_block());
     renderer.show_next_block(nextBlock);
     mover.updateGhost(block);
+    board.draw(gamestate.getLevel());
     renderer.show_cur_block(block);   
-    board.draw(gamestate.getLevel()); 
     
     return 2;
 }
@@ -414,14 +428,22 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw) 
+void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode) 
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
+    
+    // Board 포인터 등록
+    if (isLeft) {
+        Utils::leftPlayerBoard = &board;
+    } else {
+        Utils::rightPlayerBoard = &board;
+    }
+    
     Position boardOffset(5, 1);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, boardOffset, isLeft);
-    BlockMover mover(renderer, board, blockGenerator, gamestate);
+    BlockRender renderer(gamestate, boardOffset, board, isLeft);
+    BlockMover mover(renderer, board, blockGenerator, gamestate, mode, isLeft);
     std::queue<char>& inputQueue = isLeft ? Utils::leftPlayerInputQueue : Utils::rightPlayerInputQueue;
 
     board.init();
@@ -453,6 +475,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
             gamestate.show_gamestat(isLeft, true);
             renderer.show_next_block(nextBlock);
             renderer.show_cur_block(curBlock);
+            mover.updateGhost(curBlock);
 
             needRedraw = false;
         }
@@ -518,6 +541,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                             gamestate.show_gamestat(isLeft, true);
                             renderer.show_next_block(nextBlock);
                             renderer.show_cur_block(curBlock);
+                            mover.updateGhost(curBlock);
                             needRedraw = true;
                             break; 
                         }
@@ -581,7 +605,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 }
 
 void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner,
-                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw)
+                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     // AI Evaluator 초기화
@@ -589,10 +613,14 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     evaluator.loadWeights(weightsFile, true);
     
     Board board(false);  // AI 보드
+    
+    // Board 포인터 등록
+    Utils::rightPlayerBoard = &board;
+    
     Position boardOffset(5, 1);
     BlockGenerator blockGenerator(gamestate);
-    BlockRender renderer(gamestate, boardOffset, false);
-    BlockMover mover(renderer, board, blockGenerator, gamestate);
+    BlockRender renderer(gamestate, boardOffset, board, false);
+    BlockMover mover(renderer, board, blockGenerator, gamestate, mode, false);
 
     board.init();
     board.draw(gamestate.getLevel());
@@ -630,6 +658,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             gamestate.show_gamestat(false, true);
             renderer.show_next_block(nextBlock);
             renderer.show_cur_block(curBlock);
+            mover.updateGhost(curBlock);
 
             needRedraw = false;
         }

@@ -2,6 +2,10 @@
 #include "COLOR.h"
 #include <mutex>
 #include <queue>
+
+// Forward declaration
+class Board;
+
 namespace Utils {
   //게임 렌더링 처리용
 	extern std::recursive_mutex gameMutex;
@@ -10,6 +14,10 @@ namespace Utils {
 	extern std::mutex inputMutex;
 	extern std::queue<char> leftPlayerInputQueue;
 	extern std::queue<char> rightPlayerInputQueue;
+	
+	// 상대방 Board 포인터 (attack 라인용)
+	extern Board* leftPlayerBoard;
+	extern Board* rightPlayerBoard;
 
   const int ab_x = 5;
   const int ab_y = 1;

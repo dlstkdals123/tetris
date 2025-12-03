@@ -208,7 +208,7 @@ std::pair<Action, double> Evaluator::selectBestActionWithLookAhead(
         ActionSimulator::moveBlockToPosition(simBlock, currentResult.action.rotation, currentResult.action.column);
         ActionSimulator::dropBlock(simBoard, simBlock);
         simBoard.mergeBlock(simBlock);
-        simBoard.deleteFullLine();  // 라인 삭제
+        simBoard.deleteFullLine();  // 라인 삭제 (반환값 무시)
         
         // 현재 블록 점수
         double currentScore = evaluateResult(currentResult);

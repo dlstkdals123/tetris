@@ -1,9 +1,10 @@
 ﻿#include "BlockMover.h"
 #include "Block.h"
 #include "BoardConstants.h"
+#include "Utils.h"
 
-BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate) 
-		: renderer(renderer), board(board), blockGenerator(blockGenerator), gamestate(gamestate){}
+BlockMover::BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate, int gameMode, bool isLeftPlayer) 
+		: renderer(renderer), board(board), blockGenerator(blockGenerator), gamestate(gamestate), gameMode(gameMode), isLeftPlayer(isLeftPlayer){}
 
 int BlockMover::move_block(Block& block, Block& nextBlock) {
 	std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
@@ -16,12 +17,26 @@ int BlockMover::move_block(Block& block, Block& nextBlock) {
 
         block.moveUp();
         board.mergeBlock(block);
-        int deletedLines = board.deleteFullLine();
+        auto lineResult = board.deleteFullLine();
+        int deletedLines = lineResult.first; // 총 삭제된 줄 수
+        int attackableLines = lineResult.second; // attack 가능한 줄 수
+        
         if(deletedLines > 0 ) {
             gamestate.addLines(deletedLines);
             for(int i=0; i<deletedLines; i++) {
                 int score = 100 + gamestate.getLevel() * 10 + (rand() % 10);
                 gamestate.addScore(score);
+            }
+            
+            // Attack 라인 추가 (mode=1 또는 mode=2일 때만)
+            // attack 가능한 줄 수만큼만 attack
+            if ((gameMode == 1 || gameMode == 2) && attackableLines > 0) {
+                Board* opponentBoard = isLeftPlayer ? Utils::rightPlayerBoard : Utils::leftPlayerBoard;
+                
+                if (opponentBoard != nullptr) {
+                    opponentBoard->addAttackLines(attackableLines);
+                    opponentBoard->draw(gamestate.getLevel());
+                }
             }
         }
         board.draw(gamestate.getLevel());

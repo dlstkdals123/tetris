@@ -67,7 +67,8 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     simBoard.mergeBlock(simBlock);
     
     // 완성된 라인 제거
-    result.linesCleared = simBoard.deleteFullLine();
+    auto lineResult = simBoard.deleteFullLine();
+    result.linesCleared = lineResult.first; // 총 삭제된 줄 수
     
     // Feature 추출 (Bertsekas & Tsitsiklis 스타일: 26개 feature)
     result.features = FeatureExtractor::extractFeatures(simBoard);
