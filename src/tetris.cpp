@@ -100,11 +100,7 @@ int main()
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
-        if(mode == 0) {
-            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_X, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_Y, true);
-        } else {
-            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::VS_MODE_TOP_SCORE_X, GameConstants::ScoreManager::VS_MODE_TOP_SCORE_Y, true);
-        }
+        scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_X, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_Y);
 
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
         thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager), mode);
@@ -113,7 +109,7 @@ int main()
         if (mode == GameConstants::GameMode::VS_AI) {
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode, aiDifficulty);
         } 
-        else if (mode == 2) { // vs player
+        else if (mode == GameConstants::GameMode::VS_PLAYER) {
             t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager), mode);
         }
 
@@ -283,7 +279,7 @@ void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
     Utils::gotoxy(GameConstants::UI::LOGO_TEXT_X, GameConstants::UI::LOGO_TEXT_Y);
     printf("Please Press Any Key~!");
 
-    scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::LOGO_TOP_SCORE_X + 30, GameConstants::UI::LOGO_TOP_Y, true);
+    scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::LOGO_TOP_SCORE_X + 30, GameConstants::UI::LOGO_TOP_Y);
 
     for (i = 0;; ++i)
     {

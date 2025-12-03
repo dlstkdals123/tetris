@@ -71,36 +71,33 @@ vector<int> ScoreManager::getTopN(int n) const
     
 }
 
-void ScoreManager::printTopN(int n, int x, int y, bool isPlayer)
+void ScoreManager::printTopN(int n, int x, int y)
 {
     auto top = getTopN(n);
 
     Utils::setColor(COLOR::GRAY);
 
     int boxWidth = 14;
-    int boxHeight = static_cast<int>(top.size()) + 4;
-    int boxRight = x + boxWidth - 1;
-    int boxBottom = y + boxHeight - 1;
 
     // 상단
-    Utils::gotoxy(x, y, isPlayer);
+    Utils::gotoxy(x, y);
     printf("┏");
     for (int i = 0; i < boxWidth - 2; ++i) printf("━");
     printf("┓");
 
     // 제목줄
-    Utils::gotoxy(x, y + 1, isPlayer);
+    Utils::gotoxy(x, y + 1);
     printf("┃ TOP %2d      ┃", n);
 
     // 구분선
-    Utils::gotoxy(x, y + 2, isPlayer);
+    Utils::gotoxy(x, y + 2);
     printf("┣");
     for (int i = 0; i < boxWidth - 2; ++i) printf("━");
     printf("┫");
 
     // 점수
     for (int i = 0; i < n; ++i) {
-        Utils::gotoxy(x, y + 3 + i, isPlayer);
+        Utils::gotoxy(x, y + 3 + i);
         if (i < top.size()) {
             printf("┃%2d.%7d  ┃",
                 i + GameConstants::ScoreManager::RANK_OFFSET,
@@ -112,7 +109,7 @@ void ScoreManager::printTopN(int n, int x, int y, bool isPlayer)
     }
 
     // 하단
-    Utils::gotoxy(x, y + 3 + n, isPlayer);
+    Utils::gotoxy(x, y + 3 + n);
     printf("┗");
     for (int i = 0; i < boxWidth - 2; ++i) printf("━");
     printf("┛");

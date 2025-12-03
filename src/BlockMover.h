@@ -10,7 +10,7 @@ private:
     Board& board;
     BlockGenerator& blockGenerator;
     gameState& gamestate;
-    int gameMode; // 0: single, 1: vs ai, 2: vs player
+    int gameMode; // 1: single, 2: vs ai, 3: vs player
     bool isLeftPlayer; // true: left player, false: right player/AI
 
     Block ghostBlock;

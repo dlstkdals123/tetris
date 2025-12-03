@@ -15,5 +15,5 @@ public:
 
     void addScore(int score);
     vector<int> getTopN(int n) const;
-    void printTopN(int n, int x, int y, bool isPlayer);
+    void printTopN(int n, int x, int y);
 };
