@@ -64,7 +64,7 @@ void show_gameover(int mode, int winner);
 
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode);
+void playerThread(bool isLeft ,gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, ScoreManager& scoreManager, int mode);
 void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, int aiDifficulty);
 
 int main()
@@ -83,6 +83,7 @@ int main()
     while (1)
     {
         show_logo(renderer);
+        scoreManager.printTopN(3,70,5,true);
         std::atomic<int> is_gameover(GameConstants::GameState::CONTINUE);
         std::atomic<bool> stopAI(false);
         std::atomic<int> winner(GameConstants::Winner::NONE);
@@ -100,15 +101,21 @@ int main()
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
+        if(mode == 0) {
+            scoreManager.printTopN(3, 70, 5, true);
+        } else {
+            scoreManager.printTopN(3, 40, 22, true);
+        }
+
         thread tInput = thread(inputThread, std::ref(is_gameover), std::ref(stopAI));
-        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
+        thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), std::ref(scoreManager), mode);
         thread t2;
 
         if (mode == GameConstants::GameMode::VS_AI) {
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode, aiDifficulty);
         } 
-        else if (mode == GameConstants::GameMode::VS_PLAYER) {
-            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
+        else if (mode == 2) { // vs player
+            t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw));
         }
 
         tInput.join();
@@ -476,7 +483,8 @@ void inputThread(std::atomic<int>& is_gameover, std::atomic<bool>& stopAI)
     }
 }
 
-void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode) 
+void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameover, std::atomic<int>& winner, 
+                    std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, ScoreManager& scoreManager)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     Board board(isLeft);
@@ -496,7 +504,6 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
     board.init();
     board.draw(gamestate.getLevel());
-
     Block curBlock(blockGenerator.make_new_block());
     Block nextBlock(blockGenerator.make_new_block());
 
@@ -643,6 +650,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 
         if (is_gameover == GameConstants::GameState::GAME_OVER)
         {
+            scoreManager.addScore(gamestate.getScore());
             int expected = GameConstants::Winner::NONE;
             winner.compare_exchange_strong(expected, GameConstants::Winner::AI); // 플레이어 게임오버 → AI 승리
             return;

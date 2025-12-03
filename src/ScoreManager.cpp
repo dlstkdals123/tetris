@@ -4,8 +4,7 @@
 #include <fstream>
 #include <algorithm>
 
-ScoreManager::ScoreManager(const std::string& fileName)
-    : fileName(fileName)
+ScoreManager::ScoreManager(const std::string& fileName): fileName(fileName)
 {
     loadFromFile();
 }
@@ -16,7 +15,7 @@ void ScoreManager::loadFromFile()
     ifstream fin(fileName);
 
     if (!fin.is_open()) {
-        // 파일이 없으면 생성만 하고 끝냄
+        // 파일 없으면 생성
         ofstream createFile(fileName);
         return;
     }
@@ -30,6 +29,9 @@ void ScoreManager::loadFromFile()
 
     // 내림차순 정렬
     std::sort(scores.begin(), scores.end(), greater<int>());
+    if (scores.size() > 10) {
+        scores.resize(10);
+    }
 }
 
 void ScoreManager::saveToFile() const
@@ -47,7 +49,7 @@ void ScoreManager::addScore(int score)
 {
     scores.push_back(score);
 
-    // 최신 점수 반영
+    // 최신 점수 반영, 정렬
     sort(scores.begin(), scores.end(), greater<int>());
 
     // 필요하면 상위 100개 정도만 유지
@@ -61,10 +63,12 @@ void ScoreManager::addScore(int score)
 vector<int> ScoreManager::getTopN(int n) const
 {
     vector<int> top;
-    for (int i = 0; i < n && i < scores.size(); ++i) {
+    int size = static_cast<int>(scores.size());
+    for (int i = 0; i < n && i < size; ++i) {
         top.push_back(scores[i]);
     }
     return top;
+    
 }
 
 void ScoreManager::printTopN(int n, int x, int y, bool isPlayer)
