@@ -399,15 +399,33 @@ void show_gameover(int mode, int winner)
 int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &blockGenerator, BlockMover &mover, BlockRender &renderer, gameState &gamestate) {
     renderer.erase_cur_block(block);
 
-    while (true) {
-        block.moveDown();  
-        if (board.isStrike(block)) {
+    // 현재 위치에서 이미 충돌하는지 확인 (공격 라인으로 인한 충돌)
+    if (board.isStrike(block) == BoardConstants::STRIKE_TRUE) {
+        // 공격 라인이 올라와서 블록과 겹친 상황
+        // 충돌이 해소될 때까지 한 칸씩 위로 이동
+        while (board.isStrike(block) == BoardConstants::STRIKE_TRUE) {
             block.moveUp();
-            break;
+            
+            // 게임오버 체크 (블록이 화면 밖으로 나갔는지)
+            if (block.getPos().getY() <= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) {
+                board.draw(gamestate.getLevel());
+                return GameConstants::GameState::GAME_OVER;
+            }
         }
+        // 충돌이 해소되었으므로, 블록이 바닥에 부딪힌 것처럼 착지 처리
+        board.mergeBlock(block);
+    } else {
+        // 기존 로직: 바닥까지 떨어뜨림
+        while (true) {
+            block.moveDown();  
+            if (board.isStrike(block)) {
+                block.moveUp();
+                break;
+            }
+        }
+        
+        board.mergeBlock(block);
     }
-    
-    board.mergeBlock(block);
     if (block.getPos().getY() <= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) { 
         board.draw(gamestate.getLevel());
         return GameConstants::GameState::GAME_OVER;
