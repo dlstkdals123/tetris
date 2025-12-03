@@ -14,7 +14,7 @@ void ScoreManager::loadFromFile()
     ifstream fin(fileName);
 
     if (!fin.is_open()) {
-        // 파일이 없으면 생성만 하고 끝냄
+        // 파일 없으면 생성
         ofstream createFile(fileName);
         return;
     }
@@ -48,7 +48,7 @@ void ScoreManager::addScore(int score)
 {
     scores.push_back(score);
 
-    // 최신 점수 반영
+    // 최신 점수 반영, 정렬
     sort(scores.begin(), scores.end(), greater<int>());
 
     if (scores.size() > 10) {
