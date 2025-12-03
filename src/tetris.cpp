@@ -73,7 +73,7 @@ int main()
 {
     srand(static_cast<unsigned int>(time(nullptr)));
     
-    string weightsFile = "initial_weights.txt";
+    string weightsFile = "initial_weights_ver2.0.txt";
 
     gameState gamestate;
     Position boardOffset(GameConstants::BoardOffset::X, GameConstants::BoardOffset::Y);
@@ -391,9 +391,9 @@ void show_gameover(int mode, int winner)
         }
     }
 
-    cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
     Sleep(GameConstants::Delay::GAME_OVER_WAIT);
 
+    cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
     _getche();
     system("cls");
 }
