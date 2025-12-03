@@ -92,9 +92,9 @@ int main()
         Utils::rightPlayerInputQueue = queue<char>();
         gamestate.resetState();
 
-        int mode = input_mode(); // 0: single, 1: vs ai, 2: vs player
+        int mode = input_mode(); // 1: single, 2: vs ai, 3: vs player
         int aiDifficulty = 2; // 기본값: Normal
-        if (mode == 1) { // vs ai
+        if (mode == 2) { // vs ai
             aiDifficulty = input_ai_difficulty();
         }
         int startLevel = input_data();
@@ -104,10 +104,10 @@ int main()
         thread t1 = thread(playerThread, true, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
         thread t2;
 
-        if (mode == 1) { // vs ai
+        if (mode == 2) { // vs ai
             t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode, aiDifficulty);
         } 
-        else if (mode == 2) { // vs player
+        else if (mode == 3) { // vs player
             t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
         }
 
@@ -129,21 +129,21 @@ int input_mode() {
     printf("┏━━━━<GAME MODE>━━━━┓");
     Sleep(10);
     Utils::gotoxy(10, 4);
-    printf("┃ 0: Single Player       ┃");
+    printf("┃ 1: Single Player       ┃");
     Sleep(10);
     Utils::gotoxy(10, 5);
-    printf("┃ 1: VS AI               ┃");
+    printf("┃ 2: VS AI               ┃");
     Sleep(10);
     Utils::gotoxy(10, 6);
-    printf("┃ 2: VS Player           ┃");
+    printf("┃ 3: VS Player           ┃");
     Sleep(10);
     Utils::gotoxy(10, 7);
     printf("┗━━━━━━━━━━━━━━━━━━┛");
     Sleep(10);
 
-    while (mode < 0 || mode > 2) {
+    while (mode < 1 || mode > 3) {
         Utils::gotoxy(10, 9);
-        printf("Select Mode[0-2]:       \b\b\b\b\b\b\b");
+        printf("Select Mode[1-3]:       \b\b\b\b\b\b\b");
         cin >> mode;
         if (cin.fail())
         {
@@ -312,8 +312,8 @@ void show_gameover(int mode, int winner)
     if (winner == -1)
         return;
 
-    // mode = 0: 무조건 게임오버 메시지
-    if (mode == 0) {
+    // mode = 1: 무조건 게임오버 메시지
+    if (mode == 1) {
         Utils::setColor(COLOR::YELLOW);
         Utils::gotoxy(15, 8);
         printf("┏━━━━━━━━━━━━━┓");
@@ -326,8 +326,8 @@ void show_gameover(int mode, int winner)
         Utils::gotoxy(15, 12);
         printf("┗━━━━━━━━━━━━━┛");
     }
-    // mode = 1: 1이면 player 승, 2이면 ai 승
-    else if (mode == 1) {
+    // mode = 2: 1이면 player 승, 2이면 ai 승
+    else if (mode == 2) {
         if (winner == 1) {
             Utils::setColor(COLOR::GREEN);
             Utils::gotoxy(15, 8);
@@ -355,8 +355,8 @@ void show_gameover(int mode, int winner)
             printf("┗━━━━━━━━━━━━━┛");
         }
     }
-    // mode = 2: 1이면 player1 승, 2이면 player2 승
-    else if (mode == 2) {
+    // mode = 3: 1이면 player1 승, 2이면 player2 승
+    else if (mode == 3) {
         if (winner == 1) {
             Utils::setColor(COLOR::GREEN);
             Utils::gotoxy(15, 8);
@@ -420,11 +420,11 @@ int hard_drop(Board &board, Block &block, Block &nextBlock, BlockGenerator &bloc
             gamestate.addScore(score);
         }
         
-        // Attack 라인 추가 (mode=1 또는 mode=2일 때만)
+        // Attack 라인 추가 (mode=2 또는 mode=3일 때만)
         // attack 가능한 줄 수만큼만 attack
         int gameMode = mover.getGameMode();
         bool isLeftPlayer = mover.getIsLeftPlayer();
-        if ((gameMode == 1 || gameMode == 2) && attackableLines > 0) {
+        if ((gameMode == 2 || gameMode == 3) && attackableLines > 0) {
             Board* opponentBoard = isLeftPlayer ? Utils::rightPlayerBoard : Utils::leftPlayerBoard;
             opponentBoard->addAttackLines(attackableLines);
             opponentBoard->draw(gamestate.getLevel());

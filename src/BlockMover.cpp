@@ -28,9 +28,9 @@ int BlockMover::move_block(Block& block, Block& nextBlock) {
                 gamestate.addScore(score);
             }
             
-            // Attack 라인 추가 (mode=1 또는 mode=2일 때만)
+            // Attack 라인 추가 (mode=2 또는 mode=3일 때만)
             // attack 가능한 줄 수만큼만 attack
-            if ((gameMode == 1 || gameMode == 2) && attackableLines > 0) {
+            if ((gameMode == 2 || gameMode == 3) && attackableLines > 0) {
                 Board* opponentBoard = isLeftPlayer ? Utils::rightPlayerBoard : Utils::leftPlayerBoard;
                 
                 if (opponentBoard != nullptr) {
