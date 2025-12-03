@@ -21,6 +21,8 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <random>
+#include <vector>
 
 using namespace std;
 
@@ -51,6 +53,8 @@ using namespace std;
 
 // 게임 모드 입력
 int input_mode();
+// AI 난이도 입력
+int input_ai_difficulty();
 // 시작 레벨 입력
 int input_data();
 // 로고 화면 + 랜덤 블록 애니메이션
@@ -61,7 +65,7 @@ void show_gameover(int mode, int winner);
 // 스레드 함수
 void inputThread(std::atomic<int> &is_gameover, std::atomic<bool> &stopAI);
 void playerThread(bool isLeft, gameState gamestate, std::atomic<int> &is_gameover, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode);
-void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode);
+void aiThread(gameState gamestate, std::atomic<int> &is_gameover, std::atomic<bool> &stopAI, const string& weightsFile, std::atomic<int> &winner, std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, int aiDifficulty);
 
 int main()
 {
@@ -89,6 +93,10 @@ int main()
         gamestate.resetState();
 
         int mode = input_mode(); // 0: single, 1: vs ai, 2: vs player
+        int aiDifficulty = 2; // 기본값: Normal
+        if (mode == 1) { // vs ai
+            aiDifficulty = input_ai_difficulty();
+        }
         int startLevel = input_data();
         gamestate.setLevel(startLevel);
 
@@ -97,7 +105,7 @@ int main()
         thread t2;
 
         if (mode == 1) { // vs ai
-            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
+            t2 = thread(aiThread, gamestate, std::ref(is_gameover), std::ref(stopAI), weightsFile, std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode, aiDifficulty);
         } 
         else if (mode == 2) { // vs player
             t2 = thread(playerThread, false, gamestate, std::ref(is_gameover), std::ref(winner), std::ref(isGamePaused), std::ref(needRedraw), mode);
@@ -147,6 +155,46 @@ int input_mode() {
     system("cls");
 
     return mode;
+}
+
+int input_ai_difficulty() {
+    int difficulty = -1;
+    
+    // 이전 입력 버퍼에 남아있는 개행 문자 제거
+    cin.ignore(1024, '\n');
+    
+    Utils::setColor(COLOR::GRAY);
+    
+    Utils::gotoxy(10, 3);
+    printf("┏━━━━<AI DIFFICULTY>━━━━┓");
+    Sleep(10);
+    Utils::gotoxy(10, 4);
+    printf("┃ 1: Easy                ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 5);
+    printf("┃ 2: Normal              ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 6);
+    printf("┃ 3: Hard                ┃");
+    Sleep(10);
+    Utils::gotoxy(10, 7);
+    printf("┗━━━━━━━━━━━━━━━━━━━━┛");
+    Sleep(10);
+    
+    while (difficulty < 1 || difficulty > 3) {
+        Utils::gotoxy(10, 9);
+        printf("Select AI Difficulty[1-3]:       \b\b\b\b\b\b\b");
+        cin >> difficulty;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(1024, '\n');
+            continue;
+        }
+    }
+    system("cls");
+    
+    return difficulty;
 }
 
 int input_data() {
@@ -605,12 +653,26 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
 }
 
 void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bool>& stopAI, const string& weightsFile, std::atomic<int>& winner,
-                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode)
+                std::atomic<bool>& isGamePaused, std::atomic<bool>& needRedraw, int mode, int aiDifficulty)
 {
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     // AI Evaluator 초기화
     Evaluator evaluator;
     evaluator.loadWeights(weightsFile, true);
+    
+    // 난이도별 설정
+    double epsilon;
+    int delayMs;
+    switch(aiDifficulty) {
+        case 1: epsilon = 0.3; delayMs = 500; break; // Easy
+        case 2: epsilon = 0.1; delayMs = 250; break; // Normal  
+        case 3: epsilon = 0.0; delayMs = 150; break; // Hard
+        default: epsilon = 0.1; delayMs = 250; break; // 기본값: Normal
+    }
+    
+    // 랜덤 수 생성기 (epsilon 기반 랜덤 액션 선택용)
+    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
     
     Board board(false);  // AI 보드
     
@@ -642,9 +704,9 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     int targetRotation = 0;
     int targetColumn = 0;
     
-    // 타이머를 사용한 action 사이 갭 조절
+    // 타이머를 사용한 action 사이 갭 조절 (난이도별 동적 delay)
     auto lastActionTime = std::chrono::steady_clock::now();
-    const auto actionGap = std::chrono::milliseconds(AI_SLEEP);
+    const auto actionGap = std::chrono::milliseconds(delayMs);
 
     for (int i = 1;; i++) {
 
@@ -673,10 +735,31 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             // 1. 새로운 행동 결정 (아직 진행 중인 행동이 없다면)
             if (!actionInProgress)
             {
-                auto [bestAction, _] = evaluator.selectBestActionWithLookAhead(board, curBlock, &nextBlock, 1);
-                targetAction = bestAction;
-                targetRotation = bestAction.rotation;
-                targetColumn = bestAction.column;
+                // Epsilon-greedy 정책: epsilon 확률로 랜덤 액션 선택
+                if (dist(rng) < epsilon)
+                {
+                    // Exploration: 유효한 액션 중에서 랜덤 선택
+                    vector<SimulationResult> validActions = ActionSimulator::simulateAllActions(board, curBlock);
+                    if (!validActions.empty())
+                    {
+                        std::uniform_int_distribution<size_t> actionDist(0, validActions.size() - 1);
+                        targetAction = validActions[actionDist(rng)].action;
+                    }
+                    else
+                    {
+                        // 유효한 액션이 없으면 기본 액션 (게임 오버 상황)
+                        targetAction = Action(0, 5);
+                    }
+                }
+                else
+                {
+                    // Exploitation: 최선의 액션 선택
+                    auto [bestAction, _] = evaluator.selectBestActionWithLookAhead(board, curBlock, &nextBlock, 1);
+                    targetAction = bestAction;
+                }
+                
+                targetRotation = targetAction.rotation;
+                targetColumn = targetAction.column;
                 actionInProgress = true;
             }
             
