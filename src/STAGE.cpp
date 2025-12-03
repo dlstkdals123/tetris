@@ -1,4 +1,5 @@
 ﻿#include "STAGE.h"
+#include "GameConstants.h"
 
 // 매개변수 생성자
 STAGE::STAGE(int sp, int sr, int cl)
@@ -14,7 +15,7 @@ STAGE STAGE::getStage (int level) {
 }
 
 // 순서대로 speed, stick_rate, clear_line
-const STAGE STAGE::stage_data[10] = {
+const STAGE STAGE::stage_data[GameConstants::Stage::COUNT] = {
     STAGE(40, 20, 20),       // Level 1
     STAGE(38, 18, 20),       // Level 2
     STAGE(35, 18, 20),       // Level 3

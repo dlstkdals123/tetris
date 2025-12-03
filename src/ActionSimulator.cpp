@@ -1,6 +1,7 @@
 ﻿#include "ActionSimulator.h"
 #include "BlockData.h"
 #include "BoardConstants.h"
+#include "GameConstants.h"
 #include <vector>
 
 std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType)
@@ -8,11 +9,11 @@ std::vector<Action> ActionSimulator::generatePossibleActions(BlockType blockType
     std::vector<Action> actions;
     
     // 블록 타입에 따른 회전 수 결정
-    int numRotations = 4;
+    int numRotations = GameConstants::BlockRotation::MAX_ROTATIONS;
     if (blockType == BlockType::O) {
-        numRotations = 1; // O 블록은 회전해도 같음
+        numRotations = GameConstants::BlockRotation::O_BLOCK_ROTATIONS;
     } else if (blockType == BlockType::I || blockType == BlockType::S || blockType == BlockType::Z) {
-        numRotations = 2; // I, S, Z는 2개의 고유한 회전만 있음
+        numRotations = GameConstants::BlockRotation::I_S_Z_BLOCK_ROTATIONS;
     }
     
     // 각 회전에 대해
@@ -31,13 +32,13 @@ SimulationResult ActionSimulator::simulateAction(const Board& board, const Block
     result.action = action;
     result.isValid = false;
     result.gameOver = false;
-    result.linesCleared = 0;
+    result.linesCleared = GameConstants::Simulation::INITIAL_LINES_CLEARED;
     
     // 보드 복사
     Board simBoard(board);
     
     // 블록 복사 및 초기 위치 설정
-    Block simBlock(block.getType(), Rotation(0), 
+    Block simBlock(block.getType(), Rotation(GameConstants::BlockRotation::INITIAL_ROTATION), 
                    Position(BoardConstants::BLOCK_START_X, BoardConstants::BLOCK_START_Y));
     
     // 회전 시도 (보드 충돌 체크 포함)
@@ -121,7 +122,7 @@ bool ActionSimulator::dropBlock(const Board& board, Block& block)
             
             // 블록이 화면 위에 있으면 게임 오버
             const Position& pos = block.getPos();
-            if (pos.getY() < 0)
+            if (pos.getY() < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
             {
                 return false; // 게임 오버
             }
@@ -133,7 +134,7 @@ bool ActionSimulator::dropBlock(const Board& board, Block& block)
 
 bool ActionSimulator::isValidPosition(const Board& board, const Block& block)
 {
-    return board.isStrike(block) == 0;
+    return board.isStrike(block) == GameConstants::Simulation::NO_COLLISION;
 }
 
 bool ActionSimulator::rotateBlock(const Board& board, Block& block, int targetRotation)
@@ -141,11 +142,11 @@ bool ActionSimulator::rotateBlock(const Board& board, Block& block, int targetRo
     // 목표 회전까지 회전 시도
     for (int i = 0; i < targetRotation; i++)
     {
-        Rotation next_rotation(block.getRotation() + 1);
+        Rotation next_rotation(block.getRotation() + GameConstants::BlockRotation::ROTATION_INCREMENT);
         Block testBlock(block.getType(), next_rotation, block.getPos());
         
         // 회전 가능 여부 확인
-        if (board.isStrike(testBlock) == 0)
+        if (board.isStrike(testBlock) == GameConstants::Simulation::NO_COLLISION)
         {
             block.rotate();
         }

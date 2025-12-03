@@ -2,11 +2,13 @@
 #include "gameState.h"
 #include "Block.h"
 #include "Board.h"
+#include "GameConstants.h"
+#include "BoardConstants.h"
 
 class BlockRender {
 private:
     const gameState& gs;
-    const Position& boardOffset{5,1};
+    const Position& boardOffset{GameConstants::BoardOffset::X, GameConstants::BoardOffset::Y};
     Board& board;
     bool isLeft;
 

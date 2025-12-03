@@ -2,6 +2,7 @@
 
 #include "FeatureExtractor.h"
 #include "ActionSimulator.h"
+#include "GameConstants.h"
 #include <vector>
 #include <string>
 
@@ -21,10 +22,10 @@ public:
     struct Weights {
         // Bertsekas & Tsitsiklis 논문 스타일: 26개 feature (12열 기준)
         // 1. 각 열의 높이 가중치 (12개)
-        double columnHeights[12];
+        double columnHeights[GameConstants::Feature::COLUMN_COUNT];
         
         // 2. 인접한 열의 높이 차이 가중치 (11개)
-        double heightDiffs[11];
+        double heightDiffs[GameConstants::Feature::HEIGHT_DIFF_COUNT];
         
         // 3. 최대 높이 가중치 (1개)
         double maxHeight;
@@ -39,7 +40,7 @@ public:
         Weights();
         
         // 커스텀 가중치로 생성
-        Weights(const double heights[12], const double diffs[11],
+        Weights(const double heights[GameConstants::Feature::COLUMN_COUNT], const double diffs[GameConstants::Feature::HEIGHT_DIFF_COUNT],
                 double maxH, double holes, double wells);
     };
     
@@ -90,7 +91,7 @@ public:
         const Board& board, 
         const Block& currentBlock, 
         const Block* nextBlock = nullptr,
-        double lookAheadDiscount = 1.0) const;
+        double lookAheadDiscount = GameConstants::Evaluator::DEFAULT_LOOK_AHEAD_DISCOUNT) const;
     
     /**
      * 가능한 모든 액션을 평가하고 정렬된 결과를 반환합니다.

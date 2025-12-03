@@ -1,5 +1,6 @@
 ﻿#include "ScoreManager.h"
 #include "Utils.h"
+#include "GameConstants.h"
 #include <fstream>
 #include <algorithm>
 
@@ -50,8 +51,8 @@ void ScoreManager::addScore(int score)
     sort(scores.begin(), scores.end(), greater<int>());
 
     // 필요하면 상위 100개 정도만 유지
-    if (scores.size() > 100) {
-        scores.resize(100);
+    if (scores.size() > GameConstants::ScoreManager::MAX_SCORES) {
+        scores.resize(GameConstants::ScoreManager::MAX_SCORES);
     }
 
     saveToFile();
@@ -75,8 +76,8 @@ void ScoreManager::printTopN(int n, int x, int y, bool isPlayer)
     printf("=== TOP %d ===", n);
 
     for (int i = 0; i < top.size(); ++i) {
-        Utils::gotoxy(x, y + 1 + i, isPlayer);
-        printf("%d. %d", i + 1, top[i]);
+        Utils::gotoxy(x, y + GameConstants::ScoreManager::TOP_SCORE_OFFSET + i, isPlayer);
+        printf("%d. %d", i + GameConstants::ScoreManager::RANK_OFFSET, top[i]);
     }
 
     Utils::setColor(COLOR::WHITE);

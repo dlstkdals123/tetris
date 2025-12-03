@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "COLOR.h"
+#include "GameConstants.h"
 #include <mutex>
 #include <queue>
 
@@ -19,8 +20,8 @@ namespace Utils {
 	extern Board* leftPlayerBoard;
 	extern Board* rightPlayerBoard;
 
-  const int ab_x = 5;
-  const int ab_y = 1;
+  const int ab_x = GameConstants::BoardOffset::X;
+  const int ab_y = GameConstants::BoardOffset::Y;
   int gotoxy(int x, int y, bool isLeft = true);
   void setColor(int color);
   void setColor(COLOR color);

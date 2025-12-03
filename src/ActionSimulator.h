@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "Block.h"
 #include "FeatureExtractor.h"
+#include "GameConstants.h"
 #include <vector>
 
 /**
@@ -13,7 +14,7 @@ struct Action {
     int rotation;      // 회전 각도 (0, 1, 2, 3)
     int column;        // 목표 열 위치 (1~12)
     
-    Action(int rot = 0, int col = 5) : rotation(rot), column(col) {}
+    Action(int rot = GameConstants::DefaultAction::ROTATION, int col = GameConstants::DefaultAction::COLUMN) : rotation(rot), column(col) {}
 };
 
 /**
@@ -27,7 +28,7 @@ struct SimulationResult {
     bool isValid;                           // 유효한 액션인지 여부
     bool gameOver;                          // 게임 오버 여부
     
-    SimulationResult() : linesCleared(0), isValid(false), gameOver(false) {}
+    SimulationResult() : linesCleared(GameConstants::Simulation::INITIAL_LINES_CLEARED), isValid(false), gameOver(false) {}
 };
 
 /**

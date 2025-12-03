@@ -1,15 +1,16 @@
 ﻿#include "gameState.h"
+#include "GameConstants.h"
 #include <cstdio>
 
 // 생성자
-gameState::gameState() : level(0), score(0), line(0) {
+gameState::gameState() : level(GameConstants::GameStateInitial::INITIAL_LEVEL), score(GameConstants::GameStateInitial::INITIAL_SCORE), line(GameConstants::GameStateInitial::INITIAL_LINES) {
 }
 
 // 초기화 함수 (gameover시 사용)
 void gameState::resetState() {
-    level = 0;
-    score = 0;
-    line = 0;
+    level = GameConstants::GameStateInitial::INITIAL_LEVEL;
+    score = GameConstants::GameStateInitial::INITIAL_SCORE;
+    line = GameConstants::GameStateInitial::INITIAL_LINES;
 }
 
 // Getter 메서드
@@ -33,13 +34,13 @@ void gameState::addLines(int amount) {
 
 // 레벨을 1 올리고 라인을 0으로 초기화
 void gameState::levelUp() {
-    level++;
+    level += GameConstants::GameStateInitial::LEVEL_INCREMENT;
     resetLines();
 }
 
 // 라인 수만 초기화
 void gameState::resetLines() {
-    line = 0;
+    line = GameConstants::GameStateInitial::INITIAL_LINES;
 }
 
 void gameState::show_gamestat(bool isLeft, bool printed_text)
@@ -49,28 +50,28 @@ void gameState::show_gamestat(bool isLeft, bool printed_text)
 
     if (printed_text)
     {
-        Utils::gotoxy(35, 7, isLeft);
+        Utils::gotoxy(GameConstants::GameStatUI::STAT_LEFT_X, GameConstants::GameStatUI::STAGE_TEXT_Y, isLeft);
         printf("STAGE");
 
-        Utils::gotoxy(35, 9, isLeft);
+        Utils::gotoxy(GameConstants::GameStatUI::STAT_LEFT_X, GameConstants::GameStatUI::SCORE_TEXT_Y, isLeft);
         printf("SCORE");
 
-        Utils::gotoxy(35, 12, isLeft);
+        Utils::gotoxy(GameConstants::GameStatUI::STAT_LEFT_X, GameConstants::GameStatUI::LINES_TEXT_Y, isLeft);
         printf("LINES");
     }
 
-    Utils::gotoxy(41, 7, isLeft);
-    printf("%d", this->getLevel() + 1);
+    Utils::gotoxy(GameConstants::GameStatUI::LEVEL_VALUE_X, GameConstants::GameStatUI::STAGE_TEXT_Y, isLeft);
+    printf("%d", this->getLevel() + GameConstants::GameStateInitial::LEVEL_DISPLAY_OFFSET);
 
-    Utils::gotoxy(35, 10, isLeft);
-    printf("%10d", this->getScore());
+    Utils::gotoxy(GameConstants::GameStatUI::STAT_LEFT_X, GameConstants::GameStatUI::SCORE_VALUE_Y, isLeft);
+    printf(GameConstants::GameStatUI::SCORE_FORMAT, this->getScore());
 
-    Utils::gotoxy(35, 13, isLeft);
+    Utils::gotoxy(GameConstants::GameStatUI::STAT_LEFT_X, GameConstants::GameStatUI::LINES_VALUE_Y, isLeft);
 
     int remain = STAGE::getStage(this->getLevel()).getClearLine() - this->getLines();
-    if (remain < 0)
-        remain = 0;
-    printf("%10d", remain);
+    if (remain < GameConstants::GameStateInitial::MIN_REMAINING_LINES)
+        remain = GameConstants::GameStateInitial::MIN_REMAINING_LINES;
+    printf(GameConstants::GameStatUI::SCORE_FORMAT, remain);
 }
 
 void gameState::setScoreManager(ScoreManager* sm) {

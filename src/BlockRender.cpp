@@ -2,8 +2,8 @@
 #include "Utils.h"
 #include "Block.h"
 #include "Board.h"
-#include <iostream>
-using namespace std;
+#include "GameConstants.h"
+#include "BlockData.h"
 
 BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, Board& board, bool isLeft): gs(gs), boardOffset(boardOffset), board(board), isLeft(isLeft) {};
 
@@ -42,22 +42,22 @@ void BlockRender::show_cur_block(Block& block) {
 		break;
 	}
 
-    for(i=0;i<4;i++)
+    for(i=0;i<GameConstants::BlockRender::SHAPE_SIZE;i++)
     {
-        for(j=0;j<4;j++)
+        for(j=0;j<GameConstants::BlockRender::SHAPE_SIZE;j++)
         {
-            if( (j+y) <0)
+            if( (j+y) < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
                 continue;
 
-			if(BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1)
+			if(BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == BlockShapeConstants::CELL_FILLED)
 			{
-				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
+				Utils::gotoxy((i+x)*GameConstants::BlockRender::X_COORD_MULTIPLIER+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
 				printf("■");
 			}
 		}
 	}
 	Utils::setColor(COLOR::BLACK);
-	Utils::gotoxy(77,23, isLeft);
+	Utils::gotoxy(GameConstants::BlockRender::CURSOR_X,GameConstants::BlockRender::CURSOR_Y, isLeft);
 }
 
 void BlockRender::erase_cur_block(Block& block) {
@@ -69,13 +69,13 @@ void BlockRender::erase_cur_block(Block& block) {
     int y = pos.getY();
     int angle = block.getRotation();
 
-	for(i=0;i<4;i++)
+	for(i=0;i<GameConstants::BlockRender::SHAPE_SIZE;i++)
 	{
-		for(j=0;j<4;j++)
+		for(j=0;j<GameConstants::BlockRender::SHAPE_SIZE;j++)
 		{
-			if(BlockShape::SHAPES[static_cast<int>(block.getType())][angle][j][i] == 1)
+			if(BlockShape::SHAPES[static_cast<int>(block.getType())][angle][j][i] == GameConstants::Simulation::NO_COLLISION + 1)
 			{
-				Utils::gotoxy((i+x)*2+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
+				Utils::gotoxy((i+x)*GameConstants::BlockRender::X_COORD_MULTIPLIER+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
 				printf("  ");
 				//break;
 				
@@ -90,12 +90,12 @@ void BlockRender::show_next_block(Block& block) {
 	
     int i,j;
     
-	for(i=1;i<7;i++)
+	for(i=GameConstants::NextBlockBox::START_Y;i<GameConstants::NextBlockBox::END_Y + 1;i++)
 	{
-		Utils::gotoxy(33, i, isLeft);
-		for(j=0;j<6;j++)
+		Utils::gotoxy(GameConstants::NextBlockBox::X_POS, i, isLeft);
+		for(j=0;j<GameConstants::NextBlockBox::WIDTH;j++)
 		{
-			if(i==1 || i==6 || j==0 || j==5)
+			if(i==GameConstants::NextBlockBox::BORDER_TOP_Y || i==GameConstants::NextBlockBox::BORDER_BOTTOM_Y || j==GameConstants::NextBlockBox::BORDER_LEFT_X || j==GameConstants::NextBlockBox::BORDER_RIGHT_X)
 			{
 				printf("■");				
 			}else{
@@ -104,8 +104,8 @@ void BlockRender::show_next_block(Block& block) {
 
 		}
 	}
-	Position next_pos(15, 1);
-	Rotation next_rotation(0);
+	Position next_pos(GameConstants::NextBlock::POS_X, GameConstants::NextBlock::POS_Y);
+	Rotation next_rotation(GameConstants::BlockRotation::INITIAL_ROTATION);
 	Block nextBlock(block.getType(), next_rotation, next_pos);
     show_cur_block(nextBlock);
 }
@@ -122,12 +122,12 @@ void BlockRender::show_ghost_block(const Block& block) {
 
     Utils::setColor(COLOR::GRAY);   // 고스트는 회색
 
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            if (j + y < 0) continue;
+    for (int i = 0; i < GameConstants::BlockRender::SHAPE_SIZE; ++i) {
+        for (int j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; ++j) {
+            if (j + y < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) continue;
 
-            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1) {
-                Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
+            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == BlockShapeConstants::CELL_FILLED) {
+                Utils::gotoxy((i + x) * GameConstants::BlockRender::X_COORD_MULTIPLIER + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);
                 printf("□");       // 빈 사각형으로
@@ -148,12 +148,12 @@ void BlockRender::erase_ghost_block(const Block& block) {
     BlockType shape = block.getType();
 
     Utils::setColor(COLOR::BLACK);
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            if (j + y < 0) continue;
+    for (int i = 0; i < GameConstants::BlockRender::SHAPE_SIZE; ++i) {
+        for (int j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; ++j) {
+            if (j + y < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) continue;
 
-            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == 1 && board.getCell(j + y, i + x) == 0) {
-                Utils::gotoxy((i + x) * 2 + boardOffset.getX(),
+            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == BlockShapeConstants::CELL_FILLED && board.getCell(j + y, i + x) == GameConstants::Simulation::NO_COLLISION) {
+                Utils::gotoxy((i + x) * GameConstants::BlockRender::X_COORD_MULTIPLIER + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);
                 printf("  ");

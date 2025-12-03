@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "BlockGenerator.h"
 #include "gameState.h"
+#include "GameConstants.h"
 class BlockMover{
 private:
     BlockRender& renderer;
@@ -17,7 +18,7 @@ private:
 
     
 public:
-    BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate, int gameMode = 0, bool isLeftPlayer = true);
+    BlockMover(BlockRender& renderer, Board& board, BlockGenerator& blockGenerator, gameState& gamestate, int gameMode = GameConstants::GameMode::SINGLE_PLAYER, bool isLeftPlayer = true);
     ~BlockMover() = default;
     int move_block(Block& block, Block& nextBlock);
     void rotateBlock(Block& block);

@@ -1,13 +1,14 @@
 ﻿#include "rotation.h"
+#include "GameConstants.h"
 
 // 기본 생성자
-Rotation::Rotation() : angle(0) {
+Rotation::Rotation() : angle(GameConstants::BlockRotation::INITIAL_ROTATION) {
 }
 
 // 매개변수 생성자
 Rotation::Rotation(int angle) {
     // 0-3 범위로 정규화
-    this->angle = ((angle % 4) + 4) % 4;
+    this->angle = ((angle % GameConstants::BlockRotation::MAX_ROTATIONS) + GameConstants::BlockRotation::MAX_ROTATIONS) % GameConstants::BlockRotation::MAX_ROTATIONS;
 }
 
 // Getter
@@ -18,15 +19,15 @@ int Rotation::getAngle() const {
 // Setter
 void Rotation::setAngle(int angle) {
     // 0-3 범위로 정규화
-    this->angle = ((angle % 4) + 4) % 4;
+    this->angle = ((angle % GameConstants::BlockRotation::MAX_ROTATIONS) + GameConstants::BlockRotation::MAX_ROTATIONS) % GameConstants::BlockRotation::MAX_ROTATIONS;
 }
 
 // 0도로 초기화
 void Rotation::reset() {
-    angle = 0;
+    angle = GameConstants::BlockRotation::INITIAL_ROTATION;
 }
 
 // 다음 회전 각도 반환
 int Rotation::getNextAngle() const {
-    return (angle + 1) % 4;
+    return (angle + GameConstants::BlockRotation::ROTATION_INCREMENT) % GameConstants::BlockRotation::MAX_ROTATIONS;
 }

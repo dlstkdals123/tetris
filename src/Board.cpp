@@ -1,6 +1,8 @@
 ﻿#include "Board.h"
 #include "Block.h"
 #include "BoardConstants.h"
+#include "GameConstants.h"
+#include "BlockData.h"
 #include <Windows.h>
 #include <iostream>
 #include <random>
@@ -16,18 +18,18 @@ Board::Board(bool isPlayer) : isPlayer(isPlayer)
         {
             if ((j == BoardConstants::LEFT_WALL) || (j == BoardConstants::RIGHT_WALL))
             {
-                total_block[i][j] = 1; // 좌우 벽
+                total_block[i][j] = BoardConstants::CELL_FILLED; // 좌우 벽
             }
             else
             {
-                total_block[i][j] = 0; // 빈 공간
+                total_block[i][j] = BoardConstants::CELL_EMPTY; // 빈 공간
             }
         }
     }
 
     for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
     {                           // 화면의 제일 밑의 줄은 1로 채운다.
-        total_block[BoardConstants::FLOOR_ROW][j] = 1; // 바닥
+        total_block[BoardConstants::FLOOR_ROW][j] = BoardConstants::CELL_FILLED; // 바닥
     }
 }
 
@@ -55,18 +57,18 @@ int Board::init()
         {
             if ((j == BoardConstants::LEFT_WALL) || (j == BoardConstants::RIGHT_WALL))
             {
-                total_block[i][j] = 1; // 좌우 벽
+                total_block[i][j] = BoardConstants::CELL_FILLED; // 좌우 벽
             }
             else
             {
-                total_block[i][j] = 0; // 빈 공간
+                total_block[i][j] = BoardConstants::CELL_EMPTY; // 빈 공간
             }
         }
     }
 
     for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
     {                           // 화면의 제일 밑의 줄은 1로 채운다.
-        total_block[BoardConstants::FLOOR_ROW][j] = 1; // 바닥
+        total_block[BoardConstants::FLOOR_ROW][j] = BoardConstants::CELL_FILLED; // 바닥
     }
 
     return 0;
@@ -77,31 +79,31 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     // 먼저 기본 초기화
     init();
     
-    if (stateType == 0)
+    if (stateType == GameConstants::BoardState::EMPTY)
     {
         // 0줄: 완전히 비어있음 (이미 init()에서 처리됨)
         return;
     }
     
-    if (stateType == 5)
+    if (stateType == GameConstants::BoardState::RANDOM)
     {
         // 5: 랜덤 상태 - 0~10줄 사이 랜덤하게 채움
         std::uniform_int_distribution<int> rowDist(BoardConstants::MIN_ROW, BoardConstants::MAX_ROW); // 행
         std::uniform_int_distribution<int> colDist(BoardConstants::MIN_COLUMN, BoardConstants::MAX_COLUMN); // 열 (벽 제외)
-        std::uniform_int_distribution<int> fillRowsDist(0, 10); // 채울 줄 수 (0~10)
+        std::uniform_int_distribution<int> fillRowsDist(0, GameConstants::BoardState::MAX_RANDOM_ROWS); // 채울 줄 수 (0~10)
         
         int numFilledRows = fillRowsDist(rng);
         int filledCount = 0;
         
         // 랜덤하게 블록 배치
-        while (filledCount < numFilledRows * BoardConstants::PLAY_WIDTH && filledCount < 120) // 최대 120개 블록
+        while (filledCount < numFilledRows * BoardConstants::PLAY_WIDTH && filledCount < GameConstants::BoardState::MAX_RANDOM_BLOCKS) // 최대 120개 블록
         {
             int row = rowDist(rng);
             int col = colDist(rng);
             
-            if (total_block[row][col] == 0)
+            if (total_block[row][col] == BoardConstants::CELL_EMPTY)
             {
-                total_block[row][col] = 1;
+                total_block[row][col] = BoardConstants::CELL_FILLED;
                 filledCount++;
             }
         }
@@ -117,7 +119,7 @@ void Board::initWithState(int stateType, std::mt19937& rng)
         // 한 줄을 모두 채움
         for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
         {
-            total_block[row][col] = 1;
+            total_block[row][col] = BoardConstants::CELL_FILLED;
         }
     }
     
@@ -125,7 +127,7 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
     {
         int emptyCol = colDist(rng);
-        total_block[row][emptyCol] = 0;
+        total_block[row][emptyCol] = BoardConstants::CELL_EMPTY;
     }
 }
 
@@ -142,18 +144,18 @@ void Board::draw(const int &level) const
         {
             if (j == BoardConstants::LEFT_WALL || j == BoardConstants::RIGHT_WALL || i == BoardConstants::FLOOR_ROW)
             { // 레벨에 따라 외벽 색이 변함
-                Utils::setColor((level % 6) + 1);
+                Utils::setColor((level % GameConstants::LevelColor::COLOR_COUNT) + GameConstants::LevelColor::COLOR_OFFSET);
             }
             else
             {
                 Utils::setColor(COLOR::DARK_GRAY);
             }
-            Utils::gotoxy((j * 2) + Utils::ab_x, i + Utils::ab_y, isPlayer);
-            if (total_block[i][j] == 1)
+            Utils::gotoxy((j * GameConstants::BlockRender::X_COORD_MULTIPLIER) + Utils::ab_x, i + Utils::ab_y, isPlayer);
+            if (total_block[i][j] == BoardConstants::CELL_FILLED)
             {
                 cout << "■";
             }
-            else if (total_block[i][j] == 2)
+            else if (total_block[i][j] == BoardConstants::CELL_ATTACK)
             {
                 // Attack 라인은 다른 색상으로 표시 (RED)
                 Utils::setColor(COLOR::RED);
@@ -170,7 +172,7 @@ void Board::draw(const int &level) const
     cout.flush();
 
     Utils::setColor(COLOR::BLACK);
-    Utils::gotoxy(77, 23);
+    Utils::gotoxy(GameConstants::BlockRender::CURSOR_X, GameConstants::BlockRender::CURSOR_Y);
 }
 
 int Board::isStrike(const Block &block) const
@@ -179,30 +181,30 @@ int Board::isStrike(const Block &block) const
     int x = block.getPos().getX();
     int y = block.getPos().getY();
 
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < GameConstants::BlockRender::SHAPE_SIZE; i++)
     {
-        for (j = 0; j < 4; j++)
+        for (j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; j++)
         {
-            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == 0)
+            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == BlockShapeConstants::CELL_EMPTY)
             { // 블럭의 해당 위치가 채워져있는지 검사.
                 continue;
             }
 
             if (((x + j) == BoardConstants::LEFT_WALL) || ((x + j) == BoardConstants::RIGHT_WALL))
             { // 벽 충돌시
-                return 1;
+                return BoardConstants::STRIKE_TRUE;
             }
 
-            if (y + i >= 0)
+            if (y + i >= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
             {
-                if (total_block[y + i][x + j] == 1 || total_block[y + i][x + j] == 2)
+                if (total_block[y + i][x + j] == BoardConstants::CELL_FILLED || total_block[y + i][x + j] == BoardConstants::CELL_ATTACK)
                 { // 바닥 or 다른 블록(일반 블록 또는 attack 라인)에 닿았는지 검사
-                    return 1;
+                    return BoardConstants::STRIKE_TRUE;
                 }
             }
         }
     }
-    return 0;
+    return BoardConstants::STRIKE_FALSE;
 }
 
 void Board::mergeBlock(const Block &block)
@@ -211,15 +213,15 @@ void Board::mergeBlock(const Block &block)
     int i, j;
     int x = pos.getX();
     int y = pos.getY();
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < GameConstants::BlockRender::SHAPE_SIZE; i++)
     {
-        for (j = 0; j < 4; j++)
+        for (j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; j++)
         {
-            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == 1)
+            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == BlockShapeConstants::CELL_FILLED)
             {
-                if (y + i >= 0)
+                if (y + i >= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
                 {
-                    total_block[y + i][x + j] = 1;
+                    total_block[y + i][x + j] = BoardConstants::CELL_FILLED;
                 }
             }
         }
@@ -243,17 +245,17 @@ std::pair<int, int> Board::deleteFullLine()
         
         for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
         {
-            if (total_block[i][j] == 0)
+            if (total_block[i][j] == BoardConstants::CELL_EMPTY)
             {
                 isFull = false;
                 break;
             }
-            if (total_block[i][j] == 2)
+            if (total_block[i][j] == BoardConstants::CELL_ATTACK)
             {
                 hasAttackLine = true;
                 hasOnlyOnes = false;
             }
-            else if (total_block[i][j] != 1)
+            else if (total_block[i][j] != BoardConstants::CELL_FILLED)
             {
                 hasOnlyOnes = false;
             }
@@ -283,7 +285,7 @@ std::pair<int, int> Board::deleteFullLine()
         }
         for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
         {
-            total_block[0][j] = 0;
+            total_block[GameConstants::Simulation::GAME_OVER_Y_THRESHOLD][j] = BoardConstants::CELL_EMPTY;
         }
         
         // 삭제 후 인덱스 조정 (한 줄이 삭제되었으므로 i를 다시 확인해야 함)
@@ -298,15 +300,15 @@ int Board::addAttackLines(int numLines)
 {
     std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex);
     
-    if (numLines <= 0) return 0;
+    if (numLines <= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) return GameConstants::BoardReturn::SUCCESS;
     
     // 기존 블록을 위로 밀어냄
     // 맨 위 블록이 화면 밖으로 나가면 게임오버
-    for (int i = 0; i < numLines; i++) {
+    for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < numLines; i++) {
         // 맨 위 줄(row 0)에 블록이 있는지 확인
         bool hasBlockAtTop = false;
         for (int j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++) {
-            if (total_block[0][j] != 0) {
+            if (total_block[GameConstants::Simulation::GAME_OVER_Y_THRESHOLD][j] != BoardConstants::CELL_EMPTY) {
                 hasBlockAtTop = true;
                 break;
             }
@@ -314,13 +316,13 @@ int Board::addAttackLines(int numLines)
         
         if (hasBlockAtTop) {
             // 게임오버: 맨 위 블록이 화면 밖으로 나감
-            return -1;
+            return GameConstants::BoardReturn::GAME_OVER;
         }
         
         // 모든 줄을 위로 한 칸씩 이동
-        for (int row = 0; row < BoardConstants::MAX_ROW; row++) {
+        for (int row = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; row < BoardConstants::MAX_ROW; row++) {
             for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++) {
-                total_block[row][col] = total_block[row + 1][col];
+                total_block[row][col] = total_block[row + GameConstants::BlockRotation::ROTATION_INCREMENT][col];
             }
         }
         
@@ -330,15 +332,15 @@ int Board::addAttackLines(int numLines)
         
         for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++) {
             if (col == emptyCol) {
-                total_block[BoardConstants::MAX_ROW][col] = 0; // 빈 칸
+                total_block[BoardConstants::MAX_ROW][col] = BoardConstants::CELL_EMPTY; // 빈 칸
             } else {
-                total_block[BoardConstants::MAX_ROW][col] = 2; // Attack 라인 (값 2)
+                total_block[BoardConstants::MAX_ROW][col] = BoardConstants::CELL_ATTACK; // Attack 라인
             }
         }
         
         // 벽은 그대로 유지
-        total_block[BoardConstants::MAX_ROW][BoardConstants::LEFT_WALL] = 1;
-        total_block[BoardConstants::MAX_ROW][BoardConstants::RIGHT_WALL] = 1;
+        total_block[BoardConstants::MAX_ROW][BoardConstants::LEFT_WALL] = BoardConstants::CELL_FILLED;
+        total_block[BoardConstants::MAX_ROW][BoardConstants::RIGHT_WALL] = BoardConstants::CELL_FILLED;
     }
     
     return numLines;
@@ -349,7 +351,7 @@ char Board::getCell(int row, int col) const
 {
     if (row < 0 || row >= BoardConstants::BOARD_HEIGHT || col < 0 || col >= BoardConstants::BOARD_WIDTH)
     {
-        return 0;
+        return BoardConstants::CELL_EMPTY;
     }
     return total_block[row][col];
 }

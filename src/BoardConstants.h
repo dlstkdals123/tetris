@@ -27,5 +27,14 @@ namespace BoardConstants {
     // 블록 시작 위치
     constexpr int BLOCK_START_Y = -4;    // 블록 생성 시 Y 위치
     constexpr int BLOCK_START_X = 5;     // 블록 생성 시 X 위치 (중앙)
+    
+    // 충돌 상태
+    constexpr int STRIKE_TRUE = 1;       // 충돌 발생
+    constexpr int STRIKE_FALSE = 0;      // 충돌 없음
+    
+    // 셀 상태
+    constexpr char CELL_EMPTY = 0;       // 빈 셀
+    constexpr char CELL_FILLED = 1;      // 채워진 셀 (벽, 바닥, 일반 블록)
+    constexpr char CELL_ATTACK = 2;      // 공격 라인
 }
 
