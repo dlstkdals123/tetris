@@ -228,7 +228,7 @@ double MCLearner::calculateReward(const FeatureExtractor::Features& currentFeatu
     return reward;
 }
 
-MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
+MCLearner::Statistics MCLearner::runEpisode()
 {
     Statistics stats;
     stats.episode = 0;
@@ -405,10 +405,7 @@ std::vector<MCLearner::Statistics> MCLearner::train(int numEpisodes)
         // Phase 업데이트
         updatePhase(episode);
         
-        // 0~5까지 골고루 분배
-        int initialStateType = episode % NUM_STATE_TYPES;
-        
-        Statistics stats = runEpisode(initialStateType);
+        Statistics stats = runEpisode();
         stats.episode = episode + 1;
         allStats.push_back(stats);
         

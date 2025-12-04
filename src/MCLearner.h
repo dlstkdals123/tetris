@@ -114,10 +114,9 @@ public:
     
     /**
      * 한 에피소드를 실행합니다.
-     * @param initialStateType 초기 상태 타입 (0=비어있음, 1=1줄, 2=2줄, 3=3줄, 4=4줄)
      * @return 에피소드 통계
      */
-    Statistics runEpisode(int initialStateType = 0);
+    Statistics runEpisode();
     
     /**
      * 여러 에피소드를 실행하여 학습합니다.
