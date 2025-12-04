@@ -121,10 +121,9 @@ public:
     /**
      * 파일에서 가중치를 로드합니다.
      * @param filename 로드할 파일명
-     * @param silent true이면 로드 메시지를 출력하지 않음 (기본값: false)
      * @return 성공 여부
      */
-    bool loadWeights(const std::string& filename, bool silent = false);
+    bool loadWeights(const std::string& filename);
     
     /**
      * 가중치를 출력합니다 (디버깅용).

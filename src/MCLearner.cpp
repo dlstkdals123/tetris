@@ -398,8 +398,6 @@ std::vector<MCLearner::Statistics> MCLearner::train(int numEpisodes)
     cout << "Discount Factor: " << config_.discountFactor << endl;
     cout << "=====================================" << endl << endl;
     
-    constexpr int NUM_STATE_TYPES = 6;
-    
     for (int episode = 0; episode < numEpisodes; episode++)
     {
         // Phase 업데이트
