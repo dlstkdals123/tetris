@@ -580,8 +580,8 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                 system("cls");
                 Utils::setColor(COLOR::GRAY);
                 Utils::gotoxy(GameConstants::UI::PAUSE_MENU_X, GameConstants::UI::PAUSE_MENU_Y, true); printf("===== PAUSED =====");
-                Utils::gotoxy(GameConstants::UI::PAUSE_TEXT_X, GameConstants::UI::PAUSE_TEXT_START_Y, true); printf("Press [Q] to Main Menu");
-                Utils::gotoxy(GameConstants::UI::PAUSE_TEXT_X, GameConstants::UI::PAUSE_TEXT_START_Y + GameConstants::UI::PAUSE_TEXT_OFFSET, true); printf("Press [R] to Resume Game");
+                Utils::gotoxy(GameConstants::UI::PAUSE_TEXT_X, GameConstants::UI::PAUSE_TEXT_START_Y, true); printf("Press [q] to Main Menu");
+                Utils::gotoxy(GameConstants::UI::PAUSE_TEXT_X, GameConstants::UI::PAUSE_TEXT_START_Y + GameConstants::UI::PAUSE_TEXT_OFFSET, true); printf("Press [r] to Resume Game");
 
                 while (true)
                 {
