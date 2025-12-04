@@ -209,41 +209,41 @@ int input_data(int mode) {
 
     Utils::setColor(COLOR::GRAY);
 
+    // 항상 왼쪽에 기본(UP/DOWN/LEFT/RIGHT) 키 안내를 출력
+    int leftX = GameConstants::UI::MENU_LEFT_X;
+    int startY = GameConstants::UI::KEY_INFO_Y;
+
+    Utils::gotoxy(leftX, startY);
+    printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET);
+    printf("┃ PLAYER                                ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
+    printf("┃ UP    : Rotate Block                  ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
+    printf("┃ DOWN  : Move One-Step Down            ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
+    printf("┃ SPACE : Move Bottom Down              ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
+    printf("┃ LEFT  : Move Left                     ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
+    printf("┃ RIGHT : Move Right                    ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
+    printf("┃ DELETE: Go To Menu (Quit or Resume)   ┃");
+    Sleep(GameConstants::Delay::MENU_SLEEP);
+    Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
+    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+
+    // VS Player일 때만 오른쪽에 RIGHT PLAYER 키 안내 추가
     if (mode == GameConstants::GameMode::VS_PLAYER) {
-        // VS Player 모드: 왼쪽과 오른쪽 플레이어 키 표시를 양쪽에 나란히 표시
-        int leftX = GameConstants::UI::MENU_LEFT_X;
         int rightX = GameConstants::UI::MENU_LEFT_X + GameConstants::UI::VS_PLAYER_KEY_OFFSET;
-        int startY = GameConstants::UI::KEY_INFO_Y;
-        
-        // 왼쪽 플레이어 키 안내
-        Utils::gotoxy(leftX, startY);
-        printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET);
-        printf("┃ LEFT PLAYER                           ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
-        printf("┃ W     : Rotate Block                  ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
-        printf("┃ S     : Move One-Step Down            ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
-        printf("┃ C     : Move Bottom Down              ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
-        printf("┃ A     : Move Left                     ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
-        printf("┃ D     : Move Right                    ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
-        printf("┃ DELETE: Go To Menu (Quit or Resume)   ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
-        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
-        
-        // 오른쪽 플레이어 키 안내
+
         Utils::gotoxy(rightX, startY);
         printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
         Sleep(GameConstants::Delay::MENU_SLEEP);
@@ -270,31 +270,6 @@ int input_data(int mode) {
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
         printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
-    } else {
-        // Single Player 또는 VS AI 모드: 기본 키 표시
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y);
-        printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET);
-        printf("┃ UP   : Rotate Block                   ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
-        printf("┃ DOWN : Move One-Step Down             ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
-        printf("┃ SPACE: Move Bottom Down               ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
-        printf("┃ LEFT : Move Left                      ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
-        printf("┃ RIGHT: Move Right                     ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 6);
-        printf("┃ DELETE: Go To Menu (Quit or Resume)   ┃");
-        Sleep(GameConstants::Delay::MENU_SLEEP);
-        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 7);
-        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
     }
 
     while (level < GameConstants::Level::MIN || level > GameConstants::Level::MAX)
@@ -314,7 +289,6 @@ int input_data(int mode) {
 
     return level - GameConstants::Level::MIN;
 }
-
 void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
 {
     int i, j;
