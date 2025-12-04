@@ -124,7 +124,7 @@ namespace GameConstants {
         constexpr int MENU_SLEEP = 10;
         constexpr int LOGO_SLEEP = 100;
         constexpr int LOGO_ANIMATION = 30;
-        constexpr int GAME_OVER_WAIT = 1000;
+        constexpr int GAME_OVER_WAIT = 2000;
         constexpr int GAME_LOOP = 15;
         constexpr int PAUSE_LOOP = 10;
         constexpr int INPUT_THREAD = 1;

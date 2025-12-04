@@ -324,6 +324,10 @@ void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
 
     scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::LOGO_TOP_SCORE_X + 30, GameConstants::UI::LOGO_TOP_Y);
 
+    while (_kbhit()) {
+        _getch();  // 버퍼의 모든 키 제거
+    }
+
     for (i = 0;; ++i)
     {
         if (i % GameConstants::LogoAnimation::ANIMATION_INTERVAL == 0)
@@ -433,9 +437,6 @@ void show_gameover(int mode, int winner)
     }
 
     Sleep(GameConstants::Delay::GAME_OVER_WAIT);
-
-    cin.ignore(GameConstants::Input::BUFFER_SIZE, '\n');
-    _getche();
     system("cls");
 }
 
@@ -652,7 +653,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                         else if (pauseKey == MENU_CONTINUE)
                         {
                             isGamePaused = false;
-                            
+
                             std::lock_guard<std::mutex> inputLock(Utils::inputMutex);
                             system("cls");
                             board.draw(gamestate.getLevel());
