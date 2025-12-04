@@ -437,6 +437,7 @@ void show_gameover(int mode, int winner)
     }
 
     Sleep(GameConstants::Delay::GAME_OVER_WAIT);
+    _getche();
     system("cls");
 }
 
