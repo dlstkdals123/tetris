@@ -662,6 +662,7 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                             renderer.show_next_block(nextBlock);
                             renderer.show_cur_block(curBlock);
                             mover.updateGhost(curBlock);
+                            scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_X, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_Y);
                             needRedraw = true;
                             break; 
                         }
