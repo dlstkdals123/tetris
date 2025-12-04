@@ -97,7 +97,7 @@ void BlockRender::show_next_block(Block& block) {
 		{
 			if(i==GameConstants::NextBlockBox::BORDER_TOP_Y || i==GameConstants::NextBlockBox::BORDER_BOTTOM_Y || j==GameConstants::NextBlockBox::BORDER_LEFT_X || j==GameConstants::NextBlockBox::BORDER_RIGHT_X)
 			{
-				printf("■");				
+				printf("■ ");				
 			}else{
 				printf("  ");
 			}

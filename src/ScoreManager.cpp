@@ -87,7 +87,7 @@ void ScoreManager::printTopN(int n, int x, int y)
 
     // 제목줄
     Utils::gotoxy(x, y + 1);
-    printf("┃ TOP %2d      ┃", n);
+    printf("┃ TOP %2d     ┃", n);
 
     // 구분선
     Utils::gotoxy(x, y + 2);
@@ -104,7 +104,7 @@ void ScoreManager::printTopN(int n, int x, int y)
                 top[i]);
         }
         else {
-            printf("┃           ┃");
+            printf("┃            ┃");
         }
     }
 
