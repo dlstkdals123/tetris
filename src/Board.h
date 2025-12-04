@@ -16,8 +16,6 @@ class Board {
     ~Board();
 
     int init();
-    // 초기 상태 설정 (0=비어있음, 1=1줄, 2=2줄, 3=3줄, 4=4줄 - 각각 1자 비어있음)
-    void initWithState(int stateType);
     // 전체 블럭 화면에 그리기
     void draw(const int &level) const; 
     // strike_check

@@ -74,58 +74,6 @@ int Board::init()
     return 0;
 }
 
-void Board::initWithState(int stateType)
-{
-    // 먼저 기본 초기화
-    init();
-    
-    if (stateType == GameConstants::BoardState::EMPTY)
-    {
-        // 0줄: 완전히 비어있음 (이미 init()에서 처리됨)
-        return;
-    }
-    
-    if (stateType == GameConstants::BoardState::RANDOM)
-    {
-        // 5: 랜덤 상태 - 0~10줄 사이 랜덤하게 채움
-        int numFilledRows = rand() % (GameConstants::BoardState::MAX_RANDOM_ROWS + 1);
-        int filledCount = 0;
-        
-        // 랜덤하게 블록 배치
-        while (filledCount < numFilledRows * BoardConstants::PLAY_WIDTH && filledCount < GameConstants::BoardState::MAX_RANDOM_BLOCKS) // 최대 120개 블록
-        {
-            int row = BoardConstants::MIN_ROW + rand() % (BoardConstants::MAX_ROW - BoardConstants::MIN_ROW + 1);
-            int col = BoardConstants::MIN_COLUMN + rand() % (BoardConstants::MAX_COLUMN - BoardConstants::MIN_COLUMN + 1);
-            
-            if (total_block[row][col] == BoardConstants::CELL_EMPTY)
-            {
-                total_block[row][col] = BoardConstants::CELL_FILLED;
-                filledCount++;
-            }
-        }
-        return;
-    }
-    
-    // 1~4줄: 각각 1줄, 2줄, 3줄, 4줄을 꽉 채우고 1자로 비어있게 함
-    
-    // 아래에서부터 stateType개의 줄을 채움
-    for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
-    {
-        // 한 줄을 모두 채움
-        for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++)
-        {
-            total_block[row][col] = BoardConstants::CELL_FILLED;
-        }
-    }
-    
-    // 각 줄에서 랜덤하게 1자씩 비움
-    for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
-    {
-        int emptyCol = BoardConstants::MIN_COLUMN + rand() % (BoardConstants::MAX_COLUMN - BoardConstants::MIN_COLUMN + 1);
-        total_block[row][emptyCol] = BoardConstants::CELL_EMPTY;
-    }
-}
-
 void Board::draw(const int &level) const
 {
     std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지

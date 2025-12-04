@@ -226,14 +226,6 @@ namespace GameConstants {
         constexpr int POS_Y = 1;
     }
     
-    // 보드 초기 상태
-    namespace BoardState {
-        constexpr int EMPTY = 0;
-        constexpr int RANDOM = 5;
-        constexpr int MAX_RANDOM_ROWS = 10;
-        constexpr int MAX_RANDOM_BLOCKS = 120;
-    }
-    
     // 레벨 색상
     namespace LevelColor {
         constexpr int COLOR_COUNT = 6;

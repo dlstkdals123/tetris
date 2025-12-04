@@ -235,7 +235,7 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
     
     // 보드 초기화 (5가지 초기 상태 중 하나)
     Board board(true);
-    board.initWithState(initialStateType);
+    board.init();
      
     // 에피소드 경험 저장
     vector<Experience> episode;
