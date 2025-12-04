@@ -73,7 +73,7 @@ int main()
 {
     srand(static_cast<unsigned int>(time(nullptr)));
     
-    string weightsFile = "initial_weights_ver2.0.txt";
+    string weightsFile = "initial_weights.txt";
 
     gameState gamestate;
     Position boardOffset(GameConstants::BoardOffset::X, GameConstants::BoardOffset::Y);
