@@ -217,7 +217,10 @@ int input_data(int mode) {
     printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET);
-    printf("┃ PLAYER                                ┃");
+    if (mode == GameConstants::GameMode::VS_PLAYER)
+        printf("┃ LEFT PLAYER                           ┃");
+    else
+        printf("┃ PLAYER                                ┃");
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
     printf("┃ UP    : Rotate Block                  ┃");
@@ -240,7 +243,7 @@ int input_data(int mode) {
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
     printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
 
-    // VS Player일 때만 오른쪽에 RIGHT PLAYER 키 안내 추가
+    // VS Player일 때만 오른쪽에 RIGHT PLAYER 키(W A S D C) 안내 추가
     if (mode == GameConstants::GameMode::VS_PLAYER) {
         int rightX = GameConstants::UI::MENU_LEFT_X + GameConstants::UI::VS_PLAYER_KEY_OFFSET;
 
@@ -251,19 +254,19 @@ int input_data(int mode) {
         printf("┃ RIGHT PLAYER                          ┃");
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
-        printf("┃ UP    : Rotate Block                  ┃");
+        printf("┃ W      : Rotate Block                 ┃");
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
-        printf("┃ DOWN  : Move One-Step Down            ┃");
+        printf("┃ S      : Move One-Step Down           ┃");
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
-        printf("┃ SPACE : Move Bottom Down              ┃");
+        printf("┃ C      : Move Bottom Down             ┃");
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
-        printf("┃ LEFT  : Move Left                     ┃");
+        printf("┃ A      : Move Left                    ┃");
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
-        printf("┃ RIGHT : Move Right                    ┃");
+        printf("┃ D      : Move Right                   ┃");
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
         printf("┃ DELETE: Go To Menu (Quit or Resume)   ┃");
