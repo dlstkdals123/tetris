@@ -3,23 +3,21 @@
 #include "BoardConstants.h"
 #include <iostream>
 #include <iomanip>
-#include <chrono>
 #include <cmath>
+#include <cstdlib>
 
 using namespace std;
 
 MCLearner::MCLearner(const Config& config, const Evaluator::Weights& initialWeights)
     : evaluator_(initialWeights)
     , config_(config)
-    , rng_(chrono::steady_clock::now().time_since_epoch().count())
-    , dist_(0.0, 1.0)
 {
 }
 
 Action MCLearner::selectAction(const Board& board, const Block& block, const Block* nextBlock)
 {
     // ε-greedy 정책
-    if (dist_(rng_) < config_.epsilon)
+    if ((double)rand() / RAND_MAX < config_.epsilon)
     {
         // Exploration: 유효한 액션 중에서 랜덤 선택
         return selectRandomAction(board, block);
@@ -69,8 +67,7 @@ Action MCLearner::selectRandomAction(const Board& board, const Block& block)
     }
     
     // 유효한 액션 중에서 랜덤 선택
-    uniform_int_distribution<size_t> actionDist(0, validResults.size() - 1);
-    return validResults[actionDist(rng_)].action;
+    return validResults[rand() % validResults.size()].action;
 }
 
 void MCLearner::updateWeightsMonteCarlo(const FeatureExtractor::Features& state,
@@ -238,11 +235,8 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
     
     // 보드 초기화 (5가지 초기 상태 중 하나)
     Board board(true);
-    board.initWithState(initialStateType, rng_);
+    board.initWithState(initialStateType);
      
-    // 블록 생성기 (간단한 랜덤)
-    uniform_int_distribution<int> blockDist(0, 6);
-    
     // 에피소드 경험 저장
     vector<Experience> episode;
     
@@ -253,7 +247,7 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
     int moves = 0;
     
     // 첫 번째 블록 미리 생성
-    BlockType nextBlockType = static_cast<BlockType>(blockDist(rng_));
+    BlockType nextBlockType = static_cast<BlockType>(rand() % 7);
     Block nextBlock(nextBlockType);
     
     while (!gameOver && moves < config_.maxMovesPerEpisode)
@@ -262,7 +256,7 @@ MCLearner::Statistics MCLearner::runEpisode(int initialStateType)
         Block block = nextBlock;
         
         // 다음 블록 미리 생성 (look-ahead용)
-        nextBlockType = static_cast<BlockType>(blockDist(rng_));
+        nextBlockType = static_cast<BlockType>(rand() % 7);
         nextBlock = Block(nextBlockType);
         
         // 액션 선택 (다음 블록까지 고려)
@@ -404,13 +398,15 @@ std::vector<MCLearner::Statistics> MCLearner::train(int numEpisodes)
     cout << "Discount Factor: " << config_.discountFactor << endl;
     cout << "=====================================" << endl << endl;
     
+    constexpr int NUM_STATE_TYPES = 6;
+    
     for (int episode = 0; episode < numEpisodes; episode++)
     {
         // Phase 업데이트
         updatePhase(episode);
         
-        // 항상 empty 보드에서 시작 (stateType = 0)
-        int initialStateType = 0;
+        // 0~5까지 골고루 분배
+        int initialStateType = episode % NUM_STATE_TYPES;
         
         Statistics stats = runEpisode(initialStateType);
         stats.episode = episode + 1;

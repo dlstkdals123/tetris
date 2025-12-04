@@ -22,8 +22,8 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
-#include <random>
 #include <vector>
+#include <cstdlib>
 
 using namespace std;
 
@@ -709,10 +709,6 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
         default: epsilon = GameConstants::AIDifficulty::DEFAULT_EPSILON; delayMs = GameConstants::AIDifficulty::DEFAULT_DELAY; break; // 기본값: Normal
     }
     
-    // 랜덤 수 생성기 (epsilon 기반 랜덤 액션 선택용)
-    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-    std::uniform_real_distribution<double> dist(GameConstants::ProbabilityDistribution::MIN, GameConstants::ProbabilityDistribution::MAX);
-    
     Board board(false);  // AI 보드
     int localGameOver = GameConstants::GameState::CONTINUE;
     
@@ -776,14 +772,13 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
             if (!actionInProgress)
             {
                 // Epsilon-greedy 정책: epsilon 확률로 랜덤 액션 선택
-                if (dist(rng) < epsilon)
+                if ((double)rand() / RAND_MAX < epsilon)
                 {
                     // Exploration: 유효한 액션 중에서 랜덤 선택
                     vector<SimulationResult> validActions = ActionSimulator::simulateAllActions(board, curBlock);
                     if (!validActions.empty())
                     {
-                        std::uniform_int_distribution<size_t> actionDist(0, validActions.size() - 1);
-                        targetAction = validActions[actionDist(rng)].action;
+                        targetAction = validActions[rand() % validActions.size()].action;
                     }
                     else
                     {

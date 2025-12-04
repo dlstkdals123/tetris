@@ -1,32 +1,13 @@
 ﻿#include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include "MCLearner.h"
 
 using namespace std;
 
-/**
- * Multi-Stage Monte Carlo Training 프로그램
- * 
- * Phase 1 Exploration (0-5000)
- *   - Epsilon: 0.3 → 0.1
- *   - Learning Rate: 0.01
- *   - 목표: 다양한 전략 탐색
- * 
- * Phase 2 Exploitation (5000-15000)
- *   - Epsilon: 0.1 → 0.05
- *   - Learning Rate: 0.005
- *   - 목표: 좋은 전략 강화
- * 
- * Phase 3 Fine-tuning (15000-20000)
- *   - Epsilon: 0.05 → 0.01
- *   - Learning Rate: 0.001
- *   - 목표: 미세 조정
- * 
- * Monte Carlo는 에피소드 전체를 보고 학습하므로
- * TD-Learning보다 적은 에피소드로도 효과적입니다.
- */
-
 int main()
 {
+    srand(static_cast<unsigned int>(time(nullptr)));
     cout << "========================================" << endl;
     cout << "Multi-Stage Monte Carlo Training" << endl;
     cout << "Training the Ultimate Tetris Bot!" << endl;

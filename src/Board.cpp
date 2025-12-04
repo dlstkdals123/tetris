@@ -5,7 +5,7 @@
 #include "BlockData.h"
 #include <Windows.h>
 #include <iostream>
-#include <random>
+#include <cstdlib>
 
 using namespace std;
 
@@ -74,7 +74,7 @@ int Board::init()
     return 0;
 }
 
-void Board::initWithState(int stateType, std::mt19937& rng)
+void Board::initWithState(int stateType)
 {
     // 먼저 기본 초기화
     init();
@@ -88,18 +88,14 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     if (stateType == GameConstants::BoardState::RANDOM)
     {
         // 5: 랜덤 상태 - 0~10줄 사이 랜덤하게 채움
-        std::uniform_int_distribution<int> rowDist(BoardConstants::MIN_ROW, BoardConstants::MAX_ROW); // 행
-        std::uniform_int_distribution<int> colDist(BoardConstants::MIN_COLUMN, BoardConstants::MAX_COLUMN); // 열 (벽 제외)
-        std::uniform_int_distribution<int> fillRowsDist(0, GameConstants::BoardState::MAX_RANDOM_ROWS); // 채울 줄 수 (0~10)
-        
-        int numFilledRows = fillRowsDist(rng);
+        int numFilledRows = rand() % (GameConstants::BoardState::MAX_RANDOM_ROWS + 1);
         int filledCount = 0;
         
         // 랜덤하게 블록 배치
         while (filledCount < numFilledRows * BoardConstants::PLAY_WIDTH && filledCount < GameConstants::BoardState::MAX_RANDOM_BLOCKS) // 최대 120개 블록
         {
-            int row = rowDist(rng);
-            int col = colDist(rng);
+            int row = BoardConstants::MIN_ROW + rand() % (BoardConstants::MAX_ROW - BoardConstants::MIN_ROW + 1);
+            int col = BoardConstants::MIN_COLUMN + rand() % (BoardConstants::MAX_COLUMN - BoardConstants::MIN_COLUMN + 1);
             
             if (total_block[row][col] == BoardConstants::CELL_EMPTY)
             {
@@ -111,7 +107,6 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     }
     
     // 1~4줄: 각각 1줄, 2줄, 3줄, 4줄을 꽉 채우고 1자로 비어있게 함
-    std::uniform_int_distribution<int> colDist(BoardConstants::MIN_COLUMN, BoardConstants::MAX_COLUMN); // 플레이 영역 열 (벽 제외)
     
     // 아래에서부터 stateType개의 줄을 채움
     for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
@@ -126,7 +121,7 @@ void Board::initWithState(int stateType, std::mt19937& rng)
     // 각 줄에서 랜덤하게 1자씩 비움
     for (int row = BoardConstants::MAX_ROW; row >= BoardConstants::PLAY_HEIGHT - stateType; row--)
     {
-        int emptyCol = colDist(rng);
+        int emptyCol = BoardConstants::MIN_COLUMN + rand() % (BoardConstants::MAX_COLUMN - BoardConstants::MIN_COLUMN + 1);
         total_block[row][emptyCol] = BoardConstants::CELL_EMPTY;
     }
 }

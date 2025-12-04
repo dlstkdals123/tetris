@@ -6,7 +6,6 @@
 #include "ActionSimulator.h"
 #include <vector>
 #include <string>
-#include <random>
 
 /**
  * MonteCarloLearner 클래스
@@ -218,7 +217,5 @@ private:
     
     Evaluator evaluator_;
     Config config_;
-    std::mt19937 rng_;
-    std::uniform_real_distribution<double> dist_;
 };
 
