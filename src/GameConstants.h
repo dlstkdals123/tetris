@@ -27,7 +27,7 @@ namespace GameConstants {
         constexpr int DEFAULT = NORMAL;
         
         // 난이도별 Epsilon 값
-        constexpr double EASY_EPSILON = 0.3;
+        constexpr double EASY_EPSILON = 0.2;
         constexpr double NORMAL_EPSILON = 0.1;
         constexpr double HARD_EPSILON = 0.0;
         constexpr double DEFAULT_EPSILON = NORMAL_EPSILON;
