@@ -109,7 +109,7 @@ namespace GameConstants {
         
         constexpr int KEY_INFO_Y = 7;
         constexpr int LEVEL_INPUT_Y = 3;
-        constexpr int VS_PLAYER_KEY_OFFSET = 40;
+        constexpr int VS_PLAYER_KEY_OFFSET = 45;
         
         // Pause 메뉴 좌표
         constexpr int PAUSE_MENU_X = 30;
