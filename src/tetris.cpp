@@ -652,7 +652,8 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
                         else if (pauseKey == MENU_CONTINUE)
                         {
                             isGamePaused = false;
-
+                            
+                            std::lock_guard<std::mutex> inputLock(Utils::inputMutex);
                             system("cls");
                             board.draw(gamestate.getLevel());
                             gamestate.show_gamestat(isLeft, true);
