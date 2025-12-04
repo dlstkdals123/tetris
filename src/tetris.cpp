@@ -56,7 +56,7 @@ int input_mode();
 // AI 난이도 입력
 int input_ai_difficulty();
 // 시작 레벨 입력
-int input_data();
+int input_data(int mode = GameConstants::GameMode::SINGLE_PLAYER);
 // 로고 화면 + 랜덤 블록 애니메이션
 void show_logo(BlockRender& renderer, ScoreManager& scoreManager);
 // 게임 오버 화면 표시
@@ -99,7 +99,7 @@ int main()
         if (mode == GameConstants::GameMode::VS_AI) {
             aiDifficulty = input_ai_difficulty();
         }
-        int startLevel = input_data();
+        int startLevel = input_data(mode);
         gamestate.setLevel(startLevel);
 
         scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_X, GameConstants::ScoreManager::SINGLE_PLAYER_TOP_SCORE_Y);
@@ -201,7 +201,7 @@ int input_ai_difficulty() {
     return difficulty;
 }
 
-int input_data() {
+int input_data(int mode) {
     int level = GameConstants::InputInitial::LEVEL_DEFAULT;
     
     // 이전 입력 버퍼에 남아있는 개행 문자 제거
@@ -209,29 +209,93 @@ int input_data() {
 
     Utils::setColor(COLOR::GRAY);
 
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y);
-    printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET);
-    printf("┃ UP   : Rotate Block                   ┃");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
-    printf("┃ DOWN : Move One-Step Down             ┃");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
-    printf("┃ SPACE: Move Bottom Down               ┃");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
-    printf("┃ LEFT : Move Left                      ┃");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
-    printf("┃ RIGHT: Move Right                     ┃");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 6);
-    printf("┃ DELETE  : Go To Menu (Quit or Resume) ┃");
-    Sleep(GameConstants::Delay::MENU_SLEEP);
-    Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 7);
-    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    if (mode == GameConstants::GameMode::VS_PLAYER) {
+        // VS Player 모드: 왼쪽과 오른쪽 플레이어 키 표시를 양쪽에 나란히 표시
+        int leftX = GameConstants::UI::MENU_LEFT_X;
+        int rightX = GameConstants::UI::MENU_LEFT_X + GameConstants::UI::VS_PLAYER_KEY_OFFSET;
+        int startY = GameConstants::UI::KEY_INFO_Y;
+        
+        // 왼쪽 플레이어 키 안내
+        Utils::gotoxy(leftX, startY);
+        printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET);
+        printf("┃ LEFT PLAYER (W/A/S/D/C)              ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
+        printf("┃ W     : Rotate Block                 ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
+        printf("┃ S     : Move One-Step Down           ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
+        printf("┃ C     : Move Bottom Down             ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
+        printf("┃ A     : Move Left                    ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
+        printf("┃ D     : Move Right                   ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
+        printf("┃ DELETE: Go To Menu (Quit or Resume) ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
+        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+        
+        // 오른쪽 플레이어 키 안내
+        Utils::gotoxy(rightX, startY);
+        printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET);
+        printf("┃ RIGHT PLAYER (UP/DOWN/SPACE/←/→)    ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
+        printf("┃ UP    : Rotate Block                 ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
+        printf("┃ DOWN  : Move One-Step Down           ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
+        printf("┃ SPACE : Move Bottom Down            ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
+        printf("┃ LEFT  : Move Left                    ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
+        printf("┃ RIGHT : Move Right                   ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
+        printf("┃ DELETE: Go To Menu (Quit or Resume) ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
+        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    } else {
+        // Single Player 또는 VS AI 모드: 기본 키 표시
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y);
+        printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET);
+        printf("┃ UP   : Rotate Block                   ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
+        printf("┃ DOWN : Move One-Step Down             ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
+        printf("┃ SPACE: Move Bottom Down               ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
+        printf("┃ LEFT : Move Left                      ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
+        printf("┃ RIGHT: Move Right                     ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 6);
+        printf("┃ DELETE  : Go To Menu (Quit or Resume) ┃");
+        Sleep(GameConstants::Delay::MENU_SLEEP);
+        Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::KEY_INFO_Y + GameConstants::LogoUI::LINE_OFFSET * 7);
+        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    }
 
     while (level < GameConstants::Level::MIN || level > GameConstants::Level::MAX)
     {
@@ -697,7 +761,7 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     srand(time(NULL) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
     // AI Evaluator 초기화
     Evaluator evaluator;
-    evaluator.loadWeights(weightsFile, true);
+    evaluator.loadWeights(weightsFile);
     
     // 난이도별 설정
     double epsilon;
