@@ -66,7 +66,6 @@ run-train: $(TRAIN_EXE)
 # Clean build artifacts
 clean:
 	rm -f $(TETRIS_AI_EXE) $(TRAIN_EXE)
-	rm -f *.txt *.csv
 	@echo "Cleaned build artifacts"
 
 # Help target

@@ -3,8 +3,13 @@
 #include "GameConstants.h"
 #include <fstream>
 #include <algorithm>
+#include <iostream>
+#include <string>
+#include <cstdio>
 
-ScoreManager::ScoreManager(const std::string& fileName): fileName(fileName)
+using namespace std;
+
+ScoreManager::ScoreManager(const string& fileName): fileName(fileName)
 {
     loadFromFile();
 }
@@ -28,7 +33,7 @@ void ScoreManager::loadFromFile()
     fin.close();
 
     // 내림차순 정렬
-    std::sort(scores.begin(), scores.end(), greater<int>());
+    sort(scores.begin(), scores.end(), greater<int>());
     if (scores.size() > 10) {
         scores.resize(10);
     }
@@ -78,41 +83,53 @@ void ScoreManager::printTopN(int n, int x, int y)
     Utils::setColor(COLOR::GRAY);
 
     int boxWidth = 14;
+    string border;  // 재사용할 문자열 변수
+    border.reserve(boxWidth * 2);  // boxWidth * 2바이트 (특수문자 고려)
 
     // 상단
     Utils::gotoxy(x, y);
-    printf("┏");
-    for (int i = 0; i < boxWidth - 2; ++i) printf("━");
-    printf("┓");
+    border.clear();
+    border = "┏";
+    for (int i = 0; i < boxWidth - 2; ++i) border += "━";
+    border += "┓";
+    cout << border;
 
     // 제목줄
     Utils::gotoxy(x, y + 1);
-    printf("┃ TOP %2d     ┃", n);
+    char titleBuf[20];
+    snprintf(titleBuf, sizeof(titleBuf), "┃ TOP %2d     ┃", n);
+    cout << titleBuf;
 
     // 구분선
     Utils::gotoxy(x, y + 2);
-    printf("┣");
-    for (int i = 0; i < boxWidth - 2; ++i) printf("━");
-    printf("┫");
+    border.clear();
+    border = "┣";
+    for (int i = 0; i < boxWidth - 2; ++i) border += "━";
+    border += "┫";
+    cout << border;
 
     // 점수
     for (int i = 0; i < n; ++i) {
         Utils::gotoxy(x, y + 3 + i);
-        if (i < top.size()) {
-            printf("┃%2d.%7d  ┃",
+        if (i < static_cast<int>(top.size())) {
+            char scoreBuf[20];
+            snprintf(scoreBuf, sizeof(scoreBuf), "┃%2d.%7d  ┃",
                 i + GameConstants::ScoreManager::RANK_OFFSET,
                 top[i]);
+            cout << scoreBuf;
         }
         else {
-            printf("┃            ┃");
+            cout << "┃            ┃";
         }
     }
 
     // 하단
     Utils::gotoxy(x, y + 3 + n);
-    printf("┗");
-    for (int i = 0; i < boxWidth - 2; ++i) printf("━");
-    printf("┛");
+    border.clear();
+    border = "┗";
+    for (int i = 0; i < boxWidth - 2; ++i) border += "━";
+    border += "┛";
+    cout << border;
 
     Utils::setColor(COLOR::WHITE);
 }

@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cstdint>
+
 /**
  * BoardConstants
  * 테트리스 보드 관련 상수 정의
@@ -36,5 +38,13 @@ namespace BoardConstants {
     constexpr char CELL_EMPTY = 0;       // 빈 셀
     constexpr char CELL_FILLED = 1;      // 채워진 셀 (벽, 바닥, 일반 블록)
     constexpr char CELL_ATTACK = 2;      // 공격 라인
+    
+    // 비트 마스크 상수
+    constexpr uint32_t CELL_MASK = 0x3;  // 2비트 마스크 (0b11)
+    constexpr uint32_t LEFT_WALL_MASK = CELL_MASK << (LEFT_WALL * 2);  // 왼쪽 벽 마스크 (비트 0-1)
+    constexpr uint32_t RIGHT_WALL_MASK = CELL_MASK << (RIGHT_WALL * 2); // 오른쪽 벽 마스크 (비트 26-27)
+    // 플레이 영역 마스크: MIN_COLUMN부터 MAX_COLUMN까지 (비트 2-25)
+    // PLAY_WIDTH = 12, 각 컬럼은 2비트이므로 24비트
+    constexpr uint32_t PLAY_AREA_MASK = ((1U << (PLAY_WIDTH * 2)) - 1) << (MIN_COLUMN * 2); // 0x3FFFFFC
 }
 
