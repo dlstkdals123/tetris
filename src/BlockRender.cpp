@@ -4,6 +4,9 @@
 #include "Board.h"
 #include "GameConstants.h"
 #include "BlockData.h"
+#include <iostream>
+
+using namespace std;
 
 BlockRender::BlockRender(const gameState& gs, const Position& boardOffset, Board& board, bool isLeft): gs(gs), boardOffset(boardOffset), board(board), isLeft(isLeft) {};
 
@@ -52,7 +55,7 @@ void BlockRender::show_cur_block(Block& block) {
 			if(BlockShape::getCell(static_cast<int>(shape), angle, j, i) == BlockShapeConstants::CELL_FILLED)
 			{
 				Utils::gotoxy((i+x)*GameConstants::BlockRender::X_COORD_MULTIPLIER+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
-				printf("■");
+				cout << "■";
 			}
 		}
 	}
@@ -76,9 +79,7 @@ void BlockRender::erase_cur_block(Block& block) {
 			if(BlockShape::getCell(static_cast<int>(block.getType()), angle, j, i) == BlockShapeConstants::CELL_FILLED)
 			{
 				Utils::gotoxy((i+x)*GameConstants::BlockRender::X_COORD_MULTIPLIER+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
-				printf("  ");
-				//break;
-				
+				cout << "  ";
 			}
 		}
 	}
@@ -89,20 +90,24 @@ void BlockRender::show_next_block(Block& block) {
 	Utils::setColor(COLOR::GRAY);
 	
     int i,j;
+    string line;
+    // WIDTH * 2 (각 셀당 2바이트) + 여유 공간
+    line.reserve(GameConstants::NextBlockBox::WIDTH * 3);
     
 	for(i=GameConstants::NextBlockBox::START_Y;i<GameConstants::NextBlockBox::END_Y + 1;i++)
 	{
 		Utils::gotoxy(GameConstants::NextBlockBox::X_POS, i, isLeft);
+		line.clear();
 		for(j=0;j<GameConstants::NextBlockBox::WIDTH;j++)
 		{
 			if(i==GameConstants::NextBlockBox::BORDER_TOP_Y || i==GameConstants::NextBlockBox::BORDER_BOTTOM_Y || j==GameConstants::NextBlockBox::BORDER_LEFT_X || j==GameConstants::NextBlockBox::BORDER_RIGHT_X)
 			{
-				printf("■ ");				
+				line += "■ ";				
 			}else{
-				printf("  ");
+				line += "  ";
 			}
-
 		}
+		cout << line;
 	}
 	Position next_pos(GameConstants::NextBlock::POS_X, GameConstants::NextBlock::POS_Y);
 	Rotation next_rotation(GameConstants::BlockRotation::INITIAL_ROTATION);
@@ -130,7 +135,7 @@ void BlockRender::show_ghost_block(const Block& block) {
                 Utils::gotoxy((i + x) * GameConstants::BlockRender::X_COORD_MULTIPLIER + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);
-                printf("□");       // 빈 사각형으로
+                cout << "□";       // 빈 사각형으로
             }
         }
     }
@@ -156,7 +161,7 @@ void BlockRender::erase_ghost_block(const Block& block) {
                 Utils::gotoxy((i + x) * GameConstants::BlockRender::X_COORD_MULTIPLIER + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);
-                printf("  ");
+                cout << "  ";
             }
         }
     }

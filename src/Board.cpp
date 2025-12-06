@@ -115,11 +115,18 @@ void Board::draw(const int &level) const
 {
     std::lock_guard<std::recursive_mutex> lock(Utils::gameMutex); // 스레드 동시 접근 방지
 
+    string line;
+    line.reserve(BoardConstants::BOARD_WIDTH * 3);
+
     int i, j;
     Utils::setColor(COLOR::DARK_GRAY);
 
     for (i = 0; i < BoardConstants::BOARD_HEIGHT; i++)
     {
+        Utils::gotoxy(Utils::ab_x, i + Utils::ab_y, isPlayer);
+        line.clear();
+
+        
         for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
         {
             if (j == BoardConstants::LEFT_WALL || j == BoardConstants::RIGHT_WALL || i == BoardConstants::FLOOR_ROW)

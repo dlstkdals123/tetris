@@ -130,24 +130,24 @@ int input_mode() {
     Utils::setColor(COLOR::GRAY);
 
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y);
-    printf("┏━━━━━━<GAME MODE>━━━━━━━┓");
+    cout << "┏━━━━━━<GAME MODE>━━━━━━━┓";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET);
-    printf("┃ 1: Single Player       ┃");
+    cout << "┃ 1: Single Player       ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
-    printf("┃ 2: VS AI               ┃");
+    cout << "┃ 2: VS AI               ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
-    printf("┃ 3: VS Player           ┃");
+    cout << "┃ 3: VS Player           ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
-    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━┛";
     Sleep(GameConstants::Delay::MENU_SLEEP);
 
     while (mode < GameConstants::GameMode::MIN || mode > GameConstants::GameMode::MAX) {
         Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
-        printf("Select Mode[1-3]:       \b\b\b\b\b\b\b");
+        cout << "Select Mode[1-3]:       \b\b\b\b\b\b\b";
         cin >> mode;
         if (cin.fail())
         {
@@ -170,24 +170,24 @@ int input_ai_difficulty() {
     Utils::setColor(COLOR::GRAY);
     
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y);
-    printf("┏━━━━━<AI DIFFICULTY>━━━━┓");
+    cout << "┏━━━━━<AI DIFFICULTY>━━━━┓";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET);
-    printf("┃ 1: Easy                ┃");
+    cout << "┃ 1: Easy                ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
-    printf("┃ 2: Normal              ┃");
+    cout << "┃ 2: Normal              ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
-    printf("┃ 3: Hard                ┃");
+    cout << "┃ 3: Hard                ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
-    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━┛";
     Sleep(GameConstants::Delay::MENU_SLEEP);
-    
+
     while (difficulty < GameConstants::AIDifficulty::MIN || difficulty > GameConstants::AIDifficulty::MAX) {
         Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::MENU_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
-        printf("Select AI Difficulty[1-3]:       \b\b\b\b\b\b\b");
+        cout << "Select AI Difficulty[1-3]:       \b\b\b\b\b\b\b";
         cin >> difficulty;
         if (cin.fail())
         {
@@ -214,71 +214,71 @@ int input_data(int mode) {
     int startY = GameConstants::UI::KEY_INFO_Y;
 
     Utils::gotoxy(leftX, startY);
-    printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
+    cout << "┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET);
     if (mode == GameConstants::GameMode::VS_PLAYER)
-        printf("┃ LEFT PLAYER                           ┃");
+        cout << "┃ LEFT PLAYER                           ┃";
     else
-        printf("┃ PLAYER                                ┃");
+        cout << "┃ PLAYER                                ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
-    printf("┃ UP    : Rotate Block                  ┃");
+    cout << "┃ UP    : Rotate Block                  ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
-    printf("┃ DOWN  : Move One-Step Down            ┃");
+    cout << "┃ DOWN  : Move One-Step Down            ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
-    printf("┃ SPACE : Move Bottom Down              ┃");
+    cout << "┃ SPACE : Move Bottom Down              ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
-    printf("┃ LEFT  : Move Left                     ┃");
+    cout << "┃ LEFT  : Move Left                     ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
-    printf("┃ RIGHT : Move Right                    ┃");
+    cout << "┃ RIGHT : Move Right                    ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
-    printf("┃ DELETE: Go To Menu (Quit or Resume)   ┃");
+    cout << "┃ DELETE: Go To Menu (Quit or Resume)   ┃";
     Sleep(GameConstants::Delay::MENU_SLEEP);
     Utils::gotoxy(leftX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
-    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
 
     // VS Player일 때만 오른쪽에 RIGHT PLAYER 키(W A S D C) 안내 추가
     if (mode == GameConstants::GameMode::VS_PLAYER) {
         int rightX = GameConstants::UI::MENU_LEFT_X + GameConstants::UI::VS_PLAYER_KEY_OFFSET;
 
         Utils::gotoxy(rightX, startY);
-        printf("┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓");
+        cout << "┏━━━━━━━━━━━━━━<GAME KEY>━━━━━━━━━━━━━━━┓";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET);
-        printf("┃ RIGHT PLAYER                          ┃");
+        cout << "┃ RIGHT PLAYER                          ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 2);
-        printf("┃ W      : Rotate Block                 ┃");
+        cout << "┃ W      : Rotate Block                 ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 3);
-        printf("┃ S      : Move One-Step Down           ┃");
+        cout << "┃ S      : Move One-Step Down           ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 4);
-        printf("┃ C      : Move Bottom Down             ┃");
+        cout << "┃ C      : Move Bottom Down             ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 5);
-        printf("┃ A      : Move Left                    ┃");
+        cout << "┃ A      : Move Left                    ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 6);
-        printf("┃ D      : Move Right                   ┃");
+        cout << "┃ D      : Move Right                   ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 7);
-        printf("┃ DELETE: Go To Menu (Quit or Resume)   ┃");
+        cout << "┃ DELETE: Go To Menu (Quit or Resume)   ┃";
         Sleep(GameConstants::Delay::MENU_SLEEP);
         Utils::gotoxy(rightX, startY + GameConstants::LogoUI::LINE_OFFSET * 8);
-        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+        cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
     }
 
     while (level < GameConstants::Level::MIN || level > GameConstants::Level::MAX)
     {
         Utils::gotoxy(GameConstants::UI::MENU_LEFT_X, GameConstants::UI::LEVEL_INPUT_Y);
-        printf("Select Start level[1-8]:       \b\b\b\b\b\b\b");
+        cout << "Select Start level[1-8]:       \b\b\b\b\b\b\b";
 
         cin >> level;
         if (cin.fail())
@@ -299,28 +299,28 @@ void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
     system("cls");
     Utils::setColor(COLOR::GRAY);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y);
-    printf("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+    cout << "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓";
     Sleep(GameConstants::Delay::LOGO_SLEEP);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET);
-    printf("┃◆◆◆◆◆  ◆◆◆  ◆◆◆◆◆   ◆      ◆   ◆◆◆ ┃");
+    cout << "┃◆◆◆◆◆  ◆◆◆  ◆◆◆◆◆   ◆      ◆   ◆◆◆ ┃";
     Sleep(GameConstants::Delay::LOGO_SLEEP);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 2);
-    printf("┃  ◆    ◆      ◆     ◆ ◆    ◆   ◆   ┃");
+    cout << "┃  ◆    ◆      ◆     ◆ ◆    ◆   ◆   ┃";
     Sleep(GameConstants::Delay::LOGO_SLEEP);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 3);
-    printf("┃  ◆    ◆◆◆    ◆     ◆◆     ◆    ◆  ┃");
+    cout << "┃  ◆    ◆◆◆    ◆     ◆◆     ◆    ◆  ┃";
     Sleep(GameConstants::Delay::LOGO_SLEEP);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 4);
-    printf("┃  ◆    ◆      ◆     ◆ ◆    ◆     ◆ ┃");
+    cout << "┃  ◆    ◆      ◆     ◆ ◆    ◆     ◆ ┃";
     Sleep(GameConstants::Delay::LOGO_SLEEP);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 5);
-    printf("┃  ◆    ◆◆◆    ◆     ◆  ◆   ◆   ◆◆◆ ┃");
+    cout << "┃  ◆    ◆◆◆    ◆     ◆  ◆   ◆   ◆◆◆ ┃";
     Sleep(GameConstants::Delay::LOGO_SLEEP);
     Utils::gotoxy(GameConstants::UI::LOGO_LEFT_X, GameConstants::UI::LOGO_TOP_Y + GameConstants::LogoUI::LINE_OFFSET * 6);
-    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
 
     Utils::gotoxy(GameConstants::UI::LOGO_TEXT_X, GameConstants::UI::LOGO_TEXT_Y);
-    printf("Please Press Any Key~!");
+    cout << "Please Press Any Key~!";
 
     scoreManager.printTopN(GameConstants::ScoreManager::TOP_N_COUNT, GameConstants::ScoreManager::LOGO_TOP_SCORE_X + 30, GameConstants::UI::LOGO_TOP_Y);
 
@@ -335,7 +335,7 @@ void show_logo(BlockRender& renderer, ScoreManager& scoreManager)
             for (j = 0; j < GameConstants::LogoAnimation::CLEAR_LINES; ++j)
             {
                 Utils::gotoxy(GameConstants::UI::LOGO_BLOCK_X, GameConstants::LogoAnimation::START_ROW + j);
-                printf("                                                          ");
+                cout << "                                                          ";
             }
 
             Block blocks[GameConstants::LogoAnimation::BLOCK_COUNT];
@@ -367,43 +367,43 @@ void show_gameover(int mode, int winner)
     if (mode == GameConstants::GameMode::SINGLE_PLAYER) {
         Utils::setColor(COLOR::YELLOW);
         Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
-        printf("┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+        cout << "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓";
         Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
-        printf("┃**************************┃");
+        cout << "┃**************************┃";
         Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
-        printf("┃*        GAME OVER       *┃");
+        cout << "┃*        GAME OVER       *┃";
         Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
-        printf("┃**************************┃");
+        cout << "┃**************************┃";
         Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
-        printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+        cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
     }
     // VS AI 모드: Player 또는 AI 승리
     else if (mode == GameConstants::GameMode::VS_AI) {
         if (winner == GameConstants::Winner::PLAYER) {
             Utils::setColor(COLOR::GREEN);
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
-            printf("┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+            cout << "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
-            printf("┃*       PLAYER WIN!      *┃");
+            cout << "┃*       PLAYER WIN!      *┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
-            printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+            cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
         }
         else if (winner == GameConstants::Winner::AI) {
             Utils::setColor(COLOR::RED);
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
-            printf("┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+            cout << "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
-            printf("┃*        AI WIN!         *┃");
+            cout << "┃*        AI WIN!         *┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
-            printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+            cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
         }
     }
     // VS Player 모드: Player1 또는 Player2 승리
@@ -411,28 +411,28 @@ void show_gameover(int mode, int winner)
         if (winner == GameConstants::Winner::PLAYER1) {
             Utils::setColor(COLOR::GREEN);
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
-            printf("┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+            cout << "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
-            printf("┃*     PLAYER1 WIN!       *┃");
+            cout << "┃*     PLAYER1 WIN!       *┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
-            printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+            cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
         }
         else if (winner == GameConstants::Winner::PLAYER2) {
             Utils::setColor(COLOR::RED);
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_Y);
-            printf("┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓");
+            cout << "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_1_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::TEXT_Y);
-            printf("┃*      PLAYER2 WIN!      *┃");
+            cout << "┃*      PLAYER2 WIN!      *┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_TOP_2_Y);
-            printf("┃**************************┃");
+            cout << "┃**************************┃";
             Utils::gotoxy(GameConstants::UI::GAME_OVER_X, GameConstants::GameOverUI::BOX_BOTTOM_Y);
-            printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+            cout << "┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛";
         }
     }
 
