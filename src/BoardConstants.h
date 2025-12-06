@@ -46,6 +46,7 @@ namespace BoardConstants {
     // 플레이 영역 마스크: MIN_COLUMN부터 MAX_COLUMN까지 (비트 2-25)
     // PLAY_WIDTH = 12, 각 컬럼은 2비트이므로 24비트
     constexpr uint32_t PLAY_AREA_MASK = ((1U << (PLAY_WIDTH * 2)) - 1) << (MIN_COLUMN * 2); // 0x3FFFFFC
-    constexpr uint32_t FLOOR_MASK = 0x5555555;
+    constexpr uint32_t FLOOR_BIT = 0x5555555;
+    constexpr uint32_t WALL_BIT = (0x1 << (LEFT_WALL * 2)) | (0x1 << (RIGHT_WALL * 2));
 }
 

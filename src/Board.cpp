@@ -38,24 +38,17 @@ void Board::setCell(int row, int col, char value)
 
 Board::Board(bool isPlayer) : isPlayer(isPlayer)
 {
-    for (int i = 0; i < BoardConstants::BOARD_HEIGHT; i++)
-        rows[i] = 0;
+    for (int i = 0; i < BoardConstants::PLAY_HEIGHT; i++)
+        rows[i] = 0 | BoardConstants::WALL_BIT;
 
-    for (int i = 0; i < BoardConstants::PLAY_HEIGHT; ++i)
-        for (int j = 0; j < BoardConstants::BOARD_WIDTH; ++j)
-            if (j == BoardConstants::LEFT_WALL || j == BoardConstants::RIGHT_WALL)
-                setCell(i, j, BoardConstants::CELL_FILLED);
-
-    rows[BoardConstants::BOARD_HEIGHT - 1] = BoardConstants::FLOOR_MASK;
+    rows[BoardConstants::BOARD_HEIGHT - 1] = BoardConstants::FLOOR_BIT;
 }
 
 Board::Board(const Board& other) : isPlayer(other.isPlayer)
 {
     // 비트 패킹된 행들을 직접 복사
     for (int i = 0; i < BoardConstants::BOARD_HEIGHT; i++)
-    {
         rows[i] = other.rows[i];
-    }
 }
 
 Board::~Board()
