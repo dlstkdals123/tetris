@@ -29,6 +29,9 @@ public:
     
     void updateGhost(const Block& current);
     
+    // 하드 드롭 (바닥까지 즉시 떨어뜨리기)
+    int hard_drop(Block& block, Block& nextBlock);
+    
     // 공격 처리를 위한 getter
     int getGameMode() const { return gameMode; }
     bool getIsLeftPlayer() const { return isLeftPlayer; }
