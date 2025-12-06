@@ -6,12 +6,10 @@
 #include <Windows.h>
 #include <iostream>
 #include <cstdlib>
-#include <cstring>
 
 using namespace std;
 
-// 비트 조작 헬퍼 함수 구현
-char Board::getCellValue(int row, int col) const
+char Board::getCell(int row, int col) const
 {
     if (row < 0 || row >= BoardConstants::BOARD_HEIGHT || col < 0 || col >= BoardConstants::BOARD_WIDTH)
     {
@@ -20,11 +18,10 @@ char Board::getCellValue(int row, int col) const
     
     // 각 컬럼은 2비트로 저장됨 (col * 2 위치에 저장)
     uint32_t bitPos = col * 2;
-    uint32_t mask = 0x3; // 2비트 마스크 (0b11)
-    return (char)((rows[row] >> bitPos) & mask);
+    return (char)((rows[row] >> bitPos) & BoardConstants::CELL_MASK);
 }
 
-void Board::setCellValue(int row, int col, char value)
+void Board::setCell(int row, int col, char value)
 {
     if (row < 0 || row >= BoardConstants::BOARD_HEIGHT || col < 0 || col >= BoardConstants::BOARD_WIDTH)
     {
@@ -33,11 +30,10 @@ void Board::setCellValue(int row, int col, char value)
     
     // 각 컬럼은 2비트로 저장됨 (col * 2 위치에 저장)
     uint32_t bitPos = col * 2;
-    uint32_t mask = 0x3; // 2비트 마스크 (0b11)
     
     // 기존 값 제거 후 새 값 설정
-    rows[row] &= ~(mask << bitPos);
-    rows[row] |= ((value & mask) << bitPos);
+    rows[row] &= ~(BoardConstants::CELL_MASK << bitPos);
+    rows[row] |= ((value & BoardConstants::CELL_MASK) << bitPos);
 }
 
 Board::Board(bool isPlayer) : isPlayer(isPlayer)
@@ -55,18 +51,18 @@ Board::Board(bool isPlayer) : isPlayer(isPlayer)
         {
             if ((j == BoardConstants::LEFT_WALL) || (j == BoardConstants::RIGHT_WALL))
             {
-                setCellValue(i, j, BoardConstants::CELL_FILLED); // 좌우 벽
+                setCell(i, j, BoardConstants::CELL_FILLED); // 좌우 벽
             }
             else
             {
-                setCellValue(i, j, BoardConstants::CELL_EMPTY); // 빈 공간
+                setCell(i, j, BoardConstants::CELL_EMPTY); // 빈 공간
             }
         }
     }
 
     for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
     {                           // 화면의 제일 밑의 줄은 1로 채운다.
-        setCellValue(BoardConstants::FLOOR_ROW, j, BoardConstants::CELL_FILLED); // 바닥
+        setCell(BoardConstants::FLOOR_ROW, j, BoardConstants::CELL_FILLED); // 바닥
     }
 }
 
@@ -98,18 +94,18 @@ int Board::init()
         {
             if ((j == BoardConstants::LEFT_WALL) || (j == BoardConstants::RIGHT_WALL))
             {
-                setCellValue(i, j, BoardConstants::CELL_FILLED); // 좌우 벽
+                setCell(i, j, BoardConstants::CELL_FILLED); // 좌우 벽
             }
             else
             {
-                setCellValue(i, j, BoardConstants::CELL_EMPTY); // 빈 공간
+                setCell(i, j, BoardConstants::CELL_EMPTY); // 빈 공간
             }
         }
     }
 
     for (j = 0; j < BoardConstants::BOARD_WIDTH; j++)
     {                           // 화면의 제일 밑의 줄은 1로 채운다.
-        setCellValue(BoardConstants::FLOOR_ROW, j, BoardConstants::CELL_FILLED); // 바닥
+        setCell(BoardConstants::FLOOR_ROW, j, BoardConstants::CELL_FILLED); // 바닥
     }
 
     return 0;
@@ -135,7 +131,7 @@ void Board::draw(const int &level) const
                 Utils::setColor(COLOR::DARK_GRAY);
             }
             Utils::gotoxy((j * GameConstants::BlockRender::X_COORD_MULTIPLIER) + Utils::ab_x, i + Utils::ab_y, isPlayer);
-            char cellValue = getCellValue(i, j);
+            char cellValue = getCell(i, j);
             if (cellValue == BoardConstants::CELL_FILLED)
             {
                 cout << "■";
@@ -182,7 +178,7 @@ int Board::isStrike(const Block &block) const
 
             if (y + i >= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
             {
-                char cellValue = getCellValue(y + i, x + j);
+                char cellValue = getCell(y + i, x + j);
                 if (cellValue == BoardConstants::CELL_FILLED || cellValue == BoardConstants::CELL_ATTACK)
                 { // 바닥 or 다른 블록(일반 블록 또는 attack 라인)에 닿았는지 검사
                     return BoardConstants::STRIKE_TRUE;
@@ -207,7 +203,7 @@ void Board::mergeBlock(const Block &block)
             {
                 if (y + i >= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
                 {
-                    setCellValue(y + i, x + j, BoardConstants::CELL_FILLED);
+                    setCell(y + i, x + j, BoardConstants::CELL_FILLED);
                 }
             }
         }
@@ -224,14 +220,14 @@ std::pair<int, int> Board::deleteFullLine()
 
     for (i = 0; i < BoardConstants::PLAY_HEIGHT; i++)
     {
-        // 줄이 꽉 찼는지 확인
         bool isFull = true;
-        bool hasAttackLine = false; // 2가 포함되어 있는지
-        bool hasOnlyOnes = true; // 1로만 이루어져 있는지
+        bool containsAttackLine = false;
         
+        // 플레이 영역의 각 셀(2비트)을 확인 - 비트 연산으로 최적화
+        // 12개 컬럼을 확인 (비트 2-25, 각 2비트씩)
         for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
         {
-            char cellValue = getCellValue(i, j);
+            char cellValue = getCell(i, j);
             if (cellValue == BoardConstants::CELL_EMPTY)
             {
                 isFull = false;
@@ -239,12 +235,7 @@ std::pair<int, int> Board::deleteFullLine()
             }
             if (cellValue == BoardConstants::CELL_ATTACK)
             {
-                hasAttackLine = true;
-                hasOnlyOnes = false;
-            }
-            else if (cellValue != BoardConstants::CELL_FILLED)
-            {
-                hasOnlyOnes = false;
+                containsAttackLine = true;
             }
         }
         
@@ -256,11 +247,9 @@ std::pair<int, int> Board::deleteFullLine()
         deletedLines++;
         
         // 1로만 이루어진 줄(2가 없음)이면 attack 가능한 줄로 카운트
-        if (hasOnlyOnes && !hasAttackLine) {
+        if (!containsAttackLine) {
             attackableLines++;
         }
-        
-        // 2가 포함된 줄도 삭제는 가능 (attack 불가능하지만 삭제는 가능)
         
         // 줄 삭제: 위의 줄들을 아래로 이동
         for (k = i; k > 0; k--)
@@ -270,23 +259,17 @@ std::pair<int, int> Board::deleteFullLine()
             uint32_t dstRow = rows[k];
             
             // 벽 위치(0, 13)는 유지하고, 플레이 영역(1-12)만 복사
-            // 왼쪽 벽 유지: 비트 0-1 유지
-            // 플레이 영역 복사: 비트 2-25 복사 (12개 컬럼 * 2비트 = 24비트)
-            // 오른쪽 벽 유지: 비트 26-27 유지
-            uint32_t leftWall = dstRow & 0x3; // 왼쪽 벽 (비트 0-1)
-            uint32_t playArea = srcRow & 0x3FFFFFC; // 플레이 영역 (비트 2-25)
-            uint32_t rightWall = dstRow & 0xC000000; // 오른쪽 벽 (비트 26-27, 하지만 0xC000000은 26-31)
-            
-            // 오른쪽 벽만 정확히 추출 (비트 26-27만)
-            rightWall = dstRow & (0x3 << 26); // 비트 26-27만 추출
+            uint32_t leftWall = dstRow & BoardConstants::LEFT_WALL_MASK;
+            uint32_t playArea = srcRow & BoardConstants::PLAY_AREA_MASK;
+            uint32_t rightWall = dstRow & BoardConstants::RIGHT_WALL_MASK;
             
             rows[k] = leftWall | playArea | rightWall;
         }
-        // 맨 위 줄을 빈 공간으로 초기화 (벽 제외)
-        for (j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++)
-        {
-            setCellValue(GameConstants::Simulation::GAME_OVER_Y_THRESHOLD, j, BoardConstants::CELL_EMPTY);
-        }
+        // 맨 위 줄을 빈 공간으로 초기화 (벽 제외) - 비트 연산으로 최적화
+        uint32_t& topRow = rows[GameConstants::Simulation::GAME_OVER_Y_THRESHOLD];
+        uint32_t leftWall = topRow & BoardConstants::LEFT_WALL_MASK;
+        uint32_t rightWall = topRow & BoardConstants::RIGHT_WALL_MASK;
+        topRow = leftWall | rightWall; // 플레이 영역은 0으로 초기화됨
         
         // 삭제 후 인덱스 조정 (한 줄이 삭제되었으므로 i를 다시 확인해야 함)
         i--; // 다음 반복에서 같은 인덱스를 다시 확인
@@ -305,16 +288,11 @@ int Board::addAttackLines(int numLines)
     // 기존 블록을 위로 밀어냄
     // 맨 위 블록이 화면 밖으로 나가면 게임오버
     for (int i = GameConstants::Simulation::GAME_OVER_Y_THRESHOLD; i < numLines; i++) {
-        // 맨 위 줄(row 0)에 블록이 있는지 확인
-        bool hasBlockAtTop = false;
-        for (int j = BoardConstants::MIN_COLUMN; j <= BoardConstants::MAX_COLUMN; j++) {
-            if (getCellValue(GameConstants::Simulation::GAME_OVER_Y_THRESHOLD, j) != BoardConstants::CELL_EMPTY) {
-                hasBlockAtTop = true;
-                break;
-            }
-        }
+        // 맨 위 줄(row 0)에 블록이 있는지 비트 연산으로 확인
+        uint32_t playArea = rows[GameConstants::Simulation::GAME_OVER_Y_THRESHOLD] & BoardConstants::PLAY_AREA_MASK;
         
-        if (hasBlockAtTop) {
+        // 플레이 영역이 비어있지 않으면 게임오버
+        if (playArea != 0) {
             // 게임오버: 맨 위 블록이 화면 밖으로 나감
             return GameConstants::BoardReturn::GAME_OVER;
         }
@@ -326,9 +304,9 @@ int Board::addAttackLines(int numLines)
             uint32_t dstRow = rows[row];
             
             // 벽 위치(0, 13)는 유지하고, 플레이 영역(1-12)만 복사
-            uint32_t leftWall = dstRow & 0x3; // 왼쪽 벽 (비트 0-1)
-            uint32_t playArea = srcRow & 0x3FFFFFC; // 플레이 영역 (비트 2-25)
-            uint32_t rightWall = dstRow & (0x3 << 26); // 오른쪽 벽 (비트 26-27만)
+            uint32_t leftWall = dstRow & BoardConstants::LEFT_WALL_MASK;
+            uint32_t playArea = srcRow & BoardConstants::PLAY_AREA_MASK;
+            uint32_t rightWall = dstRow & BoardConstants::RIGHT_WALL_MASK;
             
             rows[row] = leftWall | playArea | rightWall;
         }
@@ -339,41 +317,16 @@ int Board::addAttackLines(int numLines)
         
         for (int col = BoardConstants::MIN_COLUMN; col <= BoardConstants::MAX_COLUMN; col++) {
             if (col == emptyCol) {
-                setCellValue(BoardConstants::MAX_ROW, col, BoardConstants::CELL_EMPTY); // 빈 칸
+                setCell(BoardConstants::MAX_ROW, col, BoardConstants::CELL_EMPTY); // 빈 칸
             } else {
-                setCellValue(BoardConstants::MAX_ROW, col, BoardConstants::CELL_ATTACK); // Attack 라인
+                setCell(BoardConstants::MAX_ROW, col, BoardConstants::CELL_ATTACK); // Attack 라인
             }
         }
         
         // 벽은 그대로 유지
-        setCellValue(BoardConstants::MAX_ROW, BoardConstants::LEFT_WALL, BoardConstants::CELL_FILLED);
-        setCellValue(BoardConstants::MAX_ROW, BoardConstants::RIGHT_WALL, BoardConstants::CELL_FILLED);
+        setCell(BoardConstants::MAX_ROW, BoardConstants::LEFT_WALL, BoardConstants::CELL_FILLED);
+        setCell(BoardConstants::MAX_ROW, BoardConstants::RIGHT_WALL, BoardConstants::CELL_FILLED);
     }
     
     return numLines;
-}
-
-// Feature 추출을 위한 접근 함수들
-char Board::getCell(int row, int col) const
-{
-    return getCellValue(row, col);
-}
-
-const char* Board::getRow(int row) const
-{
-    // 비트 패킹된 구조이므로 직접 배열을 반환할 수 없음
-    // 대신 정적 버퍼를 사용하거나 nullptr 반환
-    // 이 함수를 사용하는 곳이 있는지 확인 필요
-    static char rowBuffer[BoardConstants::BOARD_WIDTH];
-    if (row < 0 || row >= BoardConstants::BOARD_HEIGHT)
-    {
-        return nullptr;
-    }
-    
-    // 비트 패킹된 데이터를 char 배열로 변환
-    for (int col = 0; col < BoardConstants::BOARD_WIDTH; col++)
-    {
-        rowBuffer[col] = getCellValue(row, col);
-    }
-    return rowBuffer;
 }

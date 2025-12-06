@@ -98,7 +98,7 @@ void ScoreManager::printTopN(int n, int x, int y)
     // 점수
     for (int i = 0; i < n; ++i) {
         Utils::gotoxy(x, y + 3 + i);
-        if (i < top.size()) {
+        if (i < static_cast<int>(top.size())) {
             printf("┃%2d.%7d  ┃",
                 i + GameConstants::ScoreManager::RANK_OFFSET,
                 top[i]);
