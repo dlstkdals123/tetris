@@ -4,11 +4,17 @@
 #include "Utils.h"
 #include "BoardConstants.h"
 #include <utility>
+#include <cstdint>
 
 class Board {
   private:
-    char total_block[BoardConstants::BOARD_HEIGHT][BoardConstants::BOARD_WIDTH];
+    // 각 행을 32비트 정수로 저장 (13개 컬럼 * 2비트 = 26비트)
+    uint32_t rows[BoardConstants::BOARD_HEIGHT];
     bool isPlayer;
+    
+    // 비트 조작 헬퍼 함수들
+    inline char getCellValue(int row, int col) const;
+    inline void setCellValue(int row, int col, char value);
 
   public:
     Board(bool isPlayer = true);
