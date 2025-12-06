@@ -49,7 +49,7 @@ void BlockRender::show_cur_block(Block& block) {
             if( (j+y) < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
                 continue;
 
-			if(BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == BlockShapeConstants::CELL_FILLED)
+			if(BlockShape::getCell(static_cast<int>(shape), angle, j, i) == BlockShapeConstants::CELL_FILLED)
 			{
 				Utils::gotoxy((i+x)*GameConstants::BlockRender::X_COORD_MULTIPLIER+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
 				printf("■");
@@ -73,7 +73,7 @@ void BlockRender::erase_cur_block(Block& block) {
 	{
 		for(j=0;j<GameConstants::BlockRender::SHAPE_SIZE;j++)
 		{
-			if(BlockShape::SHAPES[static_cast<int>(block.getType())][angle][j][i] == GameConstants::Simulation::NO_COLLISION + 1)
+			if(BlockShape::getCell(static_cast<int>(block.getType()), angle, j, i) == BlockShapeConstants::CELL_FILLED)
 			{
 				Utils::gotoxy((i+x)*GameConstants::BlockRender::X_COORD_MULTIPLIER+boardOffset.getX(),j+y+boardOffset.getY(), isLeft);
 				printf("  ");
@@ -126,7 +126,7 @@ void BlockRender::show_ghost_block(const Block& block) {
         for (int j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; ++j) {
             if (j + y < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) continue;
 
-            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == BlockShapeConstants::CELL_FILLED) {
+            if (BlockShape::getCell(static_cast<int>(shape), angle, j, i) == BlockShapeConstants::CELL_FILLED) {
                 Utils::gotoxy((i + x) * GameConstants::BlockRender::X_COORD_MULTIPLIER + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);
@@ -152,7 +152,7 @@ void BlockRender::erase_ghost_block(const Block& block) {
         for (int j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; ++j) {
             if (j + y < GameConstants::Simulation::GAME_OVER_Y_THRESHOLD) continue;
 
-            if (BlockShape::SHAPES[static_cast<int>(shape)][angle][j][i] == BlockShapeConstants::CELL_FILLED && board.getCell(j + y, i + x) == GameConstants::Simulation::NO_COLLISION) {
+            if (BlockShape::getCell(static_cast<int>(shape), angle, j, i) == BlockShapeConstants::CELL_FILLED && board.getCell(j + y, i + x) == GameConstants::Simulation::NO_COLLISION) {
                 Utils::gotoxy((i + x) * GameConstants::BlockRender::X_COORD_MULTIPLIER + boardOffset.getX(),
                               j + y + boardOffset.getY(),
                               isLeft);

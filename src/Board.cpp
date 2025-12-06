@@ -170,7 +170,7 @@ int Board::isStrike(const Block &block) const
     {
         for (j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; j++)
         {
-            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == BlockShapeConstants::CELL_EMPTY)
+            if (BlockShape::getCell((int)block.getType(), block.getRotation(), i, j) == BlockShapeConstants::CELL_EMPTY)
             { // 블럭의 해당 위치가 채워져있는지 검사.
                 continue;
             }
@@ -203,7 +203,7 @@ void Board::mergeBlock(const Block &block)
     {
         for (j = 0; j < GameConstants::BlockRender::SHAPE_SIZE; j++)
         {
-            if (BlockShape::SHAPES[(int)block.getType()][block.getRotation()][i][j] == BlockShapeConstants::CELL_FILLED)
+            if (BlockShape::getCell((int)block.getType(), block.getRotation(), i, j) == BlockShapeConstants::CELL_FILLED)
             {
                 if (y + i >= GameConstants::Simulation::GAME_OVER_Y_THRESHOLD)
                 {
