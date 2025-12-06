@@ -21,7 +21,6 @@ class Board {
     char getCell(int row, int col) const;
     void setCell(int row, int col, char value);
 
-    int init();
     // 전체 블럭 화면에 그리기
     void draw(const int &level) const; 
     // strike_check

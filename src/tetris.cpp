@@ -494,7 +494,6 @@ void playerThread(bool isLeft, gameState gamestate, std::atomic<int>& is_gameove
     BlockMover mover(renderer, board, blockGenerator, gamestate, mode, isLeft);
     std::queue<char>& inputQueue = isLeft ? Utils::leftPlayerInputQueue : Utils::rightPlayerInputQueue;
 
-    board.init();
     board.draw(gamestate.getLevel());
     Block curBlock(blockGenerator.make_new_block());
     Block nextBlock(blockGenerator.make_new_block());
@@ -693,7 +692,6 @@ void aiThread(gameState gamestate, std::atomic<int>& is_gameover, std::atomic<bo
     BlockRender renderer(gamestate, boardOffset, board, false);
     BlockMover mover(renderer, board, blockGenerator, gamestate, mode, false);
 
-    board.init();
     board.draw(gamestate.getLevel());
 
     Block curBlock(blockGenerator.make_new_block());
